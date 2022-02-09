@@ -59,7 +59,7 @@ bool SegmentBase::getSegmentNumberByTime(int64_t time, uint64_t *ret) const
     }
     int64_t st = timescale.ToScaled(time);
     *ret = ISegmentBase::findSegmentNumberByScaledTime(subsegments, st);
-    return *ret != std::numeric_limits<uint64_t>::max();
+    return *ret != (std::numeric_limits<uint64_t>::max)();
 }
 
 bool SegmentBase::getPlaybackTimeDurationBySegmentNumber(uint64_t number, int64_t *time, int64_t *dur) const

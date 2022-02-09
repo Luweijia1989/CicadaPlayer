@@ -201,7 +201,7 @@ bool SegmentTemplate::getSegmentNumberByTime(int64_t time, uint64_t *ret) const
 
 bool SegmentTemplate::getPlaybackTimeDurationBySegmentNumber(uint64_t number, int64_t *time, int64_t *duration) const
 {
-    if (number == std::numeric_limits<uint64_t>::max()) {
+    if (number == (std::numeric_limits<uint64_t>::max)()) {
         return false;
     }
 

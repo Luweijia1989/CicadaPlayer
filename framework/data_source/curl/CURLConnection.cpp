@@ -184,7 +184,7 @@ size_t Cicada::CURLConnection::write_callback(char *buffer, size_t size, size_t 
 
     if (pHandle->overflowSize) {
         // we have our overflow buffer - first get rid of as much as we can
-        uint32_t maxWriteable = std::min(RingBuffergetMaxWriteSize(pHandle->pRbuf), pHandle->overflowSize);
+        uint32_t maxWriteable = std::min<uint32_t>(RingBuffergetMaxWriteSize(pHandle->pRbuf), pHandle->overflowSize);
 
         if (maxWriteable) {
             if (RingBufferWriteData(pHandle->pRbuf, pHandle->pOverflowBuffer, maxWriteable) != maxWriteable) {
@@ -199,7 +199,7 @@ size_t Cicada::CURLConnection::write_callback(char *buffer, size_t size, size_t 
         }
     }
 
-    uint32_t maxWriteable = std::min(RingBuffergetMaxWriteSize(pHandle->pRbuf), amount);
+    uint32_t maxWriteable = std::min<uint32_t>(RingBuffergetMaxWriteSize(pHandle->pRbuf), amount);
 
     if (maxWriteable) {
         if (RingBufferWriteData(pHandle->pRbuf, buffer, maxWriteable) != maxWriteable) {
@@ -429,7 +429,7 @@ int CURLConnection::FillBuffer(uint32_t want)
 
         /* if there is data in overflow buffer, try to use that first */
         if (overflowSize) {
-            uint32_t amount = std::min(RingBuffergetMaxWriteSize(pRbuf),
+            uint32_t amount = std::min<uint32_t>(RingBuffergetMaxWriteSize(pRbuf),
                                        overflowSize);
             RingBufferWriteData(pRbuf, pOverflowBuffer, amount);
 
@@ -730,7 +730,7 @@ int CURLConnection::readBuffer(void *buf, size_t size)
     //   CURLcode re = curl_easy_getinfo(pEasyHandle->http_handle, CURLINFO_SPEED_DOWNLOAD, &downloadSpeed);
     /*if (re == CURLE_OK)
         av_log(mCurlhttpContext.hd,AV_LOG_DEBUG,"download speed is %f\n",downloadSpeed);*/
-    uint32_t want = std::min(RingBuffergetMaxReadSize(pRbuf), (uint32_t) size);
+    uint32_t want = std::min<uint32_t>(RingBuffergetMaxReadSize(pRbuf), (uint32_t) size);
 
     if (want > 0 && RingBufferReadData(pRbuf, (char *) buf, want) == want) {
         mFilePos += want;

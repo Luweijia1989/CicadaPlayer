@@ -152,7 +152,7 @@ namespace Cicada {
     {
         for (auto item = mSources.begin(); item != mSources.end();) {
             if ((*item)->mSelected) {
-                (*item)->mSource->seek(std::max(pts + (*item)->mDelay, (int64_t) 0));
+                (*item)->mSource->seek(std::max<int64_t>(pts + (*item)->mDelay, (int64_t) 0));
                 (*item)->mNeedFlush++;
             }
 

@@ -126,7 +126,7 @@ uint64_t AttrsNode::inheritStartNumber() const
     if (p && p->isValid()) {
         return (const uint64_t &) *(static_cast<const StartnumberAttr *>(p));
     }
-    return std::numeric_limits<uint64_t>::max();
+    return (std::numeric_limits<uint64_t>::max)();
 }
 
 Timescale AttrsNode::inheritTimescale() const

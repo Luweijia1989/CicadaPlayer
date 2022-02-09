@@ -111,7 +111,7 @@ Dash::DashSegment *DashSegmentTracker::getStartSegment()
     {
         std::unique_lock<std::recursive_mutex> locker(mMutex);
         uint64_t startNumber = getStartSegmentNumber(mRep);
-        if (mCurrentSegNumber < startNumber || mCurrentSegNumber == std::numeric_limits<uint64_t>::max()) {
+        if (mCurrentSegNumber < startNumber || mCurrentSegNumber == (std::numeric_limits<uint64_t>::max)()) {
             mCurrentSegNumber = startNumber;
         }
 
@@ -137,7 +137,7 @@ Dash::DashSegment *DashSegmentTracker::getNextSegment()
 {
     std::unique_lock<std::recursive_mutex> locker(mMutex);
 
-    if (mCurrentSegNumber == std::numeric_limits<uint64_t>::max()) {
+    if (mCurrentSegNumber == (std::numeric_limits<uint64_t>::max)()) {
         return getStartSegment();
     }
 
@@ -616,7 +616,7 @@ uint64_t DashSegmentTracker::getLiveStartSegmentNumber(Representation *rep) cons
         }
 
         const uint64_t max_safety_offset = playbacktime - minavailtime / duration;
-        const uint64_t safety_offset = std::min((uint64_t) SAFETY_BUFFERING_EDGE_OFFSET, max_safety_offset);
+        const uint64_t safety_offset = std::min<uint64_t>((uint64_t) SAFETY_BUFFERING_EDGE_OFFSET, max_safety_offset);
         if (startnumber + safety_offset <= start) {
             start -= safety_offset;
         } else {
@@ -638,7 +638,7 @@ uint64_t DashSegmentTracker::getLiveStartSegmentNumber(Representation *rep) cons
         /* Apply timeshift restrictions */
         int64_t availableduration;
         if (playlist->timeShiftBufferDepth) {
-            availableduration = std::min(totallistduration, timescale.ToScaled(playlist->timeShiftBufferDepth));
+            availableduration = std::min<int64_t>(totallistduration, timescale.ToScaled(playlist->timeShiftBufferDepth));
         } else {
             availableduration = totallistduration;
         }
@@ -655,7 +655,7 @@ uint64_t DashSegmentTracker::getLiveStartSegmentNumber(Representation *rep) cons
             }
         }
 
-        uint64_t safeedgenumber = back->getSequenceNumber() - std::min((uint64_t) list.size() - 1, (uint64_t) SAFETY_BUFFERING_EDGE_OFFSET);
+        uint64_t safeedgenumber = back->getSequenceNumber() - std::min<uint64_t>((uint64_t) list.size() - 1, (uint64_t) SAFETY_BUFFERING_EDGE_OFFSET);
         uint64_t safestartnumber = availableliststartnumber;
 
         for (unsigned i = 0; i < SAFETY_EXPURGING_OFFSET; i++) {
@@ -678,7 +678,7 @@ uint64_t DashSegmentTracker::getLiveStartSegmentNumber(Representation *rep) cons
             }
         }
 
-        int64_t tobuffer = std::min(maxbufferizable, timescale.ToScaled(i_buffering));
+        int64_t tobuffer = std::min<int64_t>(maxbufferizable, timescale.ToScaled(i_buffering));
         int64_t skipduration = totallistduration - safeedgeduration - tobuffer;
         uint64_t start = safestartnumber;
         for (auto it = list.begin(); it != list.end(); ++it) {
@@ -698,13 +698,13 @@ uint64_t DashSegmentTracker::getLiveStartSegmentNumber(Representation *rep) cons
 
         const Dash::Timescale timescale = rep->inheritTimescale();
         if (!timeline || !timeline->isValid()) {
-            return std::numeric_limits<uint64_t>::max();
+            return (std::numeric_limits<uint64_t>::max)();
         }
         const Dash::DashSegment *back = list.back();
         const int64_t bufferingstart = back->startTime + back->duration - timescale.ToScaled(i_buffering);
 
         uint64_t start = Dash::ISegmentBase::findSegmentNumberByScaledTime(list, bufferingstart);
-        if (start == std::numeric_limits<uint64_t>::max()) {
+        if (start == (std::numeric_limits<uint64_t>::max)()) {
             return list.front()->getSequenceNumber();
         }
 
@@ -717,7 +717,7 @@ uint64_t DashSegmentTracker::getLiveStartSegmentNumber(Representation *rep) cons
         return start;
     }
 
-    return std::numeric_limits<uint64_t>::max();
+    return (std::numeric_limits<uint64_t>::max)();
 }
 
 int64_t DashSegmentTracker::getBufferingOffset(const playList *p) const
@@ -738,9 +738,9 @@ int64_t DashSegmentTracker::getLiveDelay(const playList *p) const
         delay = p->suggestedPresentationDelay;
     }
     if (p->timeShiftBufferDepth > 0) {
-        delay = std::min(delay, p->timeShiftBufferDepth);
+        delay = std::min<int64_t>(delay, p->timeShiftBufferDepth);
     }
-    return std::max(delay, getMinBuffering(p));
+    return std::max<int64_t>(delay, getMinBuffering(p));
 }
 
 int64_t DashSegmentTracker::getMaxBuffering(const playList *p) const
@@ -751,12 +751,12 @@ int64_t DashSegmentTracker::getMaxBuffering(const playList *p) const
 
     int64_t buffering = std::strtoll(mOpts->get("maxBufferDuration").c_str(), nullptr, 0);
     if (p->isLive()) {
-        buffering = std::min(buffering, getLiveDelay(p));
+        buffering = std::min<int64_t>(buffering, getLiveDelay(p));
     }
     if (p->maxBufferTime > 0) {
-        buffering = std::min(buffering, p->maxBufferTime);
+        buffering = std::min<int64_t>(buffering, p->maxBufferTime);
     }
-    return std::max(buffering, getMinBuffering(p));
+    return std::max<int64_t>(buffering, getMinBuffering(p));
 }
 
 int64_t DashSegmentTracker::getMinBuffering(const playList *p) const
@@ -767,9 +767,9 @@ int64_t DashSegmentTracker::getMinBuffering(const playList *p) const
 
     int64_t buffering = std::strtoll(mOpts->get("highLevelBufferDuration").c_str(), nullptr, 0);
     if (p->minBufferTime > 0) {
-        buffering = std::max(buffering, p->minBufferTime);
+        buffering = std::max<int64_t>(buffering, p->minBufferTime);
     }
-    return std::max(buffering, BUFFERING_LOWEST_LIMIT);
+    return std::max<int64_t>(buffering, BUFFERING_LOWEST_LIMIT);
 }
 
 bool DashSegmentTracker::isLowLatency(const playList *p) const
@@ -789,10 +789,10 @@ int64_t DashSegmentTracker::getMinAheadTime() const
 {
     if (mRep) {
         uint64_t startnumber = mCurrentSegNumber;
-        if (startnumber == std::numeric_limits<uint64_t>::max()) {
+        if (startnumber == (std::numeric_limits<uint64_t>::max)()) {
             startnumber = getStartSegmentNumber(mRep);
         }
-        if (startnumber != std::numeric_limits<uint64_t>::max()) {
+        if (startnumber != (std::numeric_limits<uint64_t>::max)()) {
             return mRep->getMinAheadTime(startnumber);
         }
     }

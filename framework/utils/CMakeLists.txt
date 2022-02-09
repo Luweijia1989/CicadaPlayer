@@ -7,6 +7,10 @@ if(ENABLE_CODEC_HEVC)
     add_definitions(-DENABLE_CODEC_HEVC)
 endif()
 
+if(WIN32)
+    add_definitions(-DWIN32_LEAN_AND_MEAN)    
+endif()
+
 set(SOURCE_FILES
         AutoAVFrame.h
         CicadaJSON.h

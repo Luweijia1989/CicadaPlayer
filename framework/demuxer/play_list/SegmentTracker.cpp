@@ -162,13 +162,13 @@ namespace Cicada {
             // hls stream, liveStartIndex is segment index
             uint64_t curNum;
             if (liveStartIndex >= 0) {
-                curNum = std::min(getFirstSegNum() + liveStartIndex, getLastSegNum());
+                curNum = std::min<uint64_t>(getFirstSegNum() + liveStartIndex, getLastSegNum());
             } else {
                 int64_t targetSegNum = ((int64_t) getLastSegNum()) + liveStartIndex + 1;
                 if (targetSegNum < 0) {
                     targetSegNum = 0;
                 }
-                curNum = std::max((uint64_t) targetSegNum, getFirstSegNum());
+                curNum = std::max<uint64_t>((uint64_t) targetSegNum, getFirstSegNum());
             }
             setCurSegNum(curNum);
         }

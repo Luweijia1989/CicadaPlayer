@@ -1011,7 +1011,7 @@ static int is_relative(int64_t ts) {
 static int has_decode_delay_been_guessed(AVStream *st)
 {
     if (st->codecpar->codec_id != AV_CODEC_ID_H264) return 1;
-    if (!st->info) // if we have left find_stream_info then nb_decoded_frames won't increase anymore for stream copy
+    if (!st->internal->info) // if we have left find_stream_info then nb_decoded_frames won't increase anymore for stream copy
         return 1;
 #if CONFIG_H264_DECODER
     if (st->internal->avctx->has_b_frames &&
@@ -1019,11 +1019,11 @@ static int has_decode_delay_been_guessed(AVStream *st)
         return 1;
 #endif
     if (st->internal->avctx->has_b_frames<3)
-        return st->nb_decoded_frames >= 7;
+        return st->internal->nb_decoded_frames >= 7;
     else if (st->internal->avctx->has_b_frames<4)
-        return st->nb_decoded_frames >= 18;
+        return st->internal->nb_decoded_frames >= 18;
     else
-        return st->nb_decoded_frames >= 20;
+        return st->internal->nb_decoded_frames >= 20;
 }
 static AVPacketList *get_next_pkt(AVFormatContext *s, AVStream *st, AVPacketList *pktl)
 {
@@ -1045,8 +1045,8 @@ static int64_t select_from_pts_buffer(AVStream *st, int64_t *pts_buffer, int64_t
         if (dts == AV_NOPTS_VALUE) {
             int64_t best_score = INT64_MAX;
             for (i = 0; i<delay; i++) {
-                if (st->pts_reorder_error_count[i]) {
-                    int64_t score = st->pts_reorder_error[i] / st->pts_reorder_error_count[i];
+                if (st->internal->pts_reorder_error_count[i]) {
+                    int64_t score = st->internal->pts_reorder_error[i] / st->internal->pts_reorder_error_count[i];
                     if (score < best_score) {
                         best_score = score;
                         dts = pts_buffer[i];
@@ -1057,13 +1057,13 @@ static int64_t select_from_pts_buffer(AVStream *st, int64_t *pts_buffer, int64_t
             for (i = 0; i<delay; i++) {
                 if (pts_buffer[i] != AV_NOPTS_VALUE) {
                     int64_t diff =  FFABS(pts_buffer[i] - dts)
-                                    + (uint64_t)st->pts_reorder_error[i];
-                    diff = FFMAX(diff, st->pts_reorder_error[i]);
-                    st->pts_reorder_error[i] = diff;
-                    st->pts_reorder_error_count[i]++;
-                    if (st->pts_reorder_error_count[i] > 250) {
-                        st->pts_reorder_error[i] >>= 1;
-                        st->pts_reorder_error_count[i] >>= 1;
+                                    + (uint64_t)st->internal->pts_reorder_error[i];
+                    diff = FFMAX(diff, st->internal->pts_reorder_error[i]);
+                    st->internal->pts_reorder_error[i] = diff;
+                    st->internal->pts_reorder_error_count[i]++;
+                    if (st->internal->pts_reorder_error_count[i] > 250) {
+                        st->internal->pts_reorder_error[i] >>= 1;
+                        st->internal->pts_reorder_error_count[i] >>= 1;
                     }
                 }
             }
@@ -1135,7 +1135,7 @@ static void update_initial_timestamps(AVFormatContext *s, int stream_index,
         if (st->start_time == AV_NOPTS_VALUE && pktl_it->pkt.pts != AV_NOPTS_VALUE) {
             st->start_time = pktl_it->pkt.pts;
             if (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO && st->codecpar->sample_rate)
-                st->start_time += av_rescale_q(st->skip_samples, (AVRational){1, st->codecpar->sample_rate}, st->time_base);
+                st->start_time += av_rescale_q(st->internal->skip_samples, (AVRational){1, st->codecpar->sample_rate}, st->time_base);
         }
     }
 
@@ -1148,7 +1148,7 @@ static void update_initial_timestamps(AVFormatContext *s, int stream_index,
             st->start_time = pts;
         }
         if (st->codecpar->codec_type == AVMEDIA_TYPE_AUDIO && st->codecpar->sample_rate)
-            st->start_time += av_rescale_q(st->skip_samples, (AVRational){1, st->codecpar->sample_rate}, st->time_base);
+            st->start_time += av_rescale_q(st->internal->skip_samples, (AVRational){1, st->codecpar->sample_rate}, st->time_base);
     }
 }
 static void update_initial_durations(AVFormatContext *s, AVStream *st,
@@ -1158,9 +1158,9 @@ static void update_initial_durations(AVFormatContext *s, AVStream *st,
     int64_t cur_dts    = RELATIVE_TS_BASE;
 
     if (st->first_dts != AV_NOPTS_VALUE) {
-        if (st->update_initial_durations_done)
+        if (st->internal->update_initial_durations_done)
             return;
-        st->update_initial_durations_done = 1;
+        st->internal->update_initial_durations_done = 1;
         cur_dts = st->first_dts;
         for (; pktl; pktl = get_next_pkt(s, st, pktl)) {
             if (pktl->pkt.stream_index == stream_index) {
@@ -1230,24 +1230,24 @@ void av_compute_pkt_fields(AVFormatContext *s, AVStream *st,
         return;
 
     if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO && pkt->dts != AV_NOPTS_VALUE) {
-        if (pkt->dts == pkt->pts && st->last_dts_for_order_check != AV_NOPTS_VALUE) {
-            if (st->last_dts_for_order_check <= pkt->dts) {
-                st->dts_ordered++;
+        if (pkt->dts == pkt->pts && st->internal->last_dts_for_order_check != AV_NOPTS_VALUE) {
+            if (st->internal->last_dts_for_order_check <= pkt->dts) {
+                st->internal->dts_ordered++;
             } else {
-                av_log(s, st->dts_misordered ? AV_LOG_DEBUG : AV_LOG_WARNING,
+                av_log(s, st->internal->dts_misordered ? AV_LOG_DEBUG : AV_LOG_WARNING,
                        "DTS %"PRIi64" < %"PRIi64" out of order\n",
                        pkt->dts,
-                       st->last_dts_for_order_check);
-                st->dts_misordered++;
+                       st->internal->last_dts_for_order_check);
+                st->internal->dts_misordered++;
             }
-            if (st->dts_ordered + st->dts_misordered > 250) {
-                st->dts_ordered    >>= 1;
-                st->dts_misordered >>= 1;
+            if (st->internal->dts_ordered + st->internal->dts_misordered > 250) {
+                st->internal->dts_ordered    >>= 1;
+                st->internal->dts_misordered >>= 1;
             }
         }
 
-        st->last_dts_for_order_check = pkt->dts;
-        if (st->dts_ordered < 8*st->dts_misordered && pkt->dts == pkt->pts)
+        st->internal->last_dts_for_order_check = pkt->dts;
+        if (st->internal->dts_ordered < 8*st->internal->dts_misordered && pkt->dts == pkt->pts)
             pkt->dts = AV_NOPTS_VALUE;
     }
 
@@ -1378,12 +1378,12 @@ void av_compute_pkt_fields(AVFormatContext *s, AVStream *st,
     }
 
     if (pkt->pts != AV_NOPTS_VALUE && delay <= MAX_REORDER_DELAY) {
-        st->pts_buffer[0] = pkt->pts;
-        for (i = 0; i<delay && st->pts_buffer[i] > st->pts_buffer[i + 1]; i++)
-            FFSWAP(int64_t, st->pts_buffer[i], st->pts_buffer[i + 1]);
+        st->internal->pts_buffer[0] = pkt->pts;
+        for (i = 0; i<delay && st->internal->pts_buffer[i] > st->internal->pts_buffer[i + 1]; i++)
+            FFSWAP(int64_t, st->internal->pts_buffer[i], st->internal->pts_buffer[i + 1]);
 
         if(has_decode_delay_been_guessed(st))
-            pkt->dts = select_from_pts_buffer(st, st->pts_buffer, pkt->dts);
+            pkt->dts = select_from_pts_buffer(st, st->internal->pts_buffer, pkt->dts);
     }
     // We skipped it above so we try here.
     if (!onein_oneout)

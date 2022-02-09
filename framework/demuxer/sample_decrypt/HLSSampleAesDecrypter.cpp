@@ -186,7 +186,7 @@ void HLSSampleAesDecrypter::decrypt_nalunit(uint8_t *nal_unit, int nal_size)
         }
 
         // unencrypted_block
-        int sz = std::min(nal_size, (9 * IAESDecrypt::BLOCK_SIZE));
+        int sz = std::min<int>(nal_size, (9 * IAESDecrypt::BLOCK_SIZE));
         nal_size -= sz;
         nal_unit += sz;
     }

@@ -760,7 +760,7 @@ void SMPMessageControllerListener::switchVideoStream(int index, Stream_type type
                 return;
             }
 
-            startTime = std::max(startTime, startTimeA);
+            startTime = std::max<int64_t>(startTime, startTimeA);
         }
         mPlayer.SwitchVideo(startTime);
     }

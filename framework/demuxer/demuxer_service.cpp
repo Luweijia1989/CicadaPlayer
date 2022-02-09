@@ -378,7 +378,7 @@ namespace Cicada {
         auto *pHandle = static_cast<demuxer_service *>(arg);
 
         if (pHandle->mPProbBuffer && pHandle->curPos < pHandle->mProbBufferSize) {
-            int readSize = std::min(size, pHandle->mProbBufferSize - (int) pHandle->curPos);
+            int readSize = std::min<int>(size, pHandle->mProbBufferSize - (int) pHandle->curPos);
             memcpy(buffer, pHandle->mPProbBuffer + (int) pHandle->curPos, static_cast<size_t>(readSize));
             pHandle->curPos += readSize;
 

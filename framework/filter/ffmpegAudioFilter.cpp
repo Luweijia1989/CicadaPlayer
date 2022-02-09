@@ -196,7 +196,7 @@ namespace Cicada {
         bool needAFormat = false;
         // for now enlarge only
         if (flags & A_FILTER_FLAG_VOLUME) {
-            snprintf(options_str, sizeof(options_str), "volume=%f", std::max(mVolume, 1.0));
+            snprintf(options_str, sizeof(options_str), "volume=%f", std::max<double>(mVolume, 1.0));
             err = addFilter(&current, "volume", options_str);
         }
 

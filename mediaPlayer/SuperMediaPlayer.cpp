@@ -1045,7 +1045,7 @@ int SuperMediaPlayer::updateLoopGap()
             } else if (HAVE_VIDEO) {
                 if (mCurrentVideoMeta) {
                     // the loop gap can't too low
-                    int fps = std::max(25, (int) (mCurrentVideoMeta->operator Stream_meta *()->avg_fps));
+                    int fps = std::max<int>(25, (int) (mCurrentVideoMeta->operator Stream_meta *()->avg_fps));
                     if (mVideoInterlaced == InterlacedType_YES) {
                         fps *= 2;
                     }
@@ -1383,7 +1383,7 @@ bool SuperMediaPlayer::DoCheckBufferPass()
              * if meta has audio and video stream infos , but after read 2 minutes duration ,
              * one of streams still has no buffer duration , close it to avoid read all packets.
              */
-            if (std::min(duration_v, duration_a) == 0 && std::max(duration_v, duration_a) > 2 * 60 * 1000000) {
+            if (std::min<int64_t>(duration_v, duration_a) == 0 && std::max<int64_t>(duration_v, duration_a) > 2 * 60 * 1000000) {
                 if (duration_v > duration_a) {
                     if (mAVDeviceManager->isDecoderValid(SMPAVDeviceManager::DEVICE_TYPE_AUDIO)) {
                         mDemuxerService->CloseStream(mCurrentAudioIndex);
@@ -1502,7 +1502,7 @@ bool SuperMediaPlayer::DoCheckBufferPass()
 
             if (maxBufferDuration > mSuggestedPresentationDelay + 1000 * 1000 * 5) {
                 int64_t lastVideoPos = mBufferController->GetPacketLastTimePos(BUFFER_TYPE_VIDEO);
-                lastVideoPos -= std::max(mSuggestedPresentationDelay, (int64_t)(500 * 1000ll));
+                lastVideoPos -= std::max<int64_t>(mSuggestedPresentationDelay, (int64_t)(500 * 1000ll));
                 int64_t lastVideoKeyTimePos = mBufferController->GetKeyTimePositionBefore(BUFFER_TYPE_VIDEO, lastVideoPos);
                 if (lastVideoKeyTimePos != INT64_MIN) {
                     mBufferController->ClearPacketBeforeTimePos(BUFFER_TYPE_VIDEO, lastVideoKeyTimePos);
@@ -1531,7 +1531,7 @@ bool SuperMediaPlayer::DoCheckBufferPass()
                 lastPos = lastAudioPos < lastVideoPos ? lastAudioPos : lastVideoPos;
             }
 
-            lastPos -= std::max(mSuggestedPresentationDelay, (int64_t)(500 * 1000ll));
+            lastPos -= std::max<int64_t>(mSuggestedPresentationDelay, (int64_t)(500 * 1000ll));
             int64_t lastVideoKeyTimePos = mBufferController->GetKeyTimePositionBefore(BUFFER_TYPE_VIDEO, lastPos);
             if (lastVideoKeyTimePos != INT64_MIN) {
                 AF_LOGD("drop left lastPts %lld, lastVideoKeyPts %lld", lastPos, lastVideoKeyTimePos);
@@ -2973,7 +2973,7 @@ int SuperMediaPlayer::ReadPacket()
                 return ret;
             }
 
-            startTime = std::max(startTime, startTimeA);
+            startTime = std::max<int64_t>(startTime, startTimeA);
         }
 
         SwitchVideo(startTime);
@@ -3139,7 +3139,7 @@ int64_t SuperMediaPlayer::getPlayerBufferDuration(bool gotMax, bool internal)
         if (duration < 0) {
             duration = durations[i];
         } else {
-            duration = gotMax ? std::max(duration, durations[i]) : std::min(duration, durations[i]);
+            duration = gotMax ? std::max<int64_t>(duration, durations[i]) : std::min<int64_t>(duration, durations[i]);
         }
     }
 
@@ -3174,7 +3174,7 @@ bool SuperMediaPlayer::SeekInCache(int64_t pos)
         int64_t videoFirstPos = mBufferController->GetPacketFirstTimePos(BUFFER_TYPE_VIDEO);
         int64_t maxFirstPos = -1;
         if (HAVE_VIDEO && HAVE_AUDIO) {
-            maxFirstPos = std::max(audioFirstPos, videoFirstPos);
+            maxFirstPos = std::max<int64_t>(audioFirstPos, videoFirstPos);
         } else if (HAVE_VIDEO) {
             maxFirstPos = videoFirstPos;
         } else if (HAVE_AUDIO) {
@@ -3892,7 +3892,7 @@ int SuperMediaPlayer::setStreamDelay(int index, int64_t time)
     }
     if (mSubPlayer) {
         mSubPlayer->setDelayTime(index, time * 1000);
-        mSubPlayer->seek(std::max(getCurrentPosition() + time * 1000, (int64_t) 0));
+        mSubPlayer->seek(std::max<int64_t>(getCurrentPosition() + time * 1000, (int64_t) 0));
     }
     return 0;
 }

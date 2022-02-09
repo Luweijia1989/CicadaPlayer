@@ -89,7 +89,7 @@ uint32_t RingBufferReadData(RingBuffer *rBuf, char *buf, uint32_t size)
     }
 
     rBuf->m_fillCount -= size;
-    rBuf->m_backCount = std::min(rBuf->m_back_size, rBuf->m_backCount + size);
+    rBuf->m_backCount = std::min<uint32_t>(rBuf->m_back_size, rBuf->m_backCount + size);
     return size;
 }
 

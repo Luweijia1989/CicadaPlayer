@@ -466,10 +466,10 @@ int CurlDataSource::Read(void *buf, size_t size)
         if (rangeEnd > 0) {
             end = rangeEnd;
         }
-        end = std::min(mFileSize, end);
+        end = std::min<int64_t>(mFileSize, end);
 
         if (end > 0) {
-            size = std::min(size, (size_t)(end - mPConnection->tell()));
+            size = std::min<size_t>(size, (size_t)(end - mPConnection->tell()));
 
             if (size <= 0) {
                 return 0;

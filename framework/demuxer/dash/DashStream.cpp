@@ -67,7 +67,7 @@ int DashStream::read_callback(void *arg, uint8_t *buffer, int size)
         int initSegSize = pHandle->mInitSegSize - pHandle->mInitSegPtr;
 
         if (initSegSize > 0) {
-            int readSize = std::min(initSegSize, size);
+            int readSize = std::min<int>(initSegSize, size);
             memcpy(buffer, pHandle->mInitSegBuffer + pHandle->mInitSegPtr, readSize);
             pHandle->mInitSegPtr += readSize;
             return readSize;

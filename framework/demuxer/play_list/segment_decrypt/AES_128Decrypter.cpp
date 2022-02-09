@@ -33,7 +33,7 @@ int AES_128Decrypter::Read(uint8_t *buffer, int size)
 retry:
 
     if (mOutData > 0) {
-        size = std::min(size, mOutData);
+        size = std::min<int>(size, mOutData);
         memcpy(buffer, mOutPtr, size);
         mOutPtr += size;
         mOutData -= size;

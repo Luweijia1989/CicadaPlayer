@@ -147,7 +147,7 @@ uint64_t SegmentTimeline::getElementIndexBySequence(uint64_t number) const
             }
         }
     }
-    return std::numeric_limits<uint64_t>::max();
+    return (std::numeric_limits<uint64_t>::max)();
 }
 
 void SegmentTimeline::pruneByPlaybackTime(int64_t time)

@@ -282,7 +282,7 @@ namespace Cicada {
             if (ret == -EAGAIN) {
 
                 if (mFrameQue.size() == mMaxQueSize) {
-                    mMaxQueSize = std::max(MIN_INPUT_BUFFER_COUNT, mMaxQueSize.load() - 1);
+                    mMaxQueSize = std::max<int>(MIN_INPUT_BUFFER_COUNT, mMaxQueSize.load() - 1);
                 }
                 break;
             }
@@ -296,7 +296,7 @@ namespace Cicada {
         if (mFrameQue.empty() || ret == -EAGAIN) {
 
             // TODO: only on Android xiaomi miui 9?
-            mMaxQueSize = std::min(mMaxQueSize.load() + 1, MAX_INPUT_BUFFER_COUNT);
+            mMaxQueSize = std::min<int>(mMaxQueSize.load() + 1, MAX_INPUT_BUFFER_COUNT);
             af_msleep(5);
         }
         return 0;

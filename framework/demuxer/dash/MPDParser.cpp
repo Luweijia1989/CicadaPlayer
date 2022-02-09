@@ -524,7 +524,7 @@ void MPDParser::parseTimeline(MPDPlayList *mpd, xml::Node *node, ISegmentBase *b
             if (s->hasAttribute("r")) {
                 r = std::strtoll(s->getAttributeValue("r").c_str(), nullptr, 0);
                 if (r < 0) {
-                    r = std::numeric_limits<unsigned>::max();
+                    r = (std::numeric_limits<unsigned>::max)();
                 }
             }
 

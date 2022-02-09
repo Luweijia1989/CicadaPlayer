@@ -80,7 +80,7 @@ int SMPAVDeviceManager::setUpDecoder(uint64_t decFlag, const Stream_meta *meta, 
     decoderHandle->decFlag = decFlag;
     decoderHandle->device = device;
     decoderHandle->decoder =
-            decoderFactory::create(*meta, decFlag, std::max(meta->height, meta->width), drmInfo.empty() ? nullptr : &drmInfo);
+            decoderFactory::create(*meta, decFlag, std::max<int>(meta->height, meta->width), drmInfo.empty() ? nullptr : &drmInfo);
     decoderHandle->mDrmInfo = drmInfo;
     decoderHandle->mDstFormat = dstFormat;
 

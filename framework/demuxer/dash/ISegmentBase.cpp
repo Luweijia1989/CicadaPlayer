@@ -78,7 +78,7 @@ uint64_t ISegmentBase::findSegmentNumberByScaledTime(const std::vector<DashSegme
 {
     DashSegment *s = findSegmentByScaledTime(segments, time);
     if (!s) {
-        return std::numeric_limits<uint64_t>::max();
+        return (std::numeric_limits<uint64_t>::max)();
     }
     return s->getSequenceNumber();
 }

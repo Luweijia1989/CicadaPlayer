@@ -97,7 +97,7 @@ void SegmentList::pruneByPlaybackTime(int64_t time)
 {
     const Timescale timescale = inheritTimescale();
     uint64_t num = findSegmentNumberByScaledTime(segments, timescale.ToScaled(time));
-    if (num != std::numeric_limits<uint64_t>::max()) {
+    if (num != (std::numeric_limits<uint64_t>::max)()) {
         pruneBySegmentNumber(num);
     }
 }
@@ -120,7 +120,7 @@ void SegmentList::pruneBySegmentNumber(uint64_t tobelownum)
 
 bool SegmentList::getPlaybackTimeDurationBySegmentNumber(uint64_t number, int64_t *time, int64_t *dur) const
 {
-    if (number == std::numeric_limits<uint64_t>::max()) {
+    if (number == (std::numeric_limits<uint64_t>::max)()) {
         return false;
     }
 
@@ -259,5 +259,5 @@ bool SegmentList::getSegmentNumberByTime(int64_t time, uint64_t *ret) const
     }
     int64_t st = timescale.ToScaled(time);
     *ret = ISegmentBase::findSegmentNumberByScaledTime(segments, st);
-    return *ret != std::numeric_limits<uint64_t>::max();
+    return *ret != (std::numeric_limits<uint64_t>::max)();
 }

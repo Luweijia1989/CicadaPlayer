@@ -90,7 +90,7 @@ namespace Cicada {
             return -EINVAL;
         }
         if (rangeEnd != INT64_MIN) {
-            nbyte = std::min(nbyte, (size_t) (rangeEnd - Seek(0, SEEK_CUR)));
+            nbyte = std::min<size_t>(nbyte, (size_t) (rangeEnd - Seek(0, SEEK_CUR)));
 
             if (nbyte == 0) {
                 return 0;
