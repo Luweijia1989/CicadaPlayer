@@ -23,6 +23,7 @@ if (XCODE)
     set(USEASAN OFF)
 endif ()
 add_subdirectory(cmdline)
+add_subdirectory(qt)
 
 include(framework/${TARGET_PLATFORM}.cmake)
 if (BUILD_TEST)

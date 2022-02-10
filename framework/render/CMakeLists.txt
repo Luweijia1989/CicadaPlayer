@@ -83,6 +83,13 @@ if (IOS)
             )
 endif ()
 
+if (WIN32)
+    list(APPEND SRC_FILES
+                video/glRender/XXQGLRender.cpp
+                video/glRender/XXQGLRender.h
+        )
+endif ()
+
 if (ENABLE_GLRENDER)
     add_definitions(-DGLRENDER)
 

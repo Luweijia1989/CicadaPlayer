@@ -23,6 +23,12 @@
 
 #endif
 
+#ifdef WIN32
+
+#include "video/glRender/XXQGLRender.h"
+
+#endif
+
 #ifdef GLRENDER
 
 #include "video/glRender/GLRender.h"
