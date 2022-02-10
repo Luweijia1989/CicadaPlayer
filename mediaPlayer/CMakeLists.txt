@@ -157,7 +157,7 @@ if ($ENV{VERSION})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVERSION=$ENV{VERSION}")
 endif ()
 
-add_library(media_player STATIC ${SOURCE_FILES})
+add_library(media_player SHARED ${SOURCE_FILES})
 target_include_directories(media_player PUBLIC
         ../framework
         ${COMMON_INC_DIR}
@@ -165,4 +165,92 @@ target_include_directories(media_player PUBLIC
 if (HAVE_COVERAGE_CONFIG)
     target_link_libraries(media_player PUBLIC coverage_config)
 endif ()
+
+if (MSVC)
+target_link_directories(media_player PRIVATE
+        ${COMMON_LIB_DIR})
+else ()
+target_link_directories(media_player PRIVATE
+        ../external/install/ffmpeg/${CMAKE_SYSTEM_NAME}/x86_64/lib
+        ../external/install/curl/${CMAKE_SYSTEM_NAME}/x86_64/lib
+        ../external/install/openssl/${CMAKE_SYSTEM_NAME}/x86_64/lib
+        ${COMMON_LIB_DIR})
+endif ()
+
+target_link_libraries(media_player PRIVATE
+        demuxer
+        data_source
+        render
+        videodec)
+if (ENABLE_CACHE_MODULE)
+    target_link_libraries(media_player PRIVATE
+            cacheModule)
+endif ()
+if (ENABLE_MUXER)
+    target_link_libraries(media_player PRIVATE
+            muxer)
+endif ()
+target_link_libraries(media_player PRIVATE
+        framework_filter
+        framework_utils
+        framework_drm
+        avfilter
+        avformat
+        avcodec
+        swresample
+        swscale
+        avutil
+        ${FRAMEWORK_LIBS})
+if (NOT MSVC)
+	target_link_libraries(media_player PRIVATE
+        curl
+        xml2)
+endif()
+if (ENABLE_SDL AND NOT MSVC)
+    target_link_libraries(media_player PUBLIC
+            SDL2
+            )
+endif ()
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    target_link_libraries(media_player PUBLIC
+            bcrypt
+            )
+else ()
+    target_link_libraries(media_player PUBLIC
+            z
+            dl
+            )
+endif ()
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(media_player PUBLIC
+            bz2
+            )
+endif ()
+
+if (APPLE)
+    find_library(AVFOUNDATION AVFoundation)
+    find_library(QUARTZCORE QuartzCore)
+    target_link_libraries(
+            media_player PUBLIC
+            iconv
+            bz2
+            ${FRAMEWORK_LIBS}
+            ${AVFOUNDATION}
+            ${QUARTZCORE}
+    )
+elseif (MSVC)
+else ()
+    target_link_libraries(
+            media_player PUBLIC
+            ssl
+            crypto
+            pthread
+    )
+endif ()
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    target_link_libraries(media_player PUBLIC X11)
+endif()
 

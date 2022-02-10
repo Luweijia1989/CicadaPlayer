@@ -30,7 +30,7 @@ struct AFRational {
 #define AF_PKT_FLAG_CORRUPT 0x0002 ///< The packet content is corrupted
 class CICADA_CPLUS_EXTERN IAFPacket {
 public:
-    struct packetInfo {
+    struct CICADA_CPLUS_EXTERN packetInfo {
         int streamIndex;
         int64_t pts;
         int64_t dts;

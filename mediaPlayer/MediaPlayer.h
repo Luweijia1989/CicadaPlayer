@@ -49,7 +49,7 @@ namespace Cicada {
     typedef void (*CicadaLogCallback)(void *userData, int prio, const char *buf);
 
 
-    class MediaPlayer {
+    class CICADA_CPLUS_EXTERN MediaPlayer {
     public:
         explicit MediaPlayer(const char *opt = nullptr);
 

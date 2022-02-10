@@ -34,21 +34,21 @@ extern "C" {
 
 CICADA_EXTERN int __log_print(int prio, const char *tag, const char *fmt, ...);
 
-void log_set_enable_console(int enable);
+CICADA_EXTERN void log_set_enable_console(int enable);
 
-void log_set_log_level(int level);
+CICADA_EXTERN void log_set_log_level(int level);
 
-void log_set_level(int level, int enable_console);
+CICADA_EXTERN void log_set_level(int level, int enable_console);
 
-int log_get_level();
+CICADA_EXTERN int log_get_level();
 
-void log_set_back(log_back func, void *arg);
+CICADA_EXTERN void log_set_back(log_back func, void *arg);
 
-void log_enable_color(int enable);
+CICADA_EXTERN void log_enable_color(int enable);
 
-char *getVersion();
+CICADA_EXTERN char *getVersion();
 
-char *getTime();
+CICADA_EXTERN char *getTime();
 
 #ifdef __cplusplus
 }
