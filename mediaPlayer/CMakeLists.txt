@@ -157,7 +157,11 @@ if ($ENV{VERSION})
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVERSION=$ENV{VERSION}")
 endif ()
 
+if (TARGET_PLATFORM STREQUAL "windows")
 add_library(media_player SHARED ${SOURCE_FILES})
+else ()
+add_library(media_player STATIC ${SOURCE_FILES})
+endif ()
 target_include_directories(media_player PUBLIC
         ../framework
         ${COMMON_INC_DIR}
@@ -166,6 +170,7 @@ if (HAVE_COVERAGE_CONFIG)
     target_link_libraries(media_player PUBLIC coverage_config)
 endif ()
 
+if (TARGET_PLATFORM STREQUAL "windows")
 if (MSVC)
 target_link_directories(media_player PRIVATE
         ${COMMON_LIB_DIR})

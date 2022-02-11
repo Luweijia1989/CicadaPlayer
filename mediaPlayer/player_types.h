@@ -66,6 +66,10 @@ namespace Cicada {
         string drmMagicKey;
         string sessionId{};
         int netWorkRetryCount{0};
+
+		int videoSurfaceWidth = 0;
+		int videoSurfaceHeight = 0;
+		std::function<void(void * vo_opaque)> renderCallback = nullptr;
     };
 }
 

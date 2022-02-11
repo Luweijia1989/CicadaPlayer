@@ -199,6 +199,10 @@ public:
         mRenderingCbUserData = userData;
     }
 
+	virtual void renderVideo() {}
+	virtual void setVideoSurfaceSize(int width, int height) {}
+	virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb) {}
+
 protected:
     IVideoRenderFilter *mFilter{};
     bool mInvalid{false};

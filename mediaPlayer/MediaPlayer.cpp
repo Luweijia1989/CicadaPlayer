@@ -1198,4 +1198,22 @@ namespace Cicada {
         GET_PLAYER_HANDLE;
         return CicadaGetPlayerName(handle);
     }
+
+	void MediaPlayer::renderVideo()
+	{
+		GET_PLAYER_HANDLE;
+		CicadaRenderVideo(handle);
+	}
+
+	void MediaPlayer::setVideoSurfaceSize(int width, int height)
+	{
+		GET_PLAYER_HANDLE;
+		CicadaSetVideoSurfaceSize(handle, width, height);
+	}
+
+	void MediaPlayer::setRenderCallback(std::function<void(void* vo_opaque)> cb)
+	{
+		GET_PLAYER_HANDLE;
+		CicadaSetRenderCallback(handle, cb);
+	}
 }

@@ -728,3 +728,24 @@ std::string CicadaGetPlayerName(playerHandle *pHandle)
     }
     return "";
 }
+
+void CicadaRenderVideo(playerHandle *pHandle)
+{
+	GET_PLAYER;
+	if (player)
+		player->renderVideo();
+}
+
+void CicadaSetVideoSurfaceSize(playerHandle *pHandle, int width, int height)
+{
+    GET_PLAYER;
+    if (player)
+		player->setVideoSurfaceSize(width, height);
+}
+
+void CicadaSetRenderCallback(playerHandle *pHandle, std::function<void(void* vo_opaque)> cb)
+{
+    GET_PLAYER;
+    if (player)
+		player->setRenderCallback(cb);
+}

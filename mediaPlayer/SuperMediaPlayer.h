@@ -224,6 +224,10 @@ namespace Cicada {
 
         float getCurrentDownloadSpeed() override;
 
+		void renderVideo() override;
+		void setVideoSurfaceSize(int width, int height) override;
+		void setRenderCallback(std::function<void(void* vo_opaque)> cb) override;
+
     private:
         void NotifyPosition(int64_t position);
 

@@ -9,6 +9,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <render/video/glRender/base/utils.h>
+#include "XXQProgramContext.h"
 
 using namespace std;
 
@@ -18,41 +19,39 @@ static const int MAX_IN_SIZE = 3;
 
 using namespace Cicada;
 
-GLRender::GLRender(float Hz)
+XXQGLRender::XXQGLRender(float Hz)
 {
     mVSync = VSyncFactory::create(*this, Hz);
     mHz = 0;
     mVSyncPeriod = static_cast<int64_t>(1000000 / Hz);
 }
 
-GLRender::~GLRender()
+XXQGLRender::~XXQGLRender()
 {
     AF_LOGE("~GLRender");
     // MUST delete Vsync here,because it has callback
     mVSync = nullptr;
 }
 
-int GLRender::init()
+int XXQGLRender::init()
 {
     AF_LOGD("-----> init .");
     // don't auto start in background
     std::unique_lock<std::mutex> locker(mInitMutex);
 
-    if (!mInBackground) {
-        mVSync->start();
-    }
+    mVSync->start();
 
     return 0;
 }
 
-int GLRender::clearScreen()
+int XXQGLRender::clearScreen()
 {
     AF_LOGD("-----> clearScreen");
     mClearScreenOn = true;
     return 0;
 }
 
-int GLRender::renderFrame(std::unique_ptr<IAFFrame> &frame)
+int XXQGLRender::renderFrame(std::unique_ptr<IAFFrame> &frame)
 {
 //    AF_LOGD("-----> renderFrame");
 
@@ -66,7 +65,7 @@ int GLRender::renderFrame(std::unique_ptr<IAFFrame> &frame)
     return 0;
 }
 
-void GLRender::dropFrame()
+void XXQGLRender::dropFrame()
 {
     int64_t framePts = mInputQueue.front()->getInfo().pts;
     AF_LOGI("drop a frame pts = %lld ", framePts);
@@ -77,21 +76,21 @@ void GLRender::dropFrame()
     }
 }
 
-int GLRender::setRotate(IVideoRender::Rotate rotate)
+int XXQGLRender::setRotate(IVideoRender::Rotate rotate)
 {
     AF_LOGD("-----> setRotate");
     mRotate = rotate;
     return 0;
 }
 
-int GLRender::setFlip(IVideoRender::Flip flip)
+int XXQGLRender::setFlip(IVideoRender::Flip flip)
 {
     AF_LOGD("-----> setFlip");
     mFlip = flip;
     return 0;
 }
 
-int GLRender::setScale(IVideoRender::Scale scale)
+int XXQGLRender::setScale(IVideoRender::Scale scale)
 {
     AF_LOGD("-----> setScale");
     mScale = scale;
@@ -99,12 +98,12 @@ int GLRender::setScale(IVideoRender::Scale scale)
 }
 
 
-void GLRender::setBackgroundColor(uint32_t color)
+void XXQGLRender::setBackgroundColor(uint32_t color)
 {
     mBackgroundColor = color;
 };
 
-int GLRender::onVSync(int64_t tick)
+int XXQGLRender::onVSync(int64_t tick)
 {
     int ret = onVsyncInner(tick);
 #ifdef __ANDROID__
@@ -116,7 +115,7 @@ int GLRender::onVSync(int64_t tick)
     return ret;
 }
 
-int GLRender::onVsyncInner(int64_t tick)
+int XXQGLRender::onVsyncInner(int64_t tick)
 {
     if (mHz == 0) {
         mHz = mVSync->getHz();
@@ -169,15 +168,17 @@ int GLRender::onVsyncInner(int64_t tick)
         }
     }
 
-    if (renderActually()) {
-        mRenderCount++;
-    }
+    std::unique_lock<mutex> lock(mRenderCBackMutex);
+	if (mRenderCallback)
+		mRenderCallback(this);
+
+    mRenderCount++;
 
     calculateFPS(tick);
     return 0;
 }
 
-void GLRender::calculateFPS(int64_t tick)
+void XXQGLRender::calculateFPS(int64_t tick)
 {
     if ((tick / uint64_t(mHz)) != mRendertimeS) {
         if (mRendertimeS == 0 || 1) {
@@ -192,19 +193,19 @@ void GLRender::calculateFPS(int64_t tick)
     }
 }
 
-int GLRender::VSyncOnInit()
+int XXQGLRender::VSyncOnInit()
 {
 	return 0;
 }
 
-void GLRender::VSyncOnDestroy()
+void XXQGLRender::VSyncOnDestroy()
 {
     
 }
 
-void GLRender::glClearScreen()
+void XXQGLRender::glClearScreen()
 {
-    glViewport(0, 0, mWindowWidth, mWindowHeight);
+    glViewport(0, 0, mVideoSurfaceWidth, mVideoSurfaceHeight);
     unsigned int backgroundColor = mBackgroundColor;
     float color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
     cicada::convertToGLColor(backgroundColor, color);
@@ -212,162 +213,7 @@ void GLRender::glClearScreen()
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-bool GLRender::renderActually()
-{
-    if (mInBackground) {
-        //        AF_LOGD("renderActurally  .. InBackground ..");
-        return false;
-    }
-
-	auto ctx = wglGetCurrentContext();
-
-    //  AF_LOGD("renderActually .");
-    bool rendered  = true;
-    //int64_t renderStartTime = af_getsteady_ms();
-
-    //if (mInvalid) {
-    //    return false;
-    //}
-    //bool displayViewChanged  = false;
-    //bool viewSizeChanged = false;
-    //{
-    //    unique_lock<mutex> viewLock(mViewMutex);
-    //    displayViewChanged = mContext->SetView(mDisplayView);
-    //    viewSizeChanged = mContext->IsViewSizeChanged();
-
-    //    if (viewSizeChanged || displayViewChanged
-    //            || (mGLSurface == nullptr && mDisplayView != nullptr)) {
-    //        createGLSurface();
-    //    } else {
-    //        mContext->MakeCurrent(mGLSurface);
-    //    }
-    //}
-    //mWindowWidth = mContext->GetWidth();
-    //mWindowHeight = mContext->GetHeight();
-
-    //if (mGLSurface == nullptr || mInvalid) {
-
-    //    std::unique_lock<std::mutex> locker(mFrameMutex);
-    //    if (!mInputQueue.empty()) {
-    //        dropFrame();
-    //    }
-
-    //    return false;
-    //}
-
-    //std::unique_ptr<IAFFrame> frame = nullptr;
-    //{
-    //    std::unique_lock<std::mutex> locker(mFrameMutex);
-
-    //    if (!mInputQueue.empty()) {
-    //        frame = move(mInputQueue.front());
-    //        mInputQueue.pop();
-    //    } else {
-    //        rendered = false;
-    //    }
-    //}
-
-    //if (frame != nullptr) {
-    //    mProgramFormat = frame->getInfo().video.format;
-    //    mProgramContext = getProgram(mProgramFormat, frame.get());
-    //}
-
-    //if (mProgramContext == nullptr) {
-    //    mProgramFormat = -1;
-    //    return false;
-    //}
-
-    //int64_t framePts = INT64_MIN;
-
-    //if (frame != nullptr) {
-    //    framePts = frame->getInfo().pts;
-    //    mVideoInfo = frame->getInfo();
-    //    mVideoRotate = getRotate(frame->getInfo().video.rotate);
-    //}
-
-    //Rotate finalRotate = Rotate_None;
-    //int tmpRotate = (mRotate + mVideoRotate) % 360;
-
-    //if (tmpRotate == 0) {
-    //    finalRotate = Rotate_None;
-    //} else if (tmpRotate == 90) {
-    //    finalRotate = Rotate_90;
-    //} else if (tmpRotate == 180) {
-    //    finalRotate = Rotate_180;
-    //} else if (tmpRotate == 270) {
-    //    finalRotate = Rotate_270;
-    //}
-
-    //mProgramContext->updateScale(mScale);
-    //mProgramContext->updateRotate(finalRotate);
-    //mProgramContext->updateWindowSize(mWindowWidth, mWindowHeight, displayViewChanged);
-    //mProgramContext->updateFlip(mFlip);
-    //mProgramContext->updateBackgroundColor(mBackgroundColor);
-    //int ret = -1;
-    //if (mScreenCleared && frame == nullptr) {
-    //    //do not draw last frame when need clear screen.
-    //    if (viewSizeChanged || displayViewChanged) {
-    //        glClearScreen();
-    //    }
-    //} else {
-    //    mScreenCleared = false;
-    //    ret = mProgramContext->updateFrame(frame);
-    //}
-    ////work around for glReadPixels is upside-down.
-    //{
-    //    std::unique_lock<std::mutex> locker(mCaptureMutex);
-
-    //    if (mCaptureOn && mCaptureFunc != nullptr) {
-    //        //if need capture , update flip and other
-    //        if (mFlip == Flip_None ) {
-    //            mProgramContext->updateFlip(Flip_Vertical);
-    //        } else if (mFlip == Flip_Vertical) {
-    //            mProgramContext->updateFlip(Flip_None);
-    //        } else if ( mFlip == Flip_Horizontal) {
-    //            mProgramContext->updateFlip(Flip_Both);
-    //        }
-
-    //        if (finalRotate == Rotate_90) {
-    //            mProgramContext->updateRotate(Rotate_270);
-    //        } else if (finalRotate == Rotate_270) {
-    //            mProgramContext->updateRotate(Rotate_90);
-    //        }
-
-    //        std::unique_ptr<IAFFrame> dummyFrame = nullptr;
-    //        mProgramContext->updateFrame(dummyFrame);
-    //        captureScreen();
-    //        //reset flip and other
-    //        mProgramContext->updateFlip(mFlip);
-    //        mProgramContext->updateRotate(finalRotate);
-    //        mProgramContext->updateFrame(dummyFrame);
-    //    }
-    //}
-
-    //if (ret == 0) {
-    //    //if frame not change, don`t need present surface
-    //    mContext->Present(mGLSurface);
-    //    if (mListener) {
-    //        mListener->onFrameInfoUpdate(mVideoInfo, true);
-    //    }
-    //}
-
-    //if (mClearScreenOn) {
-    //    glClearScreen();
-    //    mScreenCleared = true;
-    //    mClearScreenOn = false;
-    //}
-
-    //int64_t end = af_getsteady_ms();
-
-    //if (end - renderStartTime > 100) {
-    //    AF_LOGD("renderActually use:%lld", end - renderStartTime);
-    //}
-
-//   AF_LOGD(" cost time : render = %d ms", (af_getsteady_ms() - renderStartTime));
-    return rendered;
-}
-
-void GLRender::captureScreen()
+void XXQGLRender::captureScreen()
 {
     int64_t captureStartTime = af_getsteady_ms();
     GLint pView[4];
@@ -387,7 +233,7 @@ void GLRender::captureScreen()
     mCaptureOn = false;
 }
 
-int GLRender::setDisPlay(void *view)
+int XXQGLRender::setDisPlay(void *view)
 {
     AF_LOGD("-----> setDisPlay view = %p", view);
 
@@ -399,15 +245,13 @@ int GLRender::setDisPlay(void *view)
         }
         std::unique_lock<std::mutex> locker(mInitMutex);
 
-        if (!mInBackground) {
-            mVSync->start();
-        }
+        mVSync->start();
     }
 
     return 0;
 }
 
-void GLRender::captureScreen(std::function<void(uint8_t *, int, int)> func)
+void XXQGLRender::captureScreen(std::function<void(uint8_t *, int, int)> func)
 {
     {
         std::unique_lock<std::mutex> locker(mCaptureMutex);
@@ -416,7 +260,7 @@ void GLRender::captureScreen(std::function<void(uint8_t *, int, int)> func)
     }
 }
 
-void *GLRender::getSurface(bool cached)
+void *XXQGLRender::getSurface(bool cached)
 {
 #ifdef __ANDROID__
     IProgramContext *programContext = getProgram(AF_PIX_FMT_CICADA_MEDIA_CODEC);
@@ -437,7 +281,7 @@ void *GLRender::getSurface(bool cached)
     return nullptr;
 }
 
-IProgramContext *GLRender::getProgram(int frameFormat, IAFFrame *frame)
+IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
 {
     if (mPrograms.count(frameFormat) > 0) {
         IProgramContext *pContext = mPrograms[frameFormat].get();
@@ -450,7 +294,7 @@ IProgramContext *GLRender::getProgram(int frameFormat, IAFFrame *frame)
 
     if (frameFormat == AF_PIX_FMT_YUV420P || frameFormat == AF_PIX_FMT_YUVJ420P
             || frameFormat == AF_PIX_FMT_YUV422P || frameFormat == AF_PIX_FMT_YUVJ422P) {
-        //targetProgram = unique_ptr<IProgramContext>(new YUVProgramContext());
+        targetProgram = unique_ptr<IProgramContext>(new XXQYUVProgramContext());
     }
 
     if (targetProgram == nullptr) {
@@ -470,40 +314,17 @@ IProgramContext *GLRender::getProgram(int frameFormat, IAFFrame *frame)
 
 
 
-void GLRender::setSpeed(float speed)
+void XXQGLRender::setSpeed(float speed)
 {
     mRenderClock.setSpeed(speed);
 }
 
-
-
-
-#if TARGET_OS_IPHONE
-
-void GLRender::AppWillResignActive()
-{
-    std::unique_lock<std::mutex> locker(mInitMutex);
-    mInBackground = true;
-    AF_LOGE("0919, mInBackground = true");
-    mVSync->pause();
-};
-
-void GLRender::AppDidBecomeActive()
-{
-    std::unique_lock<std::mutex> locker(mInitMutex);
-    mInBackground = false;
-    AF_LOGE("0919, mInBackground = false");
-    mVSync->start();
-}
-
-#endif
-
-float GLRender::getRenderFPS()
+float XXQGLRender::getRenderFPS()
 {
     return mFps;
 }
 
-void GLRender::surfaceChanged()
+void XXQGLRender::surfaceChanged()
 {
 #ifdef __ANDROID__
 
@@ -514,4 +335,155 @@ void GLRender::surfaceChanged()
     std::unique_lock<mutex> lock(mRenderCallbackMutex);
     mRenderCallbackCon.wait(lock);
 #endif
+}
+
+// 在qt渲染线程调用
+void XXQGLRender::renderVideo()
+{ 
+    auto ctx = wglGetCurrentContext();
+	if (!ctx)
+		return;
+	
+    //  AF_LOGD("renderActually .");
+    int64_t renderStartTime = af_getsteady_ms();
+
+    {
+        std::unique_lock<std::mutex> locker(mFrameMutex);
+
+        if (!mInputQueue.empty()) {
+            mRenderFrame = move(mInputQueue.front());
+            mInputQueue.pop();
+        }
+    }
+
+    if (mRenderFrame != nullptr) {
+        mProgramFormat = mRenderFrame->getInfo().video.format;
+        mProgramContext = getProgram(mProgramFormat, mRenderFrame.get());
+    }
+
+    if (mProgramContext == nullptr) {
+        mProgramFormat = -1;
+		return;
+    }
+
+    int64_t framePts = INT64_MIN;
+
+    if (mRenderFrame != nullptr) {
+        framePts = mRenderFrame->getInfo().pts;
+        mVideoInfo = mRenderFrame->getInfo();
+        mVideoRotate = getRotate(mRenderFrame->getInfo().video.rotate);
+    }
+
+    Rotate finalRotate = Rotate_None;
+    int tmpRotate = (mRotate + mVideoRotate) % 360;
+
+    if (tmpRotate == 0) {
+        finalRotate = Rotate_None;
+    } else if (tmpRotate == 90) {
+        finalRotate = Rotate_90;
+    } else if (tmpRotate == 180) {
+        finalRotate = Rotate_180;
+    } else if (tmpRotate == 270) {
+        finalRotate = Rotate_270;
+    }
+
+    mProgramContext->updateScale(mScale);
+    mProgramContext->updateRotate(finalRotate);
+    mProgramContext->updateWindowSize(mVideoSurfaceWidth, mVideoSurfaceWidth, false);
+    mProgramContext->updateFlip(mFlip);
+    mProgramContext->updateBackgroundColor(mBackgroundColor);
+    int ret = -1;
+    if (mScreenCleared && mRenderFrame == nullptr) {
+        //do not draw last frame when need clear screen.
+        if (mVideoSurfaceSizeChanged) {
+            glClearScreen();
+			mVideoSurfaceSizeChanged = false;
+        }
+    } else {
+        mScreenCleared = false;
+        ret = mProgramContext->updateFrame(mRenderFrame);
+    }
+    //work around for glReadPixels is upside-down.
+    {
+        std::unique_lock<std::mutex> locker(mCaptureMutex);
+
+        if (mCaptureOn && mCaptureFunc != nullptr) {
+            //if need capture , update flip and other
+            if (mFlip == Flip_None ) {
+                mProgramContext->updateFlip(Flip_Vertical);
+            } else if (mFlip == Flip_Vertical) {
+                mProgramContext->updateFlip(Flip_None);
+            } else if ( mFlip == Flip_Horizontal) {
+                mProgramContext->updateFlip(Flip_Both);
+            }
+
+            if (finalRotate == Rotate_90) {
+                mProgramContext->updateRotate(Rotate_270);
+            } else if (finalRotate == Rotate_270) {
+                mProgramContext->updateRotate(Rotate_90);
+            }
+
+            std::unique_ptr<IAFFrame> dummyFrame = nullptr;
+            mProgramContext->updateFrame(dummyFrame);
+            captureScreen();
+            //reset flip and other
+            mProgramContext->updateFlip(mFlip);
+            mProgramContext->updateRotate(finalRotate);
+            mProgramContext->updateFrame(dummyFrame);
+        }
+    }
+
+    if (ret == 0) {
+        //if frame not change, don`t need present surface
+        if (mListener) {
+            mListener->onFrameInfoUpdate(mVideoInfo, true);
+        }
+    }
+
+    if (mClearScreenOn) {
+        glClearScreen();
+        mScreenCleared = true;
+        mClearScreenOn = false;
+    }
+
+    int64_t end = af_getsteady_ms();
+
+    if (end - renderStartTime > 100) {
+        AF_LOGD("renderActually use:%lld", end - renderStartTime);
+    }
+
+       AF_LOGD(" cost time : render = %d ms", (af_getsteady_ms() - renderStartTime));
+}
+
+void XXQGLRender::setVideoSurfaceSize(int width, int height)
+{
+	AF_LOGD("enter setVideoSurfaceSize, width = %d, height = %d.", width, height);
+	if (mVideoSurfaceWidth == width && mVideoSurfaceHeight == height)
+		return;
+
+	mVideoSurfaceWidth = width;
+	mVideoSurfaceHeight = height;
+	mVideoSurfaceSizeChanged = true;
+
+	// 如果这里宽高都是-1，调用线程在qt渲染线程。opengl ctx正在销毁，rendercallback也要置空。
+	if (mVideoSurfaceWidth == -1 && mVideoSurfaceHeight == -1) {
+		clearGLResource();
+	}
+}
+
+void XXQGLRender::setRenderCallback(std::function<void(void * vo_opaque)> cb)
+{
+	AF_LOGD("enter setRenderCallback.");
+
+	std::unique_lock<mutex> lock(mRenderCBackMutex);
+	mRenderCallback = cb;
+}
+
+void XXQGLRender::clearGLResource()
+{
+	auto ctx = wglGetCurrentContext();
+	if (!ctx)
+		return;
+
+	mPrograms.clear();
 }

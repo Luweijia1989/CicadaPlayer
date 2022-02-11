@@ -3568,6 +3568,10 @@ bool SuperMediaPlayer::CreateVideoRender(uint64_t flags)
 
     // lock mAppStatusMutex before mCreateMutex
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
+
+	if (mSet->videoSurfaceWidth == -1 && mSet->videoSurfaceHeight == -1)
+		return false;
+
     mAVDeviceManager->createVideoRender(flags);
     if (!mAVDeviceManager->getVideoRender()) {
         return false;
@@ -3586,6 +3590,11 @@ bool SuperMediaPlayer::CreateVideoRender(uint64_t flags)
     }
 
     mAVDeviceManager->setSpeed(mSet->rate);
+
+	mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(mSet->videoSurfaceWidth, mSet->videoSurfaceHeight);
+	if (mSet->renderCallback)
+		mAVDeviceManager->getVideoRender()->setRenderCallback(mSet->renderCallback);
+
     return true;
 }
 
@@ -3992,6 +4001,37 @@ bool SuperMediaPlayer::isHDRVideo(const Stream_meta *meta)
 float SuperMediaPlayer::getCurrentDownloadSpeed()
 {
     return mUtil->getCurrentDownloadSpeed();
+}
+
+void SuperMediaPlayer::renderVideo()
+{
+    std::lock_guard<std::mutex> uMutex(mCreateMutex);
+
+	if (mAVDeviceManager->isVideoRenderValid()) {
+        mAVDeviceManager->getVideoRender()->renderVideo();
+    }
+}
+
+void SuperMediaPlayer::setVideoSurfaceSize(int width, int height)
+{
+    std::lock_guard<std::mutex> uMutex(mCreateMutex);
+
+    if (mAVDeviceManager->isVideoRenderValid()) {
+        mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(width, height);
+    } else {
+		mSet->videoSurfaceWidth = width;
+		mSet->videoSurfaceHeight = height;
+	}
+}
+
+void SuperMediaPlayer::setRenderCallback(std::function<void(void * vo_opaque)> cb)
+{
+    std::lock_guard<std::mutex> uMutex(mCreateMutex);
+
+    if (mAVDeviceManager->isVideoRenderValid()) {
+        mAVDeviceManager->getVideoRender()->setRenderCallback(cb);
+    } else
+		mSet->renderCallback = cb;
 }
 
 void SuperMediaPlayer::ApsaraAudioRenderCallback::onFrameInfoUpdate(IAFFrame::AFFrameInfo &info, bool rendered)

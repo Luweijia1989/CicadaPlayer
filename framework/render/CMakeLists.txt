@@ -87,6 +87,9 @@ if (WIN32)
     list(APPEND SRC_FILES
                 video/glRender/XXQGLRender.cpp
                 video/glRender/XXQGLRender.h
+				video/glRender/IProgramContext.h
+				video/glRender/XXQProgramContext.cpp
+				video/glRender/XXQProgramContext.h
         )
 endif ()
 

@@ -297,4 +297,8 @@ void CicadaSetDrmRequestCallback(playerHandle *player, const std::function<Cicad
 
 std::string CicadaGetPlayerName(playerHandle *player);
 
+void CicadaRenderVideo(playerHandle *player);
+void CicadaSetVideoSurfaceSize(playerHandle *player, int width, int height);
+void CicadaSetRenderCallback(playerHandle *player, std::function<void(void* vo_opaque)> cb);
+
 #endif // CICADA_PLAYER_H_

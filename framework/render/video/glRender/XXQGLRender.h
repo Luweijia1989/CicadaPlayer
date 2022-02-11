@@ -25,16 +25,16 @@ using namespace Cicada;
 
 #if TARGET_OS_IPHONE
 #include <codec/utils_ios.h>
-class GLRender : public IVideoRender, private IVSync::Listener , private IOSNotificationObserver {
+class XXQGLRender : public IVideoRender, private IVSync::Listener , private IOSNotificationObserver {
 #else
-class GLRender : public IVideoRender, private IVSync::Listener {
+class XXQGLRender : public IVideoRender, private IVSync::Listener {
 #endif
 
 public:
 
-    explicit GLRender(float Hz = 60);
+    explicit XXQGLRender(float Hz = 60);
 
-    ~GLRender() override;
+    ~XXQGLRender() override;
 
     int init() override;
 
@@ -66,6 +66,10 @@ public:
         return 0;
     };
 
+	void renderVideo() override;
+	void setVideoSurfaceSize(int width, int height) override;
+	void setRenderCallback(std::function<void(void * vo_opaque)> cb) override;
+
 private:
     int onVSync(int64_t tick) override;
 
@@ -85,11 +89,11 @@ private:
 
     void dropFrame();
 
-    bool renderActually();
-
     void captureScreen();
 
     void glClearScreen();
+
+	void clearGLResource();
 
     void calculateFPS(int64_t tick);
 
@@ -105,8 +109,12 @@ protected:
     std::atomic<Scale> mScale{Scale_AspectFit};
     std::atomic<uint32_t> mBackgroundColor{0xff000000};
 
-    int mWindowWidth = 0;
-    int mWindowHeight = 0;
+    int mVideoSurfaceWidth = 0;
+    int mVideoSurfaceHeight = 0;
+	bool mVideoSurfaceSizeChanged = false;
+	std::mutex mRenderCBackMutex;
+	std::function<void(void* vo_opaque)> mRenderCallback = nullptr;
+	std::unique_ptr<IAFFrame> mRenderFrame = nullptr;
 
 private:
     std::mutex mInitMutex;
@@ -125,7 +133,6 @@ private:
     std::mutex mCreateOutTextureMutex;
     std::condition_variable mCreateOutTextureCondition;
     bool needCreateOutTexture = false;
-    bool mInBackground = false;
     uint64_t mRenderCount{};
     uint64_t mRendertimeS{0};
     uint8_t mFps{0};

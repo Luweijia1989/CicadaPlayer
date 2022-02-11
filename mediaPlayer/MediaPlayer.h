@@ -355,6 +355,10 @@ namespace Cicada {
 
         string GetPlayerSessionId();
 
+		void renderVideo();
+		void setVideoSurfaceSize(int width, int height);
+		void setRenderCallback(std::function<void(void* vo_opaque)> cb);
+
     private:
         static void preparedCallback(void *userData);
 

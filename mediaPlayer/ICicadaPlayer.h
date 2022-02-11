@@ -267,6 +267,10 @@ namespace Cicada {
 
         virtual float getCurrentDownloadSpeed() = 0;
 
+		virtual void renderVideo() = 0;
+		virtual void setVideoSurfaceSize(int width, int height) = 0;
+		virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb) = 0;
+
     protected:
         playerMediaFrameCb mMediaFrameCb = nullptr;
         void *mMediaFrameCbArg = nullptr;
