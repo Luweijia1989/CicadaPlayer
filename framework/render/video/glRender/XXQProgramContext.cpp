@@ -70,7 +70,7 @@ XXQYUVProgramContext::~XXQYUVProgramContext() {
 
 int XXQYUVProgramContext::initProgram() {
     AF_LOGD("createProgram ");
-	glewInit();
+	
     mProgram = glCreateProgram();
     int mInitRet = compileShader(&mVertShader, YUV_VERTEX_SHADER, GL_VERTEX_SHADER);
 

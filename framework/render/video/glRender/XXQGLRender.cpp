@@ -301,6 +301,7 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
         return nullptr;
     }
 
+	glewInit();
     int ret = targetProgram->initProgram();
 
     if (ret == 0) {
