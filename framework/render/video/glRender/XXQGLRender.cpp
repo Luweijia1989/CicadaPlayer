@@ -389,7 +389,7 @@ void XXQGLRender::renderVideo()
 
     mProgramContext->updateScale(mScale);
     mProgramContext->updateRotate(finalRotate);
-    mProgramContext->updateWindowSize(mVideoSurfaceWidth, mVideoSurfaceWidth, false);
+    mProgramContext->updateWindowSize(mVideoSurfaceWidth, mVideoSurfaceHeight, false);
     mProgramContext->updateFlip(mFlip);
     mProgramContext->updateBackgroundColor(mBackgroundColor);
     int ret = -1;
