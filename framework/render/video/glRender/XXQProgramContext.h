@@ -45,7 +45,9 @@ private:
 
     void updateDrawRegion();
 
-    void updateFlipCoords();
+    void updateTextureCoords();
+
+	void updateFlipCoords();
 
     void updateColorRange();
 
@@ -85,6 +87,7 @@ private:
     GLint mColorRangeLocation;
     GLuint mPositionLocation;
     GLuint mTexCoordLocation;
+	GLuint mFlipCoordsLocation;
     GLuint mYUVTextures[3];
     GLint mYTexLocation;
     GLint mUTexLocation;
@@ -94,8 +97,10 @@ private:
     GLfloat mUProjection[4][4];
     bool mRegionChanged = false;
     GLfloat mDrawRegion[8] = {0.0f};
-    bool mCoordsChanged = false;
-    GLfloat mFlipCoords[8] = {0.0f};
+    bool mTextureCoordsChanged = false;
+    GLfloat mTextureCoords[8] = {0.0f};
+	bool mFlipChanged = false;
+	GLfloat mFlipCoords[2] = {0.0f};
 
     int mWindowWidth  = 0;
     int mWindowHeight = 0;

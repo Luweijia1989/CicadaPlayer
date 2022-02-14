@@ -14,10 +14,11 @@ static const char YUV_VERTEX_SHADER[] = R"(
         attribute vec2 a_position;
         attribute vec2 a_texCoord;
         uniform mat4 u_projection;
+		uniform vec2 u_flipMatrix;
         varying vec2 v_texCoord;
 
         void main() {
-            gl_Position = u_projection * vec4(a_position, 0.0, 1.0);
+            gl_Position = u_projection * vec4(a_position, 0.0, 1.0) * vec4(u_flipMatrix, 1.0, 1.0);
             v_texCoord  = a_texCoord;
         }
 )";
@@ -50,10 +51,11 @@ static const char YUV_FRAGMENT_SHADER[] = R"(
 XXQYUVProgramContext::XXQYUVProgramContext() {
     AF_LOGD("YUVProgramContext");
     updateDrawRegion();
-    updateFlipCoords();
+    updateTextureCoords();
     updateUProjection();
     updateColorRange();
     updateColorSpace();
+	updateFlipCoords();
 }
 
 XXQYUVProgramContext::~XXQYUVProgramContext() {
@@ -132,7 +134,7 @@ void XXQYUVProgramContext::updateRotate(IVideoRender::Rotate rotate) {
 void XXQYUVProgramContext::updateFlip(IVideoRender::Flip flip) {
     if (mFlip != flip) {
         mFlip = flip;
-        mCoordsChanged = true;
+        mFlipChanged = true;
     }
 }
 
@@ -156,13 +158,13 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame) {
             mCropRect.top != videoInfo.crop_top || mCropRect.bottom != videoInfo.crop_bottom) {
             mCropRect = {videoInfo.crop_left, videoInfo.crop_right,
                          videoInfo.crop_top, videoInfo.crop_bottom};
-            mCoordsChanged = true;
+            mTextureCoordsChanged = true;
         }
 
         int *lineSize = frame->getLineSize();
         if (lineSize != nullptr && lineSize[0] != mYLineSize) {
             mYLineSize = lineSize[0];
-            mCoordsChanged = true;
+            mTextureCoordsChanged = true;
         }
 
         if(mColorSpace != videoInfo.colorSpace){
@@ -176,7 +178,7 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame) {
         }
     }
 
-    if(frame == nullptr && !mProjectionChanged && !mRegionChanged && !mCoordsChanged && !mBackgroundColorChanged){
+    if(frame == nullptr && !mProjectionChanged && !mRegionChanged && !mTextureCoordsChanged && !mBackgroundColorChanged && !mFlipChanged){
         //frame is null and nothing changed , don`t need redraw. such as paused.
         return -1;
     }
@@ -201,11 +203,15 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame) {
         mRegionChanged = false;
     }
 
-    if (mCoordsChanged) {
-        updateFlipCoords();
-        mCoordsChanged = false;
+    if (mTextureCoordsChanged) {
+        updateTextureCoords();
+        mTextureCoordsChanged = false;
     }
 
+	if (mFlipChanged) {
+		updateFlipCoords();
+		mFlipChanged = false;
+	}
 
     glViewport(0, 0, mWindowWidth, mWindowHeight);
     if(mBackgroundColorChanged) {
@@ -224,9 +230,10 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame) {
 
     glUniformMatrix4fv(mProjectionLocation, 1, GL_FALSE, (GLfloat *) mUProjection);
     glUniformMatrix3fv(mColorSpaceLocation, 1, GL_FALSE, (GLfloat *) mUColorSpace);
+	glUniform2f(mFlipCoordsLocation, mFlipCoords[0], mFlipCoords[1]);
     glUniform3f(mColorRangeLocation, mUColorRange[0], mUColorRange[1], mUColorRange[2]);
     glVertexAttribPointer(mPositionLocation, 2, GL_FLOAT, GL_FALSE, 0, mDrawRegion);
-    glVertexAttribPointer(mTexCoordLocation, 2, GL_FLOAT, GL_FALSE, 0, mFlipCoords);
+    glVertexAttribPointer(mTexCoordLocation, 2, GL_FLOAT, GL_FALSE, 0, mTextureCoords);
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -363,9 +370,7 @@ void XXQYUVProgramContext::updateDrawRegion() {
 }
 
 
-void XXQYUVProgramContext::updateFlipCoords() {
-
-
+void XXQYUVProgramContext::updateTextureCoords() {
     float leftCropPercent = 0.0f;
     float rightCropPercent = 0.0f;
     float topCropPercent = 0.0f;
@@ -387,56 +392,42 @@ void XXQYUVProgramContext::updateFlipCoords() {
     float topY = 1.0f - topCropPercent;
     float bottomY = 0.0f + bottomCropPercent;
 
-    if (mFlip == IVideoRender::Flip::Flip_Horizontal) {
-        mFlipCoords[0] = rightX;
-        mFlipCoords[1] = topY;
+    mTextureCoords[0] = leftX;
+    mTextureCoords[1] = topY;
 
-        mFlipCoords[2] = leftX;
-        mFlipCoords[3] = topY;
+    mTextureCoords[2] = rightX;
+    mTextureCoords[3] = topY;
 
-        mFlipCoords[4] = rightX;
-        mFlipCoords[5] = bottomY;
+    mTextureCoords[4] = leftX;
+    mTextureCoords[5] = bottomY;
 
-        mFlipCoords[6] = leftX;
-        mFlipCoords[7] = bottomY;
+    mTextureCoords[6] = rightX;
+    mTextureCoords[7] = bottomY;
+}
 
-    } else if (mFlip == IVideoRender::Flip::Flip_Vertical) {
-        mFlipCoords[0] = leftX;
-        mFlipCoords[1] = bottomY;
-
-        mFlipCoords[2] = rightX;
-        mFlipCoords[3] = bottomY;
-
-        mFlipCoords[4] = leftX;
-        mFlipCoords[5] = topY;
-
-        mFlipCoords[6] = rightX;
-        mFlipCoords[7] = topY;
-    } else if(mFlip == IVideoRender::Flip::Flip_Both){
-        mFlipCoords[0] = rightX;
-        mFlipCoords[1] = bottomY;
-
-        mFlipCoords[2] = leftX;
-        mFlipCoords[3] = bottomY;
-
-        mFlipCoords[4] = rightX;
-        mFlipCoords[5] = topY;
-
-        mFlipCoords[6] = leftX;
-        mFlipCoords[7] = topY;
-    } else  {
-        mFlipCoords[0] = leftX;
-        mFlipCoords[1] = topY;
-
-        mFlipCoords[2] = rightX;
-        mFlipCoords[3] = topY;
-
-        mFlipCoords[4] = leftX;
-        mFlipCoords[5] = bottomY;
-
-        mFlipCoords[6] = rightX;
-        mFlipCoords[7] = bottomY;
-    }
+void XXQYUVProgramContext::updateFlipCoords()
+{
+	switch (mFlip)
+	{
+	case IVideoRender::Flip_None:
+		mFlipCoords[0] = 1.0f;
+		mFlipCoords[1] = 1.0f;
+		break;
+	case IVideoRender::Flip_Horizontal:
+        mFlipCoords[0] = -1.0f;
+        mFlipCoords[1] = 1.0f;
+		break;
+	case IVideoRender::Flip_Vertical:
+        mFlipCoords[0] = 1.0f;
+        mFlipCoords[1] = -1.0f;
+		break;
+	case IVideoRender::Flip_Both:
+        mFlipCoords[0] = -1.0f;
+        mFlipCoords[1] = -1.0f;
+		break;
+	default:
+		break;
+	}
 }
 
 
@@ -589,6 +580,7 @@ void XXQYUVProgramContext::getShaderLocations() {
      mProjectionLocation = glGetUniformLocation(mProgram, "u_projection");
      mColorSpaceLocation = glGetUniformLocation(mProgram, "uColorSpace");
      mColorRangeLocation = glGetUniformLocation(mProgram, "uColorRange");
+	 mFlipCoordsLocation = glGetUniformLocation(mProgram, "u_flipMatrix");
      mPositionLocation = static_cast<GLuint>(glGetAttribLocation(mProgram, "a_position"));
      mTexCoordLocation = static_cast<GLuint>(glGetAttribLocation(mProgram, "a_texCoord"));
      mYTexLocation = glGetUniformLocation(mProgram, "y_tex");
