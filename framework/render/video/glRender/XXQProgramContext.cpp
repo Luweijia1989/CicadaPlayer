@@ -4,9 +4,15 @@
 #include <render/video/glRender/base/utils.h>
 #include <utils/AFMediaType.h>
 #include <utils/CicadaJSON.h>
+#include <utils/CicadaUtils.h>
 #include <utils/frame_work_log.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+#ifdef WIN32
+#include <gdiplus.h>
+#endif// Win32
+
 
 const GLfloat kColorConversion601FullRange[3][3] = {{1.0, 1.0, 1.0}, {0.0, -0.343, 1.765}, {1.4, -0.711, 0.0}};
 
@@ -350,10 +356,11 @@ void MixRenderer::prepareMixResource()
 {
     for (auto iter = m_srcMap.begin(); iter != m_srcMap.end(); iter++) {
         MixSrc &mixSrc = iter->second;
+        if (m_mixResource.find(mixSrc.srcTag) == m_mixResource.end()) continue;
+
         auto resourceStr = m_mixResource[mixSrc.srcTag];
         if (mixSrc.srcType == MixSrc::IMG) {
             if (resourceStr.length() != 0) {
-                //mixSrc.srcTexture = new QOpenGLTexture(QImage(resourceStr));
                 glGenTextures(1, &mixSrc.srcTexture);
                 int w, h, c;
                 auto bytes = stbi_load(resourceStr.c_str(), &w, &h, &c, 4);//rgba
@@ -367,27 +374,60 @@ void MixRenderer::prepareMixResource()
                 stbi_image_free(bytes);
             }
         } else if (mixSrc.srcType == MixSrc::TXT) {
-            /*QImage textImage(QSize(mixSrc.w, mixSrc.h), QImage::Format_RGBA8888);
-            textImage.fill(Qt::transparent);
-            QPainter p(&textImage);
-            QFont f;
-            int targetSize = 32;
-            f.setFamily("Microsoft YaHei");
-            f.setBold(mixSrc.style == MixSrc::BOLD);
-            while (true) {
-                f.setPixelSize(targetSize);
-                QFontMetrics fm(f);
-                QRect boundRect = fm.boundingRect(resourceStr);
-                if (boundRect.width() <= mixSrc.w && boundRect.height() <= mixSrc.h) break;
-                targetSize--;
+#ifdef WIN32
+            Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+            ULONG_PTR gdiplusToken;
+            Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+            {
+                std::unique_ptr<uint8_t> bits(new uint8_t[mixSrc.w * mixSrc.h * 4]);
+                auto *bitmap = new Gdiplus::Bitmap(mixSrc.w, mixSrc.h, 4 * mixSrc.w, PixelFormat32bppARGB, bits.get());
+                auto *graphics = new Gdiplus::Graphics(bitmap);
+
+                graphics->Clear(Gdiplus::Color::Transparent);
+
+                int fs = 65;
+                int style = mixSrc.style == MixSrc::BOLD ? Gdiplus::FontStyleBold : Gdiplus::FontStyleRegular;
+                std::wstring text = CicadaUtils::StringToWideString(resourceStr);
+                Gdiplus::FontFamily fm(L"Microsoft YaHei");
+
+                Gdiplus::StringFormat strformat(Gdiplus::StringFormat::GenericTypographic());
+                strformat.SetAlignment(Gdiplus::StringAlignmentCenter);    //水平居左
+                strformat.SetLineAlignment(Gdiplus::StringAlignmentCenter);//垂直居中
+                graphics->SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+                graphics->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+                while (true) {
+                    Gdiplus::RectF boundingBox;
+                    Gdiplus::Font font(&fm, --fs, style, Gdiplus::UnitPixel);
+                    graphics->MeasureString(text.c_str(), (int) text.size() + 1, &font, Gdiplus::PointF(0.0f, 0.0f), &strformat,
+                                            &boundingBox);
+                    if (boundingBox.Width <= (float) mixSrc.w && boundingBox.Height <= (float) mixSrc.h) break;
+
+                    if (fs <= 1) break;
+                }
+
+                auto brush = new Gdiplus::SolidBrush(
+                        Gdiplus::Color(mixSrc.color[3] * 255, mixSrc.color[0] * 255, mixSrc.color[1] * 255, mixSrc.color[2] * 255));
+                auto pfont = new Gdiplus::Font(&fm, fs, style, Gdiplus::UnitPixel);
+                graphics->DrawString(text.c_str(), -1, pfont, Gdiplus::RectF(0, 0, mixSrc.w, mixSrc.h), &strformat, brush);
+
+                glGenTextures(1, &mixSrc.srcTexture);
+                glBindTexture(GL_TEXTURE_2D, mixSrc.srcTexture);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mixSrc.w, mixSrc.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, bits.get());
+
+                delete pfont;
+                delete bitmap;
+                delete graphics;
+                delete brush;
             }
-            QPen pen;
-            pen.setColor(mixSrc.color);
-            p.setPen(pen);
-            p.setFont(f);
-            QRect drawRect(0, 0, textImage.width(), textImage.height());
-            p.drawText(drawRect, resourceStr, Qt::AlignHCenter | Qt::AlignVCenter);
-            mixSrc.srcTexture = new QOpenGLTexture(textImage);*/
+
+            Gdiplus::GdiplusShutdown(gdiplusToken);
+#endif
         }
     }
 }

@@ -128,3 +128,29 @@ int CicadaUtils::hmac_sha1(uint8_t **dst, const uint8_t *data, unsigned int data
     av_hmac_free(shaContext);
     return ret;
 }
+
+#ifdef WIN32
+#include <windows.h>
+std::wstring CicadaUtils::StringToWideString(const std::string &s)
+{
+    std::wstring ws;
+    int l;
+    std::vector<wchar_t> v;
+
+    l = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, 0, 0);
+
+    if (l > 0) {
+        v = std::vector<wchar_t>(l);
+
+        MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &(v[0]), l);
+        ws.assign(v.begin(), v.end() - 1);
+    }
+
+    return ws;
+}
+#else
+std::wstring CicadaUtils::StringToWideString(const std::string &s)
+{
+	return std::wstring();
+}
+#endif

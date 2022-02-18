@@ -30,6 +30,8 @@ public:
     static int base64dec(const std::string &str, char **dst);
 
     static int hmac_sha1(uint8_t **dst, const uint8_t *data, unsigned int dataLen, const uint8_t *key, unsigned int keyLen);
+
+	static std::wstring StringToWideString(const std::string &s);
 };
 
 #endif /* CicadaUtils_hpp */

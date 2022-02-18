@@ -84,6 +84,7 @@ if (IOS)
 endif ()
 
 if (WIN32)
+	add_definitions(-DSTBI_WINDOWS_UTF8)
     list(APPEND SRC_FILES
                 video/glRender/XXQGLRender.cpp
                 video/glRender/XXQGLRender.h

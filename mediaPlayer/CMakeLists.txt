@@ -220,6 +220,7 @@ endif ()
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     target_link_libraries(media_player PUBLIC
             bcrypt
+			Gdiplus
             )
 else ()
     target_link_libraries(media_player PUBLIC
