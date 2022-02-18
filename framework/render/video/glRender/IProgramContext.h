@@ -6,14 +6,7 @@
 #define SOURCE_IPROGRAMCONTEXT_H
 
 #include "render/video/IVideoRender.h"
-
-#if TARGET_PLATFORM == PLATFORM_IOS
-
-#include <OpenGLES/gltypes.h>
-#include <OpenGLES/ES2/gl.h>
-#include <OpenGLES/ES2/glext.h>
-
-#endif
+#include "platform/platform_gl.h"
 
 class IProgramContext {
 

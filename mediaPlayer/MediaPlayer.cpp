@@ -1222,4 +1222,10 @@ namespace Cicada {
 		GET_PLAYER_HANDLE;
 		CicadaSetMaskMode(handle, mode, data);
 	}
+
+	void MediaPlayer::clearGLResource()
+	{
+		GET_PLAYER_HANDLE;
+		CicadaClearGLResource(handle);
+	}
 }

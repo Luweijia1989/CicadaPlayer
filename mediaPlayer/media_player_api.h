@@ -301,5 +301,6 @@ void CicadaRenderVideo(playerHandle *player);
 void CicadaSetVideoSurfaceSize(playerHandle *player, int width, int height);
 void CicadaSetRenderCallback(playerHandle *player, std::function<void(void* vo_opaque)> cb);
 void CicadaSetMaskMode(playerHandle *player, IVideoRender::MaskMode mode, const std::string& data);
+void CicadaClearGLResource(playerHandle *player);
 
 #endif // CICADA_PLAYER_H_

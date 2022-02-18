@@ -71,6 +71,7 @@ public:
 	void setRenderCallback(std::function<void(void * vo_opaque)> cb) override;
 	void setMaskMode(MaskMode mode, const std::string& data) override;
 	void setVapInfo(const std::string& info) override;
+	void clearGLResource() override;
 
 private:
     int onVSync(int64_t tick) override;
@@ -94,8 +95,6 @@ private:
     void captureScreen();
 
     void glClearScreen();
-
-	void clearGLResource();
 
     void calculateFPS(int64_t tick);
 
@@ -136,7 +135,7 @@ private:
     std::mutex mCaptureMutex;
     bool mCaptureOn = false;
     std::function<void(uint8_t *, int, int)> mCaptureFunc = nullptr;
-    std::map<int, std::unique_ptr<IProgramContext>> mPrograms;
+	std::map<int, std::unique_ptr<IProgramContext>> mPrograms;
     std::mutex mCreateOutTextureMutex;
     std::condition_variable mCreateOutTextureCondition;
     bool needCreateOutTexture = false;

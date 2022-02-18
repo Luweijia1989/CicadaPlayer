@@ -1,15 +1,15 @@
 //
 // Created by lifujun on 2019/8/12.
 //
-#define  LOG_TAG "XXQGLRender"
+#define LOG_TAG "XXQGLRender"
 
 #include "XXQGLRender.h"
-#include <utils/timer.h>
-#include <utils/AFMediaType.h>
+#include "XXQProgramContext.h"
 #include <cassert>
 #include <cstdlib>
 #include <render/video/glRender/base/utils.h>
-#include "XXQProgramContext.h"
+#include <utils/AFMediaType.h>
+#include <utils/timer.h>
 
 using namespace std;
 
@@ -53,7 +53,7 @@ int XXQGLRender::clearScreen()
 
 int XXQGLRender::renderFrame(std::unique_ptr<IAFFrame> &frame)
 {
-//    AF_LOGD("-----> renderFrame");
+    //    AF_LOGD("-----> renderFrame");
 
     if (frame == nullptr) {
         bFlushAsync = true;
@@ -158,9 +158,9 @@ int XXQGLRender::onVsyncInner(int64_t tick)
                 if (llabs(late) > 100000) {
                     mRenderClock.set(mInputQueue.front()->getInfo().pts);
                 } else if (late - mVSyncPeriod * mRenderClock.getSpeed() > 0) {
-//                    AF_LOGD("mVSyncPeriod is %lld\n", mVSyncPeriod);
-//                    AF_LOGD("mRenderClock.get() is %lld\n", mRenderClock.get());
-//                    AF_LOGD("mInputQueue.front()->getInfo().pts is %lld\n", mInputQueue.front()->getInfo().pts);
+                    //                    AF_LOGD("mVSyncPeriod is %lld\n", mVSyncPeriod);
+                    //                    AF_LOGD("mRenderClock.get() is %lld\n", mRenderClock.get());
+                    //                    AF_LOGD("mInputQueue.front()->getInfo().pts is %lld\n", mInputQueue.front()->getInfo().pts);
                     calculateFPS(tick);
                     return 0;
                 }
@@ -169,8 +169,7 @@ int XXQGLRender::onVsyncInner(int64_t tick)
     }
 
     std::unique_lock<mutex> lock(mRenderCBackMutex);
-	if (mRenderCallback)
-		mRenderCallback(this);
+    if (mRenderCallback) mRenderCallback(this);
 
     mRenderCount++;
 
@@ -195,13 +194,11 @@ void XXQGLRender::calculateFPS(int64_t tick)
 
 int XXQGLRender::VSyncOnInit()
 {
-	return 0;
+    return 0;
 }
 
 void XXQGLRender::VSyncOnDestroy()
-{
-    
-}
+{}
 
 void XXQGLRender::glClearScreen()
 {
@@ -220,12 +217,11 @@ void XXQGLRender::captureScreen()
     glGetIntegerv(GL_VIEWPORT, pView);
     int width = pView[2];
     int height = pView[3];
-    GLsizei bufferSize = width * height * sizeof(GLubyte) * 4; //RGBA
+    GLsizei bufferSize = width * height * sizeof(GLubyte) * 4;//RGBA
     GLubyte *bufferData = (GLubyte *) malloc(bufferSize);
     memset(bufferData, 0, bufferSize);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glReadPixels(pView[0], pView[1], pView[2], pView[3], GL_RGBA, GL_UNSIGNED_BYTE,
-                 bufferData);
+    glReadPixels(pView[0], pView[1], pView[2], pView[3], GL_RGBA, GL_UNSIGNED_BYTE, bufferData);
     int64_t captureEndTime = af_getsteady_ms();
     AF_LOGD("capture cost time : capture = %d ms", (captureEndTime - captureStartTime));
     mCaptureFunc(bufferData, width, height);
@@ -268,9 +264,7 @@ void *XXQGLRender::getSurface(bool cached)
     if (programContext == nullptr || programContext->getSurface() == nullptr || !cached) {
         std::unique_lock<std::mutex> locker(mCreateOutTextureMutex);
         needCreateOutTexture = true;
-        mCreateOutTextureCondition.wait(locker, [this]() -> int {
-            return !needCreateOutTexture;
-        });
+        mCreateOutTextureCondition.wait(locker, [this]() -> int { return !needCreateOutTexture; });
     }
 
     programContext = getProgram(AF_PIX_FMT_CICADA_MEDIA_CODEC);
@@ -290,10 +284,10 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
         return pContext;
     }
 
-    unique_ptr<IProgramContext> targetProgram{nullptr};
+    std::unique_ptr<IProgramContext> targetProgram{nullptr};
 
-    if (frameFormat == AF_PIX_FMT_YUV420P || frameFormat == AF_PIX_FMT_YUVJ420P
-            || frameFormat == AF_PIX_FMT_YUV422P || frameFormat == AF_PIX_FMT_YUVJ422P) {
+    if (frameFormat == AF_PIX_FMT_YUV420P || frameFormat == AF_PIX_FMT_YUVJ420P || frameFormat == AF_PIX_FMT_YUV422P ||
+        frameFormat == AF_PIX_FMT_YUVJ422P) {
         targetProgram = unique_ptr<IProgramContext>(new XXQYUVProgramContext());
     }
 
@@ -301,18 +295,17 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
         return nullptr;
     }
 
-	glewInit();
+    glewInit();
     int ret = targetProgram->initProgram();
 
     if (ret == 0) {
         targetProgram->setRenderingCb(mRenderingCb, mRenderingCbUserData);
-        mPrograms[frameFormat] = move(targetProgram);
+        mPrograms[frameFormat] = std::move(targetProgram);
         return mPrograms[frameFormat].get();
     } else {
         return nullptr;
     }
 }
-
 
 
 void XXQGLRender::setSpeed(float speed)
@@ -330,7 +323,7 @@ void XXQGLRender::surfaceChanged()
 #ifdef __ANDROID__
 
     if (mInitRet == INT32_MIN || mInitRet != 0) {
-        return ;
+        return;
     }
 
     std::unique_lock<mutex> lock(mRenderCallbackMutex);
@@ -340,11 +333,10 @@ void XXQGLRender::surfaceChanged()
 
 // 在qt渲染线程调用
 void XXQGLRender::renderVideo()
-{ 
+{
     auto ctx = wglGetCurrentContext();
-	if (!ctx)
-		return;
-	
+    if (!ctx) return;
+
     //  AF_LOGD("renderActually .");
     int64_t renderStartTime = af_getsteady_ms();
 
@@ -364,7 +356,7 @@ void XXQGLRender::renderVideo()
 
     if (mProgramContext == nullptr) {
         mProgramFormat = -1;
-		return;
+        return;
     }
 
     int64_t framePts = INT64_MIN;
@@ -387,10 +379,10 @@ void XXQGLRender::renderVideo()
     } else if (tmpRotate == 270) {
         finalRotate = Rotate_270;
     }
-	
-	mMaskInfoMutex.lock();
-	mProgramContext->updateMaskInfo(mMaskVapInfo, mMode, mMaskVapData);
-	mMaskInfoMutex.unlock();
+
+    mMaskInfoMutex.lock();
+    mProgramContext->updateMaskInfo(mMaskVapInfo, mMode, mMaskVapData);
+    mMaskInfoMutex.unlock();
 
     mProgramContext->updateScale(mScale);
     mProgramContext->updateRotate(finalRotate);
@@ -402,7 +394,7 @@ void XXQGLRender::renderVideo()
         //do not draw last frame when need clear screen.
         if (mVideoSurfaceSizeChanged) {
             glClearScreen();
-			mVideoSurfaceSizeChanged = false;
+            mVideoSurfaceSizeChanged = false;
         }
     } else {
         mScreenCleared = false;
@@ -414,11 +406,11 @@ void XXQGLRender::renderVideo()
 
         if (mCaptureOn && mCaptureFunc != nullptr) {
             //if need capture , update flip and other
-            if (mFlip == Flip_None ) {
+            if (mFlip == Flip_None) {
                 mProgramContext->updateFlip(Flip_Vertical);
             } else if (mFlip == Flip_Vertical) {
                 mProgramContext->updateFlip(Flip_None);
-            } else if ( mFlip == Flip_Horizontal) {
+            } else if (mFlip == Flip_Horizontal) {
                 mProgramContext->updateFlip(Flip_Both);
             }
 
@@ -457,51 +449,44 @@ void XXQGLRender::renderVideo()
         AF_LOGD("renderActually use:%lld", end - renderStartTime);
     }
 
-       AF_LOGD(" cost time : render = %d ms", (af_getsteady_ms() - renderStartTime));
+    AF_LOGD(" cost time : render = %d ms", (af_getsteady_ms() - renderStartTime));
 }
 
 void XXQGLRender::setVideoSurfaceSize(int width, int height)
 {
-	AF_LOGD("enter setVideoSurfaceSize, width = %d, height = %d.", width, height);
-	if (mVideoSurfaceWidth == width && mVideoSurfaceHeight == height)
-		return;
+    AF_LOGD("enter setVideoSurfaceSize, width = %d, height = %d.", width, height);
+    if (mVideoSurfaceWidth == width && mVideoSurfaceHeight == height) return;
 
-	mVideoSurfaceWidth = width;
-	mVideoSurfaceHeight = height;
-	mVideoSurfaceSizeChanged = true;
-
-	// 如果这里宽高都是-1，调用线程在qt渲染线程。opengl ctx正在销毁，rendercallback也要置空。
-	if (mVideoSurfaceWidth == -1 && mVideoSurfaceHeight == -1) {
-		clearGLResource();
-	}
+    mVideoSurfaceWidth = width;
+    mVideoSurfaceHeight = height;
+    mVideoSurfaceSizeChanged = true;
 }
 
-void XXQGLRender::setRenderCallback(std::function<void(void * vo_opaque)> cb)
+void XXQGLRender::setRenderCallback(std::function<void(void *vo_opaque)> cb)
 {
-	AF_LOGD("enter setRenderCallback.");
+    AF_LOGD("enter setRenderCallback.");
 
-	std::unique_lock<mutex> lock(mRenderCBackMutex);
-	mRenderCallback = cb;
+    std::unique_lock<mutex> lock(mRenderCBackMutex);
+    mRenderCallback = cb;
+}
+
+void XXQGLRender::setMaskMode(MaskMode mode, const std::string &data)
+{
+    std::unique_lock<std::mutex> locker(mMaskInfoMutex);
+    mMode = mode;
+    mMaskVapData = data;
+}
+
+void XXQGLRender::setVapInfo(const std::string &info)
+{
+    std::unique_lock<std::mutex> locker(mMaskInfoMutex);
+    mMaskVapInfo = info;
 }
 
 void XXQGLRender::clearGLResource()
 {
-	auto ctx = wglGetCurrentContext();
-	if (!ctx)
-		return;
+    auto ctx = wglGetCurrentContext();
+    if (!ctx) return;
 
-	mPrograms.clear();
-}
-
-void XXQGLRender::setMaskMode(MaskMode mode, const std::string& data)
-{
-	std::unique_lock<std::mutex> locker(mMaskInfoMutex);
-	mMode = mode;
-	mMaskVapData = data;
-}
-
-void XXQGLRender::setVapInfo(const std::string& info)
-{
-	std::unique_lock<std::mutex> locker(mMaskInfoMutex);
-	mMaskVapInfo = info;
+    mPrograms.clear();
 }

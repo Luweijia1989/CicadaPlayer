@@ -211,7 +211,6 @@ void MixRenderer::renderMixPrivate(const VAPFrame &frame, const MixSrc &src, con
             ret[5] = bottom + p.offsetY;
             ret[6] = right + p.offsetX;
             ret[7] = top + p.offsetY;
-
         } else if (p.rotate == IVideoRender::Rotate::Rotate_180) {
             float left = (p.ow - pointRect.right) * p.scaleW;
             float top = (p.oh - pointRect.bottom) * p.scaleH;
@@ -234,16 +233,12 @@ void MixRenderer::renderMixPrivate(const VAPFrame &frame, const MixSrc &src, con
 
             ret[0] = right + p.offsetX;
             ret[1] = top + p.offsetY;
-            ;
             ret[2] = right + p.offsetX;
             ret[3] = bottom + p.offsetY;
-            ;
             ret[4] = left + p.offsetX;
             ret[5] = top + p.offsetY;
-            ;
             ret[6] = left + p.offsetX;
             ret[7] = bottom + p.offsetY;
-            ;
         }
     };
 

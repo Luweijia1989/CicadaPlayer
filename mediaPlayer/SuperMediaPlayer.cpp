@@ -4049,6 +4049,15 @@ void SuperMediaPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::strin
 	}
 }		
 
+void SuperMediaPlayer::clearGLResource()
+{
+    std::lock_guard<std::mutex> uMutex(mCreateMutex);
+
+    if (mAVDeviceManager->isVideoRenderValid()) {
+        mAVDeviceManager->getVideoRender()->clearGLResource();
+    }
+}
+
 void SuperMediaPlayer::ApsaraAudioRenderCallback::onFrameInfoUpdate(IAFFrame::AFFrameInfo &info, bool rendered)
 {
     mPlayer.RenderCallback(ST_TYPE_AUDIO, rendered, info);

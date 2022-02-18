@@ -756,3 +756,10 @@ void CicadaSetMaskMode(playerHandle *pHandle, IVideoRender::MaskMode mode, const
     if (player) 
 		player->setMaskMode(mode, data);
 }
+
+void CicadaClearGLResource(playerHandle *pHandle)
+{
+	GET_PLAYER;
+	if (player)
+		player->clearGLResource();
+}

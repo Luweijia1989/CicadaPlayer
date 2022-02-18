@@ -12,6 +12,7 @@
 
 typedef bool (*videoRenderingFrameCB)(void *userData, IAFFrame *frame, const CicadaJSONItem &params);
 
+class IProgramContext;
 class IVideoRender {
 
 public:
@@ -212,6 +213,7 @@ public:
 	virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb) {}
 	virtual void setMaskMode(MaskMode mode, const std::string& data) {}
 	virtual void setVapInfo(const std::string& info) {}
+	virtual void clearGLResource() {}
 
 protected:
     IVideoRenderFilter *mFilter{};
