@@ -69,6 +69,8 @@ public:
 	void renderVideo() override;
 	void setVideoSurfaceSize(int width, int height) override;
 	void setRenderCallback(std::function<void(void * vo_opaque)> cb) override;
+	void setMaskMode(MaskMode mode, const std::string& data) override;
+	void setVapInfo(const std::string& info) override;
 
 private:
     int onVSync(int64_t tick) override;
@@ -108,6 +110,11 @@ protected:
     std::atomic<Flip> mFlip{Flip_None};
     std::atomic<Scale> mScale{Scale_AspectFit};
     std::atomic<uint32_t> mBackgroundColor{0xff000000};
+
+	std::mutex mMaskInfoMutex;
+	MaskMode mMode{Mask_None};
+	std::string mMaskVapData{};
+	std::string mMaskVapInfo{};
 
     int mVideoSurfaceWidth = 0;
     int mVideoSurfaceHeight = 0;

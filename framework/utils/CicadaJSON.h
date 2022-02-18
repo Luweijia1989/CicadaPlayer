@@ -13,6 +13,7 @@
 #include <vector>
 #include "CicadaType.h"
 #include <mutex>
+#include <map>
 
 struct cJSON;
 class CicadaJSONArray;
@@ -49,6 +50,10 @@ public:
     bool hasItem(const std::string& name) const;
 
     void deleteItem(const std::string& name);
+
+	int getInt();
+	double getDouble();
+	std::map<std::string, std::string> getStringMap();
 
     std::string printJSON() const;
 

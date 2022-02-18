@@ -63,6 +63,8 @@ namespace Cicada {
 
         static ffmpegDataSource se;
 
+		void parseVapInfo();
+
     private:
         AVIOContext *mPuc{};
         AVIOInterruptCB mInterruptCB{};

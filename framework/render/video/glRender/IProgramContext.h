@@ -74,6 +74,8 @@ public:
         mGLContext = glContext;
     }
 
+	virtual void updateMaskInfo(const std::string& vapInfo, IVideoRender::MaskMode mode, const std::string& data) {}
+
 protected:
     videoRenderingFrameCB mRenderingCb{nullptr};
     void *mRenderingCbUserData{nullptr};

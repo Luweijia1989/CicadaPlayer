@@ -387,6 +387,10 @@ void XXQGLRender::renderVideo()
     } else if (tmpRotate == 270) {
         finalRotate = Rotate_270;
     }
+	
+	mMaskInfoMutex.lock();
+	mProgramContext->updateMaskInfo(mMaskVapInfo, mMode, mMaskVapData);
+	mMaskInfoMutex.unlock();
 
     mProgramContext->updateScale(mScale);
     mProgramContext->updateRotate(finalRotate);
@@ -487,4 +491,17 @@ void XXQGLRender::clearGLResource()
 		return;
 
 	mPrograms.clear();
+}
+
+void XXQGLRender::setMaskMode(MaskMode mode, const std::string& data)
+{
+	std::unique_lock<std::mutex> locker(mMaskInfoMutex);
+	mMode = mode;
+	mMaskVapData = data;
+}
+
+void XXQGLRender::setVapInfo(const std::string& info)
+{
+	std::unique_lock<std::mutex> locker(mMaskInfoMutex);
+	mMaskVapInfo = info;
 }

@@ -70,6 +70,8 @@ namespace Cicada {
 		int videoSurfaceWidth = 0;
 		int videoSurfaceHeight = 0;
 		std::function<void(void * vo_opaque)> renderCallback = nullptr;
+		IVideoRender::MaskMode maskMode = IVideoRender::Mask_None;
+		std::string maskData;
     };
 }
 

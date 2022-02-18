@@ -157,6 +157,8 @@ public:
         double dar;
         int format;
 
+		int frameIndex;
+
         AFRational sample_aspect_ratio;
         size_t crop_top;
         size_t crop_bottom;

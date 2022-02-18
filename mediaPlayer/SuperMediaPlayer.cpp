@@ -2070,6 +2070,7 @@ int SuperMediaPlayer::FillVideoFrame()
         //            AF_LOGI("DecodeVideoPacket p_dec_delay frame :%lld pos:%lld, mPlayedAudioPts:%lld, posdiff:%lld audiodiff:%lld videodiff:%lld",
         //                    pFrame->GetPts()/1000, pos/1000, mPlayedAudioPts/1000, (pos - pFrame->GetPts())/1000,
         //                    (mLastInputAudio - mPlayedAudioPts)/1000, (mLastInputVideo - pFrame->GetPts())/1000);
+		pFrame->getInfo().video.frameIndex = mUtil->getCurrentFrameIndex();
         mVideoFrameQue.push(move(pFrame));
         videoDecoderFull = true;
     }
@@ -3591,6 +3592,8 @@ bool SuperMediaPlayer::CreateVideoRender(uint64_t flags)
 
     mAVDeviceManager->setSpeed(mSet->rate);
 
+	mAVDeviceManager->getVideoRender()->setMaskMode(mSet->maskMode, mSet->maskData);
+	mAVDeviceManager->getVideoRender()->setVapInfo(mDataSource->getVapData());
 	mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(mSet->videoSurfaceWidth, mSet->videoSurfaceHeight);
 	if (mSet->renderCallback)
 		mAVDeviceManager->getVideoRender()->setRenderCallback(mSet->renderCallback);
@@ -4033,6 +4036,18 @@ void SuperMediaPlayer::setRenderCallback(std::function<void(void * vo_opaque)> c
     } else
 		mSet->renderCallback = cb;
 }
+
+void SuperMediaPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string& data)
+{
+	std::lock_guard<std::mutex> uMutex(mCreateMutex);
+
+    if (mAVDeviceManager->isVideoRenderValid()) {
+        mAVDeviceManager->getVideoRender()->setMaskMode(mode, data);
+    } else {
+		mSet->maskMode = mode;
+		mSet->maskData = data;
+	}
+}		
 
 void SuperMediaPlayer::ApsaraAudioRenderCallback::onFrameInfoUpdate(IAFFrame::AFFrameInfo &info, bool rendered)
 {

@@ -96,6 +96,9 @@ namespace Cicada {
 
         virtual speedLevel getSpeedLevel();
 
+		virtual void setVapData(const std::string& data) { mVapData = data; }
+		virtual const std::string& getVapData() const { return mVapData; }
+
 
     protected:
         std::atomic_bool mInterrupt{false};
@@ -107,6 +110,8 @@ namespace Cicada {
         bool mBPost{false};
         const uint8_t *mPostData{nullptr};
         int64_t mPostSize{0};
+
+		std::string mVapData;
 
     };
 }

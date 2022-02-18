@@ -25,7 +25,12 @@ target_sources(data_source PRIVATE
         proxyDataSource.cpp
         proxyDataSource.h
         dataSourcePrototype.cpp
-        dataSourcePrototype.h)
+        dataSourcePrototype.h
+		vapparser/Casts.hpp
+		vapparser/BinaryFileStream.cpp
+		vapparser/BinaryFileStream.hpp
+		vapparser/BinaryStream.cpp
+		vapparser/BinaryStream.hpp)
 
 if (ENABLE_CURL_SOURCE)
     target_compile_definitions(data_source PRIVATE ENABLE_CURL_SOURCE)

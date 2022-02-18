@@ -1216,4 +1216,10 @@ namespace Cicada {
 		GET_PLAYER_HANDLE;
 		CicadaSetRenderCallback(handle, cb);
 	}
+
+	void MediaPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string& data /* = nullptr */)
+	{
+		GET_PLAYER_HANDLE;
+		CicadaSetMaskMode(handle, mode, data);
+	}
 }

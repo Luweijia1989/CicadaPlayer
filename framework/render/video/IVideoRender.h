@@ -38,6 +38,14 @@ public:
         Scale_Fill
     };
 
+	enum MaskMode {
+		Mask_None,
+		Mask_Left,
+		Mask_Right,
+		Mask_Top,
+		Mask_Down,
+	};
+
     static Rotate getRotate(int value)
     {
         switch (value) {
@@ -202,6 +210,8 @@ public:
 	virtual void renderVideo() {}
 	virtual void setVideoSurfaceSize(int width, int height) {}
 	virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb) {}
+	virtual void setMaskMode(MaskMode mode, const std::string& data) {}
+	virtual void setVapInfo(const std::string& info) {}
 
 protected:
     IVideoRenderFilter *mFilter{};

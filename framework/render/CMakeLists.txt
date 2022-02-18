@@ -90,6 +90,8 @@ if (WIN32)
 				video/glRender/IProgramContext.h
 				video/glRender/XXQProgramContext.cpp
 				video/glRender/XXQProgramContext.h
+				video/glRender/VAP.h
+				video/glRender/stb_image.h
         )
 endif ()
 

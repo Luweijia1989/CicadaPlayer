@@ -749,3 +749,10 @@ void CicadaSetRenderCallback(playerHandle *pHandle, std::function<void(void* vo_
     if (player)
 		player->setRenderCallback(cb);
 }
+
+void CicadaSetMaskMode(playerHandle *pHandle, IVideoRender::MaskMode mode, const std::string& data)
+{
+    GET_PLAYER;
+    if (player) 
+		player->setMaskMode(mode, data);
+}

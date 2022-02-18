@@ -9,6 +9,7 @@
 #include <utils/frame_work_log.h>
 #include <utils/errors/framework_error.h>
 #include <utils/ffmpeg_utils.h>
+#include "vapparser/BinaryFileStream.hpp"
 
 extern "C" {
 #include <libavformat/avio.h>
@@ -51,6 +52,8 @@ namespace Cicada {
         if (rangeStart != INT64_MIN) {
             avio_seek(mPuc, (int64_t) rangeStart, SEEK_SET);
         }
+
+		parseVapInfo();
 
         return ret;
     }
@@ -142,5 +145,36 @@ namespace Cicada {
         auto *source = (ffmpegDataSource *) pHandle;
         return source->mInterrupted;
     }
+
+	void ffmpegDataSource::parseVapInfo()
+	{
+		IDataSource::setVapData(std::string());
+		std::string tail("mp4");
+		if (mUri.compare(mUri.size() - tail.size(), tail.size(), tail) != 0)
+			return;
+
+		ISOBMFF::BinaryFileStream stream(mUri);
+        uint64_t length = 0;
+		uint32_t offset = 0;
+        std::string name;
+		while (stream.HasBytesAvailable()) {
+			length = stream.ReadBigEndianUInt32();
+            name   = stream.ReadFourCC();
+            offset = 8;
+            if (length == 1) {
+                length = stream.ReadBigEndianUInt64();
+				offset = 16;
+            }
+            
+			if (name == "vapc") {
+				auto vapData = std::move(stream.Read(static_cast< uint32_t >( length ) - offset));
+				std::string vap;
+				vap.assign((char *)vapData.data(), vapData.size());
+				IDataSource::setVapData(vap);
+				break;
+			} else
+				stream.Seek(length - offset, ISOBMFF::BinaryStream::SeekDirection::Current);
+		}
+	}
 }
 

@@ -358,6 +358,7 @@ namespace Cicada {
 		void renderVideo();
 		void setVideoSurfaceSize(int width, int height);
 		void setRenderCallback(std::function<void(void* vo_opaque)> cb);
+		void setMaskMode(IVideoRender::MaskMode mode, const std::string& data = std::string());
 
     private:
         static void preparedCallback(void *userData);

@@ -72,6 +72,8 @@ namespace Cicada {
         mVideoRenderFps = 0;
         mReadGotSize = 0;
         mCurrentDownloadSpeed = 0;
+
+		mCurrentFrameIndex = 0;
     }
 
     void MediaPlayerUtil::getPropertyJSONStr(const std::string &name, CicadaJSONArray &array, bool isArray,

@@ -53,6 +53,11 @@ namespace Cicada {
             return mCurrentDownloadSpeed;
         }
 
+		int getCurrentFrameIndex() 
+		{
+			return mCurrentFrameIndex++;
+		}
+
         static void getPropertyJSONStr(const std::string &name, CicadaJSONArray &array, bool isArray,
                                        std::deque<StreamInfo *> &streamInfoQueue, demuxer_service *service);
 
@@ -79,6 +84,8 @@ namespace Cicada {
         float mCurrentDownloadSpeed{0};
 
         float mVideoRenderFps = 0;
+
+		int64_t mCurrentFrameIndex = 0;
     };
 }
 

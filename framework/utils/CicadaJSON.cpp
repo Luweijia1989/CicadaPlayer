@@ -258,6 +258,28 @@ cJSON *CicadaJSONItem::getJSONCopy() const
     return cJSON_Duplicate(mJSON, true);
 }
 
+int CicadaJSONItem::getInt()
+{
+	return mJSON->valueint;
+}
+
+double CicadaJSONItem::getDouble()
+{
+	return mJSON->valuedouble;
+}
+
+std::map<std::string, std::string> CicadaJSONItem::getStringMap()
+{
+	std::map<std::string, std::string> ret;
+
+	cJSON *element = NULL;
+	cJSON_ArrayForEach(element, mJSON) {
+		ret.insert({element->string, element->valuestring});
+	}
+
+	return ret;
+}
+
 
 CicadaJSONArray::CicadaJSONArray()
 {
