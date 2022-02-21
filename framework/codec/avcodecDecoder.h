@@ -12,7 +12,7 @@
 #include "base/media/AVAFPacket.h"
 #include "codecPrototype.h"
 
-//#define ENABLE_HWDECODER
+#define ENABLE_HWDECODER
 
 typedef struct cicada_decoder_handle_v_t cicada_decoder_handle_v;
 
@@ -23,27 +23,14 @@ namespace Cicada{
             AVCodecContext *codecCont;
             AVCodec *codec;
             AVFrame *avFrame;
+#ifdef ENABLE_HWDECODER
+			AVFrame *swFrame = nullptr;
+#endif
             video_info vInfo;
 //            struct SwsContext *img_convert_ctx;
 //            int swscale_panding;
 //            AVFrame *tmp_picture;
 //            enum AVPixelFormat dstFormat;
-#ifdef ENABLE_HWDECODER
-            void *hwaccel_ctx;
-
-            void (*hwaccel_uninit)(AVCodecContext *s);
-
-            int (*hwaccel_get_buffer)(AVCodecContext *s, AVFrame *frame, int flags);
-
-            int (*hwaccel_retrieve_data)(AVCodecContext *s, AVFrame *frame);
-
-            enum AVPixelFormat hwaccel_pix_fmt;
-            enum AVPixelFormat hwaccel_retrieved_pix_fmt;
-            AVFrame *tmp_frame;
-            hw_content *pHWHandle;
-            void *phwDeviceCont_set;
-            CICADAHWDeviceType hwDeviceType_set;
-#endif
             int flags;
         };
     public:
@@ -70,9 +57,7 @@ namespace Cicada{
 
         bool is_supported(const Stream_meta& meta, uint64_t flags, int maxSize) override
         {
-            if (flags & DECFLAG_SW)
-                return is_supported(meta.codec);
-            return false;
+            return is_supported(meta.codec);
         };
 
         bool is_drmSupport(const DrmInfo *drmInfo) override {

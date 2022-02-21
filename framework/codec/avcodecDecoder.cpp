@@ -25,43 +25,36 @@ extern "C" {
 using namespace std;
 
 namespace Cicada {
-    avcodecDecoder avcodecDecoder::se(0);
 #ifdef ENABLE_HWDECODER
-    int init_hw_device(void *arg, enum AVHWDeviceType type, void *device)
+	static AVBufferRef *hw_device_ctx = NULL;
+    static enum AVPixelFormat hw_pix_fmt;
+    static int hw_decoder_init(AVCodecContext *ctx, const enum AVHWDeviceType type)
     {
-        avcodecVideoDecoder::decoder_handle_v *pHandle = (avcodecVideoDecoder::decoder_handle_v *) arg;
-        int ret = -1;
+        int err = 0;
 
-        switch (type) {
-#ifdef WIN32
-#if (_MSC_VER >= 1700) && !defined(_USING_V110_SDK71_)
+        if ((err = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)) < 0) {
+            AF_LOGE("Failed to create specified HW device.");
+            return err;
+        }
+        ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
 
-            case AV_HWDEVICE_TYPE_D3D11VA: {
-                AVD3D11VADeviceContext *device_hwctx = (AVD3D11VADeviceContext *) device;
+        return err;
+    }
 
-                if (pHandle->hwDeviceType_set == CICADA_HWDEVICE_TYPE_D3D11VA) {
-                    CicadaD3D11VADeviceContext *pD3d11va = pHandle->phwDeviceCont_set;
-                    device_hwctx->video_context = pD3d11va->video_context;
-                    device_hwctx->video_device = pD3d11va->video_device;
-                    device_hwctx->device = pD3d11va->device;
-                    device_hwctx->device_context = pD3d11va->device_context;
-                    ret = 0;
-                }
+    static enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
+    {
+        const enum AVPixelFormat *p;
 
-                break;
-            }
-
-#endif
-#endif
-
-            default:
-                ret = -1;
-                break;
+        for (p = pix_fmts; *p != -1; p++) {
+            if (*p == hw_pix_fmt) return *p;
         }
 
-        return ret;
+        AF_LOGE("Failed to get HW surface format");
+        return AV_PIX_FMT_NONE;
     }
 #endif
+
+    avcodecDecoder avcodecDecoder::se(0);
 
     void avcodecDecoder::close_decoder()
     {
@@ -69,25 +62,16 @@ namespace Cicada {
             return;
         }
 
-#ifdef ENABLE_HWDECODER
-
-        if (mPDecoder->pHWHandle) {
-            release_hw_content(mPDecoder->pHWHandle);
-        }
-
-#endif
-
         if (mPDecoder->codecCont != nullptr) {
             avcodec_close(mPDecoder->codecCont);
-#ifdef ENABLE_HWDECODER
 
-            if (mPDecoder->hwaccel_uninit) {
-                mPDecoder->hwaccel_uninit(mPDecoder->vc);
-            }
-
-#endif
             avcodec_free_context(&mPDecoder->codecCont);
             mPDecoder->codecCont = nullptr;
+
+#ifdef ENABLE_HWDECODER
+			if (hw_device_ctx)
+				av_buffer_unref(&hw_device_ctx);
+#endif
         }
 
         mPDecoder->codec = nullptr;
@@ -129,33 +113,29 @@ namespace Cicada {
 
         mPDecoder->flags = DECFLAG_SW;
 #ifdef ENABLE_HWDECODER
-
         if (flags & DECFLAG_HW) {
-#ifdef WIN32
-            mPDecoder->pHWHandle = create_hw_content("dxva2");
-#endif
-
-            if (mPDecoder->pHWHandle) {
-                hw_content_set_device_init_cb(mPDecoder->pHWHandle, init_hw_device, mPDecoder);
-                mPDecoder->vc->opaque = mPDecoder->pHWHandle;
-
-                if (hw_decoder_init(mPDecoder->vc, wnd) < 0) {
-                    release_hw_content(mPDecoder->pHWHandle);
-                    mPDecoder->vc->opaque = nullptr;
-                    mPDecoder->pHWHandle = nullptr;
-                } else {
-                    mPDecoder->flags = DECFLAG_HW;
-                    mPDecoder->vc->get_format = get_hw_format;
-
-                    if ((flags & DECFLAG_DIRECT) == 0) {
-                        mPDecoder->hwaccel_retrieve_data = hwaccel_retrieve_data;
-                    } else {
-                        mPDecoder->flags |= DECFLAG_DIRECT;
+			const char *hw_name = "dxva2";
+			auto type = av_hwdevice_find_type_by_name(hw_name);
+			if (type != AV_HWDEVICE_TYPE_NONE) {
+                for (auto i = 0;; i++) {
+                    const AVCodecHWConfig *config = avcodec_get_hw_config(mPDecoder->codec, i);
+                    if (!config) {
+                        AF_LOGE("Decoder %s does not support device type %s.", mPDecoder->codec->name, av_hwdevice_get_type_name(type));
+                        break;
+                    }
+                    if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX && config->device_type == type) {
+                        hw_pix_fmt = config->pix_fmt;
+                        break;
                     }
                 }
-            }
-        }
 
+				if (hw_pix_fmt != AV_PIX_FMT_NONE) {
+					mPDecoder->codecCont->get_format = get_hw_format;
+					if (hw_decoder_init(mPDecoder->codecCont, type) < 0)
+						return -1;
+				}
+			}
+        }
 #endif
         av_opt_set_int(mPDecoder->codecCont, "refcounted_frames", 1, 0);
         int threadcount = (AFGetCpuCount() > 0 ? AFGetCpuCount() + 1 : 0);
@@ -189,9 +169,7 @@ namespace Cicada {
         mPDecoder = new decoder_handle_v();
         memset(mPDecoder, 0, sizeof(decoder_handle_v));
 //        mPDecoderder->dstFormat = AV_PIX_FMT_NONE;
-#ifdef ENABLE_HWDECODER
-        mPDecoder->hwDeviceType_set = CICADA_HWDEVICE_TYPE_UNKNOWN;
-#endif
+
         avcodec_register_all();
         mFlags |= DECFLAG_PASSTHROUGH_INFO;
     }
@@ -240,21 +218,25 @@ namespace Cicada {
             return -EAGAIN;
         }
 
+		auto dst = mPDecoder->avFrame;
 #ifdef ENABLE_HWDECODER
+		if (mPDecoder->avFrame->format == hw_pix_fmt) {
+			if (!mPDecoder->swFrame)
+				mPDecoder->swFrame = av_frame_alloc();
 
-        if (mPDecoder->hwaccel_retrieve_data) {
-            mPDecoder->hwaccel_retrieve_data(mPDecoder->vc, mPDecoder->picture);
-        }
-
+			av_hwframe_transfer_data(mPDecoder->swFrame, mPDecoder->avFrame, 0);
+			av_frame_copy_props(mPDecoder->swFrame, mPDecoder->avFrame);
+			dst = mPDecoder->swFrame;
+		}
 #endif
         int64_t timePosition = INT64_MIN;
-        if (mPDecoder->avFrame->metadata){
-            AVDictionaryEntry *t = av_dict_get(mPDecoder->avFrame->metadata,"timePosition", nullptr,AV_DICT_IGNORE_SUFFIX);
+        if (dst->metadata){
+            AVDictionaryEntry *t = av_dict_get(dst->metadata,"timePosition", nullptr,AV_DICT_IGNORE_SUFFIX);
             if (t){
                 timePosition = atoll(t->value);
             }
         }
-        pFrame = unique_ptr<IAFFrame>(new AVAFFrame(mPDecoder->avFrame));
+        pFrame = unique_ptr<IAFFrame>(new AVAFFrame(dst));
         pFrame->getInfo().timePosition = timePosition;
         return ret;
     };
