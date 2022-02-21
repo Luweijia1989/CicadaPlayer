@@ -214,6 +214,7 @@ public:
 	virtual void setMaskMode(MaskMode mode, const std::string& data) {}
 	virtual void setVapInfo(const std::string& info) {}
 	virtual void clearGLResource() {}
+	static void foreignGLContextDestroyed();
 
 protected:
     IVideoRenderFilter *mFilter{};
@@ -222,6 +223,8 @@ protected:
 
     videoRenderingFrameCB mRenderingCb{nullptr};
     void *mRenderingCbUserData{nullptr};
+
+	static std::map<void *, std::map<int, std::unique_ptr<IProgramContext>>> mPrograms;
 };
 
 

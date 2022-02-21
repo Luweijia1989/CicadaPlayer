@@ -277,11 +277,14 @@ void *XXQGLRender::getSurface(bool cached)
 
 IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
 {
-    if (mPrograms.count(frameFormat) > 0) {
-        IProgramContext *pContext = mPrograms[frameFormat].get();
-        pContext->setRenderingCb(mRenderingCb, mRenderingCbUserData);
-        pContext->useProgram();
-        return pContext;
+    if (mPrograms.count(this) > 0) {
+        std::map<int, std::unique_ptr<IProgramContext>> &program = mPrograms[this];
+        if (program.count(frameFormat) > 0) {
+            IProgramContext *pContext = program[frameFormat].get();
+            pContext->setRenderingCb(mRenderingCb, mRenderingCbUserData);
+            pContext->useProgram();
+            return pContext;
+        }
     }
 
     std::unique_ptr<IProgramContext> targetProgram{nullptr};
@@ -300,8 +303,9 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
 
     if (ret == 0) {
         targetProgram->setRenderingCb(mRenderingCb, mRenderingCbUserData);
-        mPrograms[frameFormat] = std::move(targetProgram);
-        return mPrograms[frameFormat].get();
+        std::map<int, std::unique_ptr<IProgramContext>> &program = mPrograms[this];
+        program[frameFormat] = std::move(targetProgram);
+        return program[frameFormat].get();
     } else {
         return nullptr;
     }
@@ -334,8 +338,10 @@ void XXQGLRender::surfaceChanged()
 // 在qt渲染线程调用
 void XXQGLRender::renderVideo()
 {
+#ifdef WIN32
     auto ctx = wglGetCurrentContext();
     if (!ctx) return;
+#endif
 
     //  AF_LOGD("renderActually .");
     int64_t renderStartTime = af_getsteady_ms();
@@ -485,8 +491,10 @@ void XXQGLRender::setVapInfo(const std::string &info)
 
 void XXQGLRender::clearGLResource()
 {
+#ifdef WIN32
     auto ctx = wglGetCurrentContext();
     if (!ctx) return;
+#endif
 
-    mPrograms.clear();
+	mPrograms.erase(this);
 }

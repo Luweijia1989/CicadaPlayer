@@ -1228,4 +1228,9 @@ namespace Cicada {
 		GET_PLAYER_HANDLE;
 		CicadaClearGLResource(handle);
 	}
+
+	void MediaPlayer::foreignGLContextDestroyed()
+	{
+		IVideoRender::foreignGLContextDestroyed();
+	}
 }

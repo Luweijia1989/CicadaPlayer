@@ -135,7 +135,6 @@ private:
     std::mutex mCaptureMutex;
     bool mCaptureOn = false;
     std::function<void(uint8_t *, int, int)> mCaptureFunc = nullptr;
-	std::map<int, std::unique_ptr<IProgramContext>> mPrograms;
     std::mutex mCreateOutTextureMutex;
     std::condition_variable mCreateOutTextureCondition;
     bool needCreateOutTexture = false;

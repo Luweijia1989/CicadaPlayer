@@ -9,6 +9,8 @@ list(APPEND SRC_FILES
         video/vsync/VSyncFactory.h
         video/AFActiveVideoRender.cpp
         video/AFActiveVideoRender.h
+		video/IVideoRender.h
+		video/IVideoRender.cpp
         renderFactory.cpp
         renderFactory.h
         audio/filterAudioRender.cpp
