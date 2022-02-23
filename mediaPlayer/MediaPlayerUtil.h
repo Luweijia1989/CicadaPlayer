@@ -55,7 +55,7 @@ namespace Cicada {
 
 		int getCurrentFrameIndex() 
 		{
-			return mCurrentFrameIndex++;
+			return ++mCurrentFrameIndex;
 		}
 
         static void getPropertyJSONStr(const std::string &name, CicadaJSONArray &array, bool isArray,

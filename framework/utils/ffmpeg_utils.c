@@ -384,6 +384,7 @@ static pix_fmt_pair pix_fmt_pair_table[] = {
         {AF_PIX_FMT_YUV420P10LE, AV_PIX_FMT_YUV420P10LE},
         {AF_PIX_FMT_D3D11, AV_PIX_FMT_D3D11},
         {AF_PIX_FMT_DXVA2_VLD, AV_PIX_FMT_DXVA2_VLD},
+		{AF_PIX_FMT_NV12, AV_PIX_FMT_NV12},
 };
 
 int AVPixFmt2Cicada(enum AVPixelFormat fmt)

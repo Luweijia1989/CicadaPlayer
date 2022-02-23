@@ -290,7 +290,7 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
     std::unique_ptr<IProgramContext> targetProgram{nullptr};
 
     if (frameFormat == AF_PIX_FMT_YUV420P || frameFormat == AF_PIX_FMT_YUVJ420P || frameFormat == AF_PIX_FMT_YUV422P ||
-        frameFormat == AF_PIX_FMT_YUVJ422P) {
+        frameFormat == AF_PIX_FMT_YUVJ422P || frameFormat == AF_PIX_FMT_NV12) {
         targetProgram = unique_ptr<IProgramContext>(new XXQYUVProgramContext());
     }
 
@@ -299,7 +299,7 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
     }
 
     glewInit();
-    int ret = targetProgram->initProgram();
+    int ret = targetProgram->initProgram((AFPixelFormat)frameFormat);
 
     if (ret == 0) {
         targetProgram->setRenderingCb(mRenderingCb, mRenderingCbUserData);

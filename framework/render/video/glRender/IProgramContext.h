@@ -7,6 +7,7 @@
 
 #include "render/video/IVideoRender.h"
 #include "platform/platform_gl.h"
+#include <utils/AFMediaType.h>
 
 class IProgramContext {
 
@@ -33,7 +34,7 @@ public:
 public:
     virtual ~IProgramContext() = default;
 
-    virtual int initProgram() = 0;
+    virtual int initProgram(AFPixelFormat format) = 0;
 
     virtual void useProgram() = 0;
 

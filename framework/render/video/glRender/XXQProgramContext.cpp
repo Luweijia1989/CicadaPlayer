@@ -54,7 +54,7 @@ static void rotate90(GLfloat *array)
     array[5] = ty;
 }
 
-MixRenderer::MixRenderer()
+MixRenderer::MixRenderer(AFPixelFormat format) : mPixelFormat(format)
 {
     m_mixVertexShader = R"(
 			attribute vec2 a_Position;
@@ -71,7 +71,34 @@ MixRenderer::MixRenderer()
 			}
 	)";
 
-    m_mixFragmentShader = R"(
+    m_mixFragmentShader = mPixelFormat == AF_PIX_FMT_NV12 ?
+                                                          R"(
+			uniform sampler2D u_TextureMaskUnitY;
+			uniform sampler2D u_TextureMaskUnitUV;
+			uniform sampler2D u_TextureSrcUnit;
+			uniform int u_isFill;
+			uniform vec4 u_Color;
+			varying vec2 v_TextureSrcCoordinates;
+			varying vec2 v_TextureMaskCoordinates;
+			uniform mat3 colorConversionMatrix;
+			void main()
+			{
+				vec3 yuv_rgb;
+				vec3 rgb_rgb;
+				vec4 srcRgba = texture2D(u_TextureSrcUnit, v_TextureSrcCoordinates);
+
+				yuv_rgb.x = (texture2D(u_TextureMaskUnitY, v_TextureMaskCoordinates).r) - 16.0/255.0;
+				yuv_rgb.y = (texture2D(u_TextureMaskUnitUV, v_TextureMaskCoordinates).r - 0.5);
+				yuv_rgb.z = (texture2D(u_TextureMaskUnitUV, v_TextureMaskCoordinates).a - 0.5);
+				rgb_rgb = colorConversionMatrix * yuv_rgb;
+
+				float isFill = step(0.5, float(u_isFill));
+				vec4 srcRgbaCal = isFill * vec4(u_Color.r, u_Color.g, u_Color.b, srcRgba.a) + (1.0 - isFill) * srcRgba;
+				gl_FragColor = vec4(srcRgbaCal.r, srcRgbaCal.g, srcRgbaCal.b, srcRgba.a * rgb_rgb.r);
+			}
+	)"
+                                                          :
+                                                          R"(
 			uniform sampler2D u_TextureMaskUnitY;
 			uniform sampler2D u_TextureMaskUnitU;
 			uniform sampler2D u_TextureMaskUnitV;
@@ -151,7 +178,8 @@ void MixRenderer::compileMixShader()
     glUseProgram(m_MixshaderProgram);
     uTextureSrcUnitLocation = glGetUniformLocation(m_MixshaderProgram, "u_TextureSrcUnit");
     uTextureMaskUnitLocationY = glGetUniformLocation(m_MixshaderProgram, "u_TextureMaskUnitY");
-    uTextureMaskUnitLocationU = glGetUniformLocation(m_MixshaderProgram, "u_TextureMaskUnitU");
+    uTextureMaskUnitLocationU = mPixelFormat == AF_PIX_FMT_NV12 ? glGetUniformLocation(m_MixshaderProgram, "u_TextureMaskUnitUV")
+                                                                : glGetUniformLocation(m_MixshaderProgram, "u_TextureMaskUnitU");
     uTextureMaskUnitLocationV = glGetUniformLocation(m_MixshaderProgram, "u_TextureMaskUnitV");
     uMixMatrix = glGetUniformLocation(m_MixshaderProgram, "u_MixMatrix");
     uIsFillLocation = glGetUniformLocation(m_MixshaderProgram, "u_isFill");
@@ -491,6 +519,42 @@ static const char YUV_FRAGMENT_SHADER[] = R"(
 			}
 )";
 
+static const char NV12_YUV_FRAGMENT_SHADER[] = R"(
+#ifdef GL_ES
+        precision mediump float;
+#endif
+        uniform sampler2D y_tex;
+        uniform sampler2D uv_tex;
+
+        uniform mat3      uColorSpace;
+        uniform vec3      uColorRange;
+		uniform int		  uAlphaBlend;
+
+        varying vec2 v_texCoord;
+		varying vec2 v_alpha_texCoord;
+
+        void main() {
+            vec3 yuv;
+            vec3 rgb;
+			vec3 yuv_alpha;
+            vec3 rgb_alpha;
+            yuv.x = (texture2D(y_tex, v_texCoord).r - uColorRange.x / 255.0) * 255.0 / uColorRange.y;
+            yuv.y = (texture2D(uv_tex, v_texCoord).r - 0.5) * 255.0 / uColorRange.z;
+			yuv.z = (texture2D(uv_tex, v_texCoord).a - 0.5) * 255.0 / uColorRange.z;
+            rgb = uColorSpace * yuv;
+
+			if (uAlphaBlend == 1) {
+				yuv_alpha.x = (texture2D(y_tex, v_alpha_texCoord).r - uColorRange.x / 255.0) * 255.0 / uColorRange.y;
+				yuv_alpha.y = (texture2D(uv_tex, v_alpha_texCoord).r - 0.5) * 255.0 / uColorRange.z;
+				yuv_alpha.z = (texture2D(uv_tex, v_alpha_texCoord).a - 0.5) * 255.0 / uColorRange.z;
+				rgb_alpha = uColorSpace * yuv_alpha;
+
+				gl_FragColor = vec4(rgb, rgb_alpha.x);
+			} else 
+				gl_FragColor = vec4(rgb, 1);
+			}
+)";
+
 XXQYUVProgramContext::XXQYUVProgramContext()
 {
     AF_LOGD("YUVProgramContext");
@@ -516,9 +580,11 @@ XXQYUVProgramContext::~XXQYUVProgramContext()
     glDeleteTextures(3, mYUVTextures);
 }
 
-int XXQYUVProgramContext::initProgram()
+int XXQYUVProgramContext::initProgram(AFPixelFormat format)
 {
     AF_LOGD("createProgram ");
+
+    mPixelFormat = format;
 
     mProgram = glCreateProgram();
     int mInitRet = compileShader(&mVertShader, YUV_VERTEX_SHADER, GL_VERTEX_SHADER);
@@ -528,7 +594,8 @@ int XXQYUVProgramContext::initProgram()
         return mInitRet;
     }
 
-    mInitRet = compileShader(&mFragmentShader, YUV_FRAGMENT_SHADER, GL_FRAGMENT_SHADER);
+    mInitRet = compileShader(&mFragmentShader, mPixelFormat == AF_PIX_FMT_NV12 ? NV12_YUV_FRAGMENT_SHADER : YUV_FRAGMENT_SHADER,
+                             GL_FRAGMENT_SHADER);
 
     if (mInitRet != 0) {
         AF_LOGE("compileShader mFragmentShader failed. ret = %d ", mInitRet);
@@ -602,7 +669,6 @@ void XXQYUVProgramContext::updateMaskInfo(const std::string &vapInfo, IVideoRend
 
 int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame)
 {
-
     if (mProgram == 0) {
         return -1;
     }
@@ -721,7 +787,6 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame)
 
         mMixRender->renderMix(frame->getInfo().video.frameIndex % mVapConfig->totalFrames, param);
     }
-    //mMixRender->renderMix(m_frame.frameIndex() % mVapConfig->totalFrames, &mVapConfig, m_textures, matrix);
     return 0;
 }
 
@@ -736,6 +801,7 @@ void XXQYUVProgramContext::updateVapConfig()
             case IVideoRender::Mask_None:
                 mVapConfig->width = mFrameWidth;
                 mVapConfig->height = mFrameHeight;
+				mVapConfig->rgbPointRect = Rect(0, 0, mFrameWidth, mFrameHeight);
                 break;
             case IVideoRender::Mask_Left:
                 mVapConfig->width = mFrameWidth / 2;
@@ -792,7 +858,7 @@ void XXQYUVProgramContext::updateVapConfig()
                                       alphaArray.getItem(0).getInt() + alphaArray.getItem(2).getInt(),
                                       alphaArray.getItem(1).getInt() + alphaArray.getItem(3).getInt());
 
-    mMixRender = std::make_unique<MixRenderer>();
+    mMixRender = std::make_unique<MixRenderer>(mPixelFormat);
     mMixRender->setMixResource(mMaskVapData);
     mMixRender->setVapxInfo(json);
 }
@@ -1046,6 +1112,8 @@ void XXQYUVProgramContext::fillDataToYUVTextures(uint8_t **data, int *pLineSize,
         uvHeight = mFrameHeight;
     } else if (format == AF_PIX_FMT_YUV420P || format == AF_PIX_FMT_YUVJ420P) {
         uvHeight = mFrameHeight / 2;
+    } else if (format == AF_PIX_FMT_NV12) {
+        uvHeight = mFrameHeight / 2;
     }
 
     int yWidth = pLineSize[0];
@@ -1060,19 +1128,28 @@ void XXQYUVProgramContext::fillDataToYUVTextures(uint8_t **data, int *pLineSize,
     glUniform1i(mYTexLocation, 0);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
-    //update u
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[1]);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[1]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, uvWidth, uvHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data[1]);
-    glUniform1i(mUTexLocation, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    if (mPixelFormat == AF_PIX_FMT_NV12) {
+        //update uv
+        glBindTexture(GL_TEXTURE_2D, mYUVTextures[1]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[1] / 2);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, uvWidth, uvHeight, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, data[1]);
+        glUniform1i(mUTexLocation, 1);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    } else {
+        //update u
+        glBindTexture(GL_TEXTURE_2D, mYUVTextures[1]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, uvWidth, uvHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data[1]);
+        glUniform1i(mUTexLocation, 1);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
-    //update v
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[2]);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[2]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, uvWidth, uvHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data[2]);
-    glUniform1i(mVTexLocation, 2);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        //update v
+        glBindTexture(GL_TEXTURE_2D, mYUVTextures[2]);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[2]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, uvWidth, uvHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data[2]);
+        glUniform1i(mVTexLocation, 2);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    }
 }
 
 void XXQYUVProgramContext::bindYUVTextures()
@@ -1166,7 +1243,7 @@ void XXQYUVProgramContext::getShaderLocations()
     mTexCoordLocation = static_cast<GLuint>(glGetAttribLocation(mProgram, "a_texCoord"));
     mAlphaTexCoordLocation = static_cast<GLuint>(glGetAttribLocation(mProgram, "a_alpha_texCoord"));
     mYTexLocation = glGetUniformLocation(mProgram, "y_tex");
-    mUTexLocation = glGetUniformLocation(mProgram, "u_tex");
+    mUTexLocation = mPixelFormat == AF_PIX_FMT_NV12 ? glGetUniformLocation(mProgram, "uv_tex") : glGetUniformLocation(mProgram, "u_tex");
     mVTexLocation = glGetUniformLocation(mProgram, "v_tex");
     mAlphaBlendLocation = glGetUniformLocation(mProgram, "uAlphaBlend");
 }

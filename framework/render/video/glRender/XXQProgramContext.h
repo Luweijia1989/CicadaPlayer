@@ -26,7 +26,7 @@ public:
         IVideoRender::Rotate rotate;
     };
 
-    MixRenderer();
+    MixRenderer(AFPixelFormat format);
     ~MixRenderer();
 
     void renderMix(int index, const MixParam &param);
@@ -45,6 +45,7 @@ private:
     void renderMixPrivate(const VAPFrame &frame, const MixSrc &src, const MixParam &param);
 
 private:
+	AFPixelFormat mPixelFormat;
     bool mReady = false;
     GLuint mixColorConversionMatrix;
     std::string m_mixVertexShader;
@@ -82,7 +83,7 @@ public:
     ~XXQYUVProgramContext() override;
 
 private:
-    int initProgram() override;
+    int initProgram(AFPixelFormat format) override;
 
     void useProgram() override;
 
@@ -125,6 +126,7 @@ private:
     void updateVapConfig();
 
 private:
+	AFPixelFormat mPixelFormat;
     IVideoRender::Rotate mRotate = IVideoRender::Rotate_None;
     IVideoRender::Scale mScale = IVideoRender::Scale_AspectFit;
     IVideoRender::Flip mFlip = IVideoRender::Flip_None;
