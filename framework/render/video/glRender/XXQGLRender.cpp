@@ -298,7 +298,6 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
         return nullptr;
     }
 
-    glewInit();
     int ret = targetProgram->initProgram((AFPixelFormat)frameFormat);
 
     if (ret == 0) {
@@ -338,10 +337,8 @@ void XXQGLRender::surfaceChanged()
 // 在qt渲染线程调用
 void XXQGLRender::renderVideo()
 {
-#ifdef WIN32
-    auto ctx = wglGetCurrentContext();
+    auto ctx = glloader_current_gl_ctx();
     if (!ctx) return;
-#endif
 
     //  AF_LOGD("renderActually .");
     int64_t renderStartTime = af_getsteady_ms();
@@ -491,10 +488,8 @@ void XXQGLRender::setVapInfo(const std::string &info)
 
 void XXQGLRender::clearGLResource()
 {
-#ifdef WIN32
-    auto ctx = wglGetCurrentContext();
+    auto ctx = glloader_current_gl_ctx();
     if (!ctx) return;
-#endif
 
 	mPrograms.erase(this);
 }

@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.6)
 set(CMAKE_CXX_STANDARD 11)
 project(render)
 
+include_directories(video/glRender/platform/glloader/include)
+include_directories(video/glRender/platform/glloader/include/angle/include)
 list(APPEND SRC_FILES
         video/vsync/timedVSync.cpp
         video/vsync/timedVSync.h
@@ -16,7 +18,20 @@ list(APPEND SRC_FILES
         audio/filterAudioRender.cpp
         audio/filterAudioRender.h
         audio/audioRenderPrototype.cpp
-        audio/audioRenderPrototype.h)
+        audio/audioRenderPrototype.h
+		video/glRender/platform/glloader/src/glloader_egl.c
+		video/glRender/platform/glloader/src/glloader_gl.c
+		video/glRender/platform/glloader/src/glloader_gles.c
+		video/glRender/platform/glloader/src/glloader_glx.c
+		video/glRender/platform/glloader/src/glloader_wgl.c
+		video/glRender/platform/glloader/include/glloader/glloader.h
+		video/glRender/platform/glloader/include/glloader/glloader_egl.h
+		video/glRender/platform/glloader/include/glloader/glloader_gl.h
+		video/glRender/platform/glloader/include/glloader/glloader_gles.h
+		video/glRender/platform/glloader/include/glloader/glloader_glx.h
+		video/glRender/platform/glloader/include/glloader/glloader_wgl.h
+		video/glRender/platform/glloader/src/utils.cpp
+		video/glRender/platform/glloader/src/utils.h)
 
 #if (APPLE)
 #    list(APPEND SRC_FILES
@@ -87,6 +102,7 @@ endif ()
 
 if (WIN32)
 	add_definitions(-DSTBI_WINDOWS_UTF8)
+	add_definitions(-DGLLOADER_SOURCE)
     list(APPEND SRC_FILES
                 video/glRender/XXQGLRender.cpp
                 video/glRender/XXQGLRender.h
