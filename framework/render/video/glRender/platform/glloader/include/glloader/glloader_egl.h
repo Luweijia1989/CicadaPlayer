@@ -20,11 +20,6 @@
 #ifndef _GLLOADER_EGL_H
 #define _GLLOADER_EGL_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #ifndef EGL_VERSION_1_1
 #define EGL_VERSION_1_1 1
 #endif
@@ -2564,9 +2559,5 @@ extern GLLOADER_API glloader_EGL_NV_syncFUNC glloader_EGL_NV_sync;
 extern GLLOADER_API glloader_EGL_NV_system_timeFUNC glloader_EGL_NV_system_time;
 extern GLLOADER_API glloader_EGL_TIZEN_image_native_bufferFUNC glloader_EGL_TIZEN_image_native_buffer;
 extern GLLOADER_API glloader_EGL_TIZEN_image_native_surfaceFUNC glloader_EGL_TIZEN_image_native_surface;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* _GLLOADER_EGL_H */

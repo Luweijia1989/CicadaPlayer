@@ -22,11 +22,6 @@
 
 #ifdef GLLOADER_GL
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 char _GL_VERSION_1_0 = 0;
 char _GL_VERSION_1_1 = 0;
 char _GL_VERSION_1_2 = 0;
@@ -38280,9 +38275,5 @@ void gl_init()
 	init_GL_WIN_phong_shading();
 	init_GL_WIN_specular_fog();
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* GLLOADER_GL */

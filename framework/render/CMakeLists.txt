@@ -4,6 +4,9 @@ project(render)
 
 include_directories(video/glRender/platform/glloader/include)
 include_directories(video/glRender/platform/glloader/include/angle/include)
+include_directories(video/glRender/src/base)
+include_directories(video/glRender/src/math3d)
+include_directories(video/glRender)
 list(APPEND SRC_FILES
         video/vsync/timedVSync.cpp
         video/vsync/timedVSync.h
@@ -19,11 +22,11 @@ list(APPEND SRC_FILES
         audio/filterAudioRender.h
         audio/audioRenderPrototype.cpp
         audio/audioRenderPrototype.h
-		video/glRender/platform/glloader/src/glloader_egl.c
-		video/glRender/platform/glloader/src/glloader_gl.c
-		video/glRender/platform/glloader/src/glloader_gles.c
-		video/glRender/platform/glloader/src/glloader_glx.c
-		video/glRender/platform/glloader/src/glloader_wgl.c
+		video/glRender/platform/glloader/src/glloader_egl.cpp
+		video/glRender/platform/glloader/src/glloader_gl.cpp
+		video/glRender/platform/glloader/src/glloader_gles.cpp
+		video/glRender/platform/glloader/src/glloader_glx.cpp
+		video/glRender/platform/glloader/src/glloader_wgl.cpp
 		video/glRender/platform/glloader/include/glloader/glloader.h
 		video/glRender/platform/glloader/include/glloader/glloader_egl.h
 		video/glRender/platform/glloader/include/glloader/glloader_gl.h
@@ -31,7 +34,43 @@ list(APPEND SRC_FILES
 		video/glRender/platform/glloader/include/glloader/glloader_glx.h
 		video/glRender/platform/glloader/include/glloader/glloader_wgl.h
 		video/glRender/platform/glloader/src/utils.cpp
-		video/glRender/platform/glloader/src/utils.h)
+		video/glRender/platform/glloader/src/utils.h
+
+		video/glRender/src/OpenGLHelper.cpp
+		video/glRender/src/OpenGLHelper.h
+		video/glRender/src/OpenGLTypes.cpp
+		video/glRender/src/OpenGLTypes.h
+		video/glRender/src/OpenGLVideo.cpp
+		video/glRender/src/OpenGLVideo.h
+		video/glRender/src/Geometry.cpp
+		video/glRender/src/Geometry.h
+		video/glRender/src/GeometryRenderer.cpp
+		video/glRender/src/GeometryRenderer.h
+		video/glRender/src/VideoShader.cpp
+		video/glRender/src/VideoShader.h
+		video/glRender/src/VideoShader_p.h
+		video/glRender/src/ColorTransform.cpp
+		video/glRender/src/ColorTransform.h
+		
+		video/glRender/src/base/common.h
+		video/glRender/src/base/qrect.cpp
+		video/glRender/src/base/qrect.h
+		video/glRender/src/base/qpoint.h
+		video/glRender/src/base/qsize.cpp
+		video/glRender/src/base/qsize.h
+
+		video/glRender/src/math3d/qgenericmatrix.h
+		video/glRender/src/math3d/qmatrix4x4.cpp
+		video/glRender/src/math3d/qmatrix4x4.h
+		video/glRender/src/math3d/qquaternion.cpp
+		video/glRender/src/math3d/qquaternion.h
+		video/glRender/src/math3d/qvector2d.cpp
+		video/glRender/src/math3d/qvector2d.h
+		video/glRender/src/math3d/qvector3d.cpp
+		video/glRender/src/math3d/qvector3d.h
+		video/glRender/src/math3d/qvector4d.cpp
+		video/glRender/src/math3d/qvector4d.h
+		)
 
 #if (APPLE)
 #    list(APPEND SRC_FILES

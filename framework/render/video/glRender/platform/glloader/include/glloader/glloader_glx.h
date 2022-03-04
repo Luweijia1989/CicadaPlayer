@@ -20,11 +20,6 @@
 #ifndef _GLLOADER_GLX_H
 #define _GLLOADER_GLX_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #ifndef GLX_VERSION_1_0
 #define GLX_VERSION_1_0 1
 #endif
@@ -1454,9 +1449,5 @@ extern GLLOADER_API glloader_GLX_SGI_make_current_readFUNC glloader_GLX_SGI_make
 extern GLLOADER_API glloader_GLX_SGI_swap_controlFUNC glloader_GLX_SGI_swap_control;
 extern GLLOADER_API glloader_GLX_SGI_video_syncFUNC glloader_GLX_SGI_video_sync;
 extern GLLOADER_API glloader_GLX_SUN_get_transparent_indexFUNC glloader_GLX_SUN_get_transparent_index;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* _GLLOADER_GLX_H */

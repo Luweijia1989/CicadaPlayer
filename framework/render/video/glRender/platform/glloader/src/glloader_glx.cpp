@@ -22,11 +22,6 @@
 
 #ifdef GLLOADER_GLX
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 char _GLX_VERSION_1_0 = 0;
 char _GLX_VERSION_1_1 = 0;
 char _GLX_VERSION_1_2 = 0;
@@ -2788,9 +2783,5 @@ void glx_init()
 	init_GLX_SGI_video_sync();
 	init_GLX_SUN_get_transparent_index();
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* GLLOADER_GLX */

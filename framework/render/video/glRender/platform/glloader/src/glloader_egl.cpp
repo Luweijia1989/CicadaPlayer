@@ -22,11 +22,6 @@
 
 #ifdef GLLOADER_EGL
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 char _EGL_VERSION_1_1 = 0;
 char _EGL_VERSION_1_2 = 0;
 char _EGL_VERSION_1_3 = 0;
@@ -4584,9 +4579,5 @@ void egl_init()
 	init_EGL_TIZEN_image_native_buffer();
 	init_EGL_TIZEN_image_native_surface();
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* GLLOADER_EGL */

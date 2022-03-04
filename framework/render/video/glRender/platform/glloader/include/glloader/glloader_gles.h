@@ -20,11 +20,6 @@
 #ifndef _GLLOADER_GLES_H
 #define _GLLOADER_GLES_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #ifndef GLES_VERSION_1_0
 #define GLES_VERSION_1_0 1
 #endif
@@ -8413,9 +8408,5 @@ extern GLLOADER_API glloader_GLES_QCOM_shader_framebuffer_fetch_noncoherentFUNC 
 extern GLLOADER_API glloader_GLES_QCOM_tiled_renderingFUNC glloader_GLES_QCOM_tiled_rendering;
 extern GLLOADER_API glloader_GLES_QCOM_writeonly_renderingFUNC glloader_GLES_QCOM_writeonly_rendering;
 extern GLLOADER_API glloader_GLES_VIV_shader_binaryFUNC glloader_GLES_VIV_shader_binary;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* _GLLOADER_GLES_H */

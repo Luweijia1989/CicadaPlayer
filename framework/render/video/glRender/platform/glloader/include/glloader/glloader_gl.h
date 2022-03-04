@@ -20,11 +20,6 @@
 #ifndef _GLLOADER_GL_H
 #define _GLLOADER_GL_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #ifndef GL_VERSION_1_0
 #define GL_VERSION_1_0 1
 #endif
@@ -18125,9 +18120,5 @@ extern GLLOADER_API glloader_GL_SUN_triangle_listFUNC glloader_GL_SUN_triangle_l
 extern GLLOADER_API glloader_GL_SUN_vertexFUNC glloader_GL_SUN_vertex;
 extern GLLOADER_API glloader_GL_WIN_phong_shadingFUNC glloader_GL_WIN_phong_shading;
 extern GLLOADER_API glloader_GL_WIN_specular_fogFUNC glloader_GL_WIN_specular_fog;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* _GLLOADER_GL_H */

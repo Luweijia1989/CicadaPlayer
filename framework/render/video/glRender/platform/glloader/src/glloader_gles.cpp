@@ -22,11 +22,6 @@
 
 #ifdef GLLOADER_GLES
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 char _GLES_VERSION_1_0 = 0;
 char _GLES_VERSION_1_1 = 0;
 char _GLES_VERSION_2_0 = 0;
@@ -16803,9 +16798,5 @@ void gles_init()
 	init_GLES_QCOM_writeonly_rendering();
 	init_GLES_VIV_shader_binary();
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* GLLOADER_GLES */

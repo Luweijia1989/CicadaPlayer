@@ -155,25 +155,35 @@ namespace glloader
 		{
 #if defined(GLLOADER_WINDOWS_PLATFORM)
 	#ifdef GLLOADER_GLES
-			void* ogl_dll = ::LoadLibraryExA("libEGL.dll", NULL, 0);
+			#if _DEBUG
+			#define EGL_NAME "libEGLd.dll"
+			#define EGLES_NAME3 "libGLESv3d.dll"
+			#define EGLES_NAME2 "libGLESv2d.dll"
+			#else
+			#define EGL_NAME "libEGL.dll"
+			#define EGLES_NAME3 "libGLESv3.dll"
+			#define EGLES_NAME2 "libGLESv2.dll"
+			#endif
+
+			void* ogl_dll = ::LoadLibraryExA(EGL_NAME, NULL, 0);
 			if (ogl_dll != NULL)
 			{
 				gl_dlls_.push_back(ogl_dll);
-				this->DumpEntries("libEGL.dll");
+				this->DumpEntries(EGL_NAME);
 
-				ogl_dll = ::LoadLibraryExA("libGLESv3.dll", NULL, 0);
+				ogl_dll = ::LoadLibraryExA(EGLES_NAME3, NULL, 0);
 				if (ogl_dll != NULL)
 				{
 					gl_dlls_.push_back(ogl_dll);
-					this->DumpEntries("libGLESv3.dll");
+					this->DumpEntries(EGLES_NAME3);
 				}
 				else
 				{
-					ogl_dll = ::LoadLibraryExA("libGLESv2.dll", NULL, 0);
+					ogl_dll = ::LoadLibraryExA(EGLES_NAME2, NULL, 0);
 					if (ogl_dll != NULL)
 					{
 						gl_dlls_.push_back(ogl_dll);
-						this->DumpEntries("libGLESv2.dll");
+						this->DumpEntries(EGLES_NAME2);
 					}
 				}
 			}
@@ -895,5 +905,8 @@ void *glloader_current_gl_ctx()
 		return NULL;
     else
 		return DynamicWglGetCurrentContext();
+#elif defined (GLLOADER_EGL)
+	return eglGetCurrentContext();
 #endif
 }
+

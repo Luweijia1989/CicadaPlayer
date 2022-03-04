@@ -20,11 +20,6 @@
 #ifndef _GLLOADER_WGL_H
 #define _GLLOADER_WGL_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #ifndef WGL_3DFX_multisample
 #define WGL_3DFX_multisample 1
 #endif
@@ -1244,9 +1239,5 @@ extern GLLOADER_API glloader_WGL_NV_vertex_array_rangeFUNC glloader_WGL_NV_verte
 extern GLLOADER_API glloader_WGL_NV_video_captureFUNC glloader_WGL_NV_video_capture;
 extern GLLOADER_API glloader_WGL_NV_video_outputFUNC glloader_WGL_NV_video_output;
 extern GLLOADER_API glloader_WGL_OML_sync_controlFUNC glloader_WGL_OML_sync_control;
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* _GLLOADER_WGL_H */

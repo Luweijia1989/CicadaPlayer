@@ -22,11 +22,6 @@
 
 #ifdef GLLOADER_WGL
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 char _WGL_3DFX_multisample = 0;
 char _WGL_3DL_stereo_control = 0;
 char _WGL_AMD_gpu_association = 0;
@@ -2410,9 +2405,5 @@ void wgl_init()
 	init_WGL_NV_video_output();
 	init_WGL_OML_sync_control();
 }
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif		/* GLLOADER_WGL */
