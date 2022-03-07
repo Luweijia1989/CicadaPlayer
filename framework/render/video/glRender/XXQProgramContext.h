@@ -4,6 +4,7 @@
 
 #include "VAP.h"
 #include "XXQGLRender.h"
+#include "src/math3d/qmatrix4x4.h"
 #include <map>
 
 class MixRenderer {
@@ -76,6 +77,7 @@ private:
     std::map<int, FrameSet> m_allFrames;
 };
 
+class OpenGLVideo;
 class XXQYUVProgramContext : public IProgramContext {
 
 public:
@@ -188,6 +190,9 @@ private:
 
     std::unique_ptr<VapAnimateConfig> mVapConfig;
     std::unique_ptr<MixRenderer> mMixRender;
+
+	OpenGLVideo* mOpenGL = nullptr;
+	QMatrix4x4 matrix;
 };
 
 

@@ -13,8 +13,8 @@ class VideoShader;
 class VideoShaderPrivate {
 public:
     VideoShaderPrivate()
-        : rebuild_program(false), update_builtin_uniforms(true), vertex_shader(-1), fragment_shader(-1), u_Matrix(-1), u_colorMatrix(-1),
-          u_to8(-1), u_opacity(-1), u_c(-1), material_type(0), texture_target(GL_TEXTURE_2D)
+        : rebuild_program(false), update_builtin_uniforms(true), program(0), linked(false), vertex_shader(0), fragment_shader(0),
+          u_Matrix(-1), u_colorMatrix(-1), u_to8(-1), u_opacity(-1), u_c(-1), material_type(0), texture_target(GL_TEXTURE_2D)
     {
         program = glCreateProgram();
     }
@@ -61,6 +61,7 @@ public:
             return;
         }
 
+		glAttachShader(program, shader);
         if (type == OpenGLHelper::Vertex)
             vertex_shader = shader;
         else

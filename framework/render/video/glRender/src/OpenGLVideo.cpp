@@ -54,6 +54,7 @@ public:
     GeometryRenderer *gr;
     QRectF rect;
     QMatrix4x4 matrix;
+    QMatrix4x4 drawTransform;
     VideoShader *user_shader;
 };
 
@@ -112,8 +113,13 @@ void OpenGLVideoPrivate::updateGeometry(VideoShader *shader, const QRectF &t, co
     gr->updateGeometry(geometry);
 }
 
-OpenGLVideo::OpenGLVideo() : d(std::make_unique<OpenGLVideoPrivate>())
+OpenGLVideo::OpenGLVideo() : d(new OpenGLVideoPrivate)
 {}
+
+OpenGLVideo::~OpenGLVideo()
+{
+    delete d;
+}
 
 bool OpenGLVideo::isSupported(VideoFormat::PixelFormat pixfmt)
 {
@@ -254,14 +260,17 @@ void OpenGLVideo::fill(const int &color)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void OpenGLVideo::render(const QRectF &target, const QRectF &roi, const QMatrix4x4 &transform)
+void OpenGLVideo::render(std::unique_ptr<IAFFrame> &frame, const QRectF &target, const QRectF &roi, const QMatrix4x4 &transform)
 {
+	d->material->setCurrentFrame(frame);
+
     const __int64 mt = d->material->type();
     if (d->material_type != mt) {
         d->material_type = mt;
     }
-    if (!d->material->bind())// bind first because texture parameters(target) mapped from native buffer is unknown before it
-        return;
+
+    //if (!d->material->bind())// bind first because texture parameters(target) mapped from native buffer is unknown before it
+    //    return;
     VideoShader *shader = d->user_shader;
     if (!shader) shader = d->manager->prepareMaterial(d->material, mt);
     glViewport(

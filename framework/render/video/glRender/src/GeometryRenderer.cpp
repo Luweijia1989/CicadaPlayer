@@ -99,7 +99,7 @@ void GeometryRenderer::updateGeometry(Geometry *geo)
                 vbo_size = bs;
             }
         } else {
-            glBufferData(GL_ARRAY_BUFFER, bs, g->indexData(), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, bs, g->vertexData(), GL_STATIC_DRAW);
         }
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }

@@ -1,6 +1,7 @@
 #pragma once
 #include "OpenGLHelper.h"
 #include "OpenGLTypes.h"
+#include "base/media/IAFPacket.h"
 #include "base/media/VideoFormat.h"
 #include "platform/platform_gl.h"
 #include "qrect.h"
@@ -159,7 +160,7 @@ class VideoMaterial {
 public:
     VideoMaterial();
     ~VideoMaterial();
-    void setCurrentFrame();
+    void setCurrentFrame(std::unique_ptr<IAFFrame> &frame);
     VideoFormat currentFormat() const;
     VideoShader *createShader() const;
     virtual int type() const;

@@ -7,6 +7,7 @@
 #include <utils/CicadaUtils.h>
 #include <utils/frame_work_log.h>
 #define STB_IMAGE_IMPLEMENTATION
+#include "src/OpenGLVideo.h"
 #include "stb_image.h"
 
 #ifdef WIN32
@@ -555,7 +556,7 @@ static const char NV12_YUV_FRAGMENT_SHADER[] = R"(
 			}
 )";
 
-XXQYUVProgramContext::XXQYUVProgramContext()
+XXQYUVProgramContext::XXQYUVProgramContext() : mOpenGL(new OpenGLVideo)
 {
     AF_LOGD("YUVProgramContext");
     updateDrawRegion();
@@ -569,15 +570,17 @@ XXQYUVProgramContext::XXQYUVProgramContext()
 XXQYUVProgramContext::~XXQYUVProgramContext()
 {
     AF_LOGD("~YUVProgramContext");
-    glDisableVertexAttribArray(mPositionLocation);
-    glDisableVertexAttribArray(mTexCoordLocation);
-    glDisableVertexAttribArray(mAlphaTexCoordLocation);
-    glDetachShader(mProgram, mVertShader);
-    glDetachShader(mProgram, mFragmentShader);
-    glDeleteShader(mVertShader);
-    glDeleteShader(mFragmentShader);
-    glDeleteProgram(mProgram);
-    glDeleteTextures(3, mYUVTextures);
+    //glDisableVertexAttribArray(mPositionLocation);
+    //glDisableVertexAttribArray(mTexCoordLocation);
+    //glDisableVertexAttribArray(mAlphaTexCoordLocation);
+    //glDetachShader(mProgram, mVertShader);
+    //glDetachShader(mProgram, mFragmentShader);
+    //glDeleteShader(mVertShader);
+    //glDeleteShader(mFragmentShader);
+    //glDeleteProgram(mProgram);
+    //glDeleteTextures(3, mYUVTextures);
+
+    delete mOpenGL;
 }
 
 int XXQYUVProgramContext::initProgram(AFPixelFormat format)
@@ -585,7 +588,7 @@ int XXQYUVProgramContext::initProgram(AFPixelFormat format)
     AF_LOGD("createProgram ");
 
     mPixelFormat = format;
-
+    return 0;
     mProgram = glCreateProgram();
     int mInitRet = compileShader(&mVertShader, YUV_VERTEX_SHADER, GL_VERTEX_SHADER);
 
@@ -669,10 +672,6 @@ void XXQYUVProgramContext::updateMaskInfo(const std::string &vapInfo, IVideoRend
 
 int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame)
 {
-    if (mProgram == 0) {
-        return -1;
-    }
-
     if (frame != nullptr) {
         IAFFrame::videoInfo &videoInfo = frame->getInfo().video;
         if (mFrameWidth != videoInfo.width || mFrameHeight != videoInfo.height || mDar != videoInfo.dar) {
@@ -720,73 +719,55 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame)
         return -1;
     }
 
-    if (mMaskInfoChanged) {
-        updateVapConfig();
-        mTextureCoordsChanged = true;
-        mMaskInfoChanged = false;
-    }
-
-    if (mProjectionChanged) {
-        updateUProjection();
-        mProjectionChanged = false;
-    }
-
     if (mRegionChanged) {
-        updateDrawRegion();
+        auto setOutAspectRatio = [this](double outAspectRatio) {
+            double rendererAspectRatio = double(mWindowWidth) / double(mWindowHeight);
+            if (mScale == IVideoRender::Scale_Fill) {
+                return QRect(0, 0, mWindowWidth, mWindowHeight);
+            }
+            // dar: displayed aspect ratio in video renderer orientation
+
+            QRect out_rect;
+            int rotate = mRotate;
+            const double dar = (rotate % 180) ? 1.0 / outAspectRatio : outAspectRatio;
+            if (rendererAspectRatio >= dar) {//equals to original video aspect ratio here, also equals to out ratio
+                //renderer is too wide, use renderer's height, horizonal align center
+                const int h = mWindowHeight;
+                const int w = std::round(dar * double(h));
+                out_rect = QRect((mWindowWidth - w) / 2, 0, w, h);
+            } else if (rendererAspectRatio < dar) {
+                //renderer is too high, use renderer's width
+                const int w = mWindowWidth;
+                const int h = std::round(double(w) / dar);
+                out_rect = QRect(0, (mWindowHeight - h) / 2, w, h);
+            }
+            return out_rect;
+        };
+
+        QRect outRect;
+        switch (mScale) {
+            case IVideoRender::Scale_AspectFit:
+                outRect = setOutAspectRatio((double) mFrameWidth / (double) mFrameHeight);
+                break;
+            case IVideoRender::Scale_AspectFill:
+                break;
+            case IVideoRender::Scale_Fill:
+                outRect = setOutAspectRatio(double(mWindowWidth) / double(mWindowHeight));
+                break;
+            default:
+                break;
+        }
+
+        matrix.setToIdentity();
+        matrix.scale((GLfloat) outRect.width() / (GLfloat) mWindowWidth, (GLfloat) outRect.height() / (GLfloat) mWindowHeight, 1);
+        if (mRotate) matrix.rotate(mRotate, 0, 0, 1);// Z axis
+
         mRegionChanged = false;
     }
 
-    if (mTextureCoordsChanged) {
-        updateTextureCoords();
-        mTextureCoordsChanged = false;
-    }
+	mOpenGL->setViewport(QRectF(0, 0, mWindowWidth, mWindowHeight));
+    mOpenGL->render(frame, QRectF(), QRectF(0, 0, mFrameWidth, mFrameHeight), matrix);
 
-    if (mFlipChanged) {
-        updateFlipCoords();
-        mFlipChanged = false;
-    }
-
-    glViewport(0, 0, mWindowWidth, mWindowHeight);
-    if (mBackgroundColorChanged) {
-        float color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        cicada::convertToGLColor(mBackgroundColor, color);
-        glClearColor(color[0], color[1], color[2], color[3]);
-        mBackgroundColorChanged = false;
-    }
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    if (frame != nullptr) {
-        fillDataToYUVTextures(frame->getData(), frame->getLineSize(), frame->getInfo().video.format);
-    }
-
-    bindYUVTextures();
-
-    glUniform1i(mAlphaBlendLocation, mVapConfig ? 1 : 0);
-    glUniformMatrix4fv(mProjectionLocation, 1, GL_FALSE, (GLfloat *) mUProjection);
-    glUniformMatrix3fv(mColorSpaceLocation, 1, GL_FALSE, (GLfloat *) mUColorSpace);
-    glUniform2f(mFlipCoordsLocation, mFlipCoords[0], mFlipCoords[1]);
-    glUniform3f(mColorRangeLocation, mUColorRange[0], mUColorRange[1], mUColorRange[2]);
-    glVertexAttribPointer(mPositionLocation, 2, GL_FLOAT, GL_FALSE, 0, mDrawRegion);
-    glVertexAttribPointer(mTexCoordLocation, 2, GL_FLOAT, GL_FALSE, 0, mTextureCoords);
-    glVertexAttribPointer(mAlphaTexCoordLocation, 2, GL_FLOAT, GL_FALSE, 0, mAlphaTextureCoords);
-
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    if (mVapConfig && mVapConfig->isMix) {
-        MixRenderer::MixParam param{off_x,
-                                    off_y,
-                                    mScaleWidth,
-                                    mScaleHeight,
-                                    mVapConfig->videoWidth,
-                                    mVapConfig->videoHeight,
-                                    mVapConfig->width,
-                                    mVapConfig->height,
-                                    (GLfloat **) mUProjection,
-                                    mYUVTextures,
-                                    mRotate};
-
-        mMixRender->renderMix(frame->getInfo().video.frameIndex % mVapConfig->totalFrames, param);
-    }
     return 0;
 }
 
@@ -801,7 +782,7 @@ void XXQYUVProgramContext::updateVapConfig()
             case IVideoRender::Mask_None:
                 mVapConfig->width = mFrameWidth;
                 mVapConfig->height = mFrameHeight;
-				mVapConfig->rgbPointRect = Rect(0, 0, mFrameWidth, mFrameHeight);
+                mVapConfig->rgbPointRect = Rect(0, 0, mFrameWidth, mFrameHeight);
                 break;
             case IVideoRender::Mask_Left:
                 mVapConfig->width = mFrameWidth / 2;

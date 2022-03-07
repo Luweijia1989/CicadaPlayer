@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/media/VideoFormat.h"
+#include "base/media/IAFPacket.h"
 #include "qmatrix4x4.h"
 
 class VideoShader;
@@ -16,6 +17,7 @@ public:
     enum MeshType { RectMesh, SphereMesh };
     static bool isSupported(VideoFormat::PixelFormat pixfmt);
     OpenGLVideo();
+    ~OpenGLVideo();
     /*!
      * \brief setOpenGLContext
      * a context must be set before renderering.
@@ -36,7 +38,8 @@ public:
      * \param roi: normalized rect of texture to renderer.
      * \param transform: additinal transformation.
      */
-    void render(const QRectF &target = QRectF(), const QRectF &roi = QRectF(), const QMatrix4x4 &transform = QMatrix4x4());
+    void render(std::unique_ptr<IAFFrame> &frame, const QRectF &target = QRectF(), const QRectF &roi = QRectF(),
+                const QMatrix4x4 &transform = QMatrix4x4());
 
     void setViewport(const QRectF &r);
 
@@ -52,5 +55,5 @@ public:
     MeshType meshType() const;
 
 private:
-	std::unique_ptr<OpenGLVideoPrivate> d;
+    OpenGLVideoPrivate *d;
 };

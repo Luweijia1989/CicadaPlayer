@@ -7,6 +7,45 @@
 #include <cmath>
 #define YUVA_DONE 0
 
+extern "C" {
+#include <libavutil/pixfmt.h>
+#include <libavutil/frame.h>
+}
+/*
+ * AVColorSpace:
+ * libav11 libavutil54.3.0 pixfmt.h, ffmpeg2.1*libavutil52.48.101 frame.h
+ * ffmpeg2.5 pixfmt.h. AVFrame.colorspace
+ * earlier versions: avcodec.h, avctx.colorspace
+ */
+ColorSpace colorSpaceFromFFmpeg(AVColorSpace cs)
+{
+    switch (cs) {
+        // from ffmpeg: order of coefficients is actually GBR
+        case AVCOL_SPC_RGB:
+            return ColorSpace_GBR;
+        case AVCOL_SPC_BT709:
+            return ColorSpace_BT709;
+        case AVCOL_SPC_BT470BG:
+            return ColorSpace_BT601;
+        case AVCOL_SPC_SMPTE170M:
+            return ColorSpace_BT601;
+        default:
+            return ColorSpace_Unknown;
+    }
+}
+
+ColorRange colorRangeFromFFmpeg(AVColorRange cr)
+{
+    switch (cr) {
+        case AVCOL_RANGE_MPEG:
+            return ColorRange_Limited;
+        case AVCOL_RANGE_JPEG:
+            return ColorRange_Full;
+        default:
+            return ColorRange_Unknown;
+    }
+}
+
 static const char *planar_f_glsl = R"(
 // u_TextureN: yuv. use array?
 uniform sampler2D u_Texture0;
@@ -300,7 +339,7 @@ void VideoShader::initialize()
     d->u_Texture.resize(textureLocationCount());
     AF_LOGD("uniform locations:");
     for (int i = 0; i < d->u_Texture.size(); ++i) {
-        const std::string tex_var = string_format("u_Texture%d", std::to_string(i));
+        const std::string tex_var = string_format("u_Texture%d", i);
         d->u_Texture[i] = glGetUniformLocation(d->program, tex_var.c_str());
         AF_LOGD("%s: %d", tex_var.c_str(), d->u_Texture[i]);
     }
@@ -506,77 +545,72 @@ VideoMaterial::~VideoMaterial()
     delete d;
 }
 
-//void VideoMaterial::setCurrentFrame(const VideoFrame &frame)
-//{
-//    DPTR_D(VideoMaterial);
-//    d.update_texure = true;
-//    // TODO: move to another function before rendering?
-//    d.width = frame.width();
-//    d.height = frame.height();
-//    GLenum new_target = GL_TEXTURE_2D;// not d.target. because metadata "target" is not always set
-//    QByteArray t = frame.metaData(QStringLiteral("target")).toByteArray().toLower();
-//    if (t == QByteArrayLiteral("rect")) new_target = GL_TEXTURE_RECTANGLE;
-//    if (new_target != d.target) {
-//        AF_LOGD("texture target: %#x=>%#x", d.target, new_target);
-//        // FIXME: not thread safe (in qml)
-//        d.target = new_target;
-//        d.init_textures_required = true;
-//    }
-//    // TODO: check hw interop change. if change from an interop owns texture to not owns texture, VideoShader must recreate textures because old textures are deleted by previous interop
-//    const VideoFormat fmt(frame.format());
-//    const int bpc_old = d.bpc;
-//    d.bpc = fmt.bitsPerComponent();
-//    if (d.bpc > 8 && (d.bpc != bpc_old || d.video_format.isBigEndian() != fmt.isBigEndian())) {
-//        //FIXME: Assume first plane has 1 channel. So not work with NV21
-//        const int range = (1 << d.bpc) - 1;
-//        // FFmpeg supports 9, 10, 12, 14, 16 bits
-//        // 10p in little endian: yyyyyyyy yy000000 => (L, L, L, A)  //(yyyyyyyy, 000000yy)?
-//        if (OpenGLHelper::depth16BitTexture() < 16 || !OpenGLHelper::has16BitTexture() || fmt.isBigEndian()) {
-//            if (fmt.isBigEndian())
-//                d.vec_to8 = QVector2D(256.0, 1.0) * 255.0 / (float) range;
-//            else
-//                d.vec_to8 = QVector2D(1.0, 256.0) * 255.0 / (float) range;
-//            d.colorTransform.setChannelDepthScale(1.0);
-//        } else {
-//            /// 16bit (R16 e.g.) texture does not support >8bit be channels
-//            /// 10p be: R2 R1(Host) = R1*2^8+R2 = 000000rr rrrrrrrr ->(GL) R=R2*2^8+R1
-//            /// 10p le: R1 R2(Host) = rrrrrrrr rr000000
-//            //d.vec_to8 = QVector2D(1.0, 0.0)*65535.0/(float)range;
-//            d.colorTransform.setChannelDepthScale(65535.0 / (double) range, YUVA_DONE && fmt.hasAlpha());
-//        }
-//    } else {
-//        if (d.bpc <= 8) d.colorTransform.setChannelDepthScale(1.0);
-//    }
-//    // http://forum.doom9.org/archive/index.php/t-160211.html
-//    ColorSpace cs = frame.colorSpace();// ColorSpace_RGB;
-//    if (cs == ColorSpace_Unknown) {
-//        if (fmt.isRGB()) {
-//            if (fmt.isPlanar())
-//                cs = ColorSpace_GBR;
-//            else
-//                cs = ColorSpace_RGB;
-//        } else if (fmt.isXYZ()) {
-//            cs = ColorSpace_XYZ;
-//        } else {
-//            if (frame.width() >= 1280 || frame.height() > 576)//values from mpv
-//                cs = ColorSpace_BT709;
-//            else
-//                cs = ColorSpace_BT601;
-//        }
-//    }
-//    d.colorTransform.setInputColorSpace(cs);
-//    d.colorTransform.setInputColorRange(frame.colorRange());
-//    // TODO: use graphics driver's color range option if possible
-//    static const ColorRange kRgbDispRange = qgetenv("QTAV_DISPLAY_RGB_RANGE") == "limited" ? ColorRange_Limited : ColorRange_Full;
-//    d.colorTransform.setOutputColorRange(kRgbDispRange);
-//    d.frame = frame;
-//    if (fmt != d.video_format) {
-//        AF_LOGD() << fmt;
-//        AF_LOGD("pixel format changed: %s => %s %d", qPrintable(d.video_format.name()), qPrintable(fmt.name()), fmt.pixelFormat());
-//        d.video_format = fmt;
-//        d.init_textures_required = true;
-//    }
-//}
+void VideoMaterial::setCurrentFrame(std::unique_ptr<IAFFrame> &frame)
+{
+    d->update_texure = true;
+    // TODO: move to another function before rendering?
+    d->width = frame->getInfo().video.width;
+    d->height = frame->getInfo().video.height;
+    GLenum new_target = GL_TEXTURE_2D;// not d.target. because metadata "target" is not always set
+    //QByteArray t = frame.metaData(QStringLiteral("target")).toByteArray().toLower();
+    //if (t == QByteArrayLiteral("rect")) new_target = GL_TEXTURE_RECTANGLE;
+    //if (new_target != d.target) {
+    //    AF_LOGD("texture target: %#x=>%#x", d.target, new_target);
+    //    // FIXME: not thread safe (in qml)
+    //    d.target = new_target;
+    //    d.init_textures_required = true;
+    //}
+    // TODO: check hw interop change. if change from an interop owns texture to not owns texture, VideoShader must recreate textures because old textures are deleted by previous interop
+    const VideoFormat fmt(frame->getInfo().video.format);
+    const int bpc_old = d->bpc;
+    d->bpc = fmt.bitsPerComponent();
+    if (d->bpc > 8 && (d->bpc != bpc_old || d->video_format.isBigEndian() != fmt.isBigEndian())) {
+        //FIXME: Assume first plane has 1 channel. So not work with NV21
+        const int range = (1 << d->bpc) - 1;
+        // FFmpeg supports 9, 10, 12, 14, 16 bits
+        // 10p in little endian: yyyyyyyy yy000000 => (L, L, L, A)  //(yyyyyyyy, 000000yy)?
+        if (OpenGLHelper::depth16BitTexture() < 16 || !OpenGLHelper::has16BitTexture() || fmt.isBigEndian()) {
+            if (fmt.isBigEndian())
+                d->vec_to8 = QVector2D(256.0, 1.0) * 255.0 / (float) range;
+            else
+                d->vec_to8 = QVector2D(1.0, 256.0) * 255.0 / (float) range;
+            d->colorTransform.setChannelDepthScale(1.0);
+        } else {
+            /// 16bit (R16 e.g.) texture does not support >8bit be channels
+            /// 10p be: R2 R1(Host) = R1*2^8+R2 = 000000rr rrrrrrrr ->(GL) R=R2*2^8+R1
+            /// 10p le: R1 R2(Host) = rrrrrrrr rr000000
+            //d.vec_to8 = QVector2D(1.0, 0.0)*65535.0/(float)range;
+            d->colorTransform.setChannelDepthScale(65535.0 / (double) range, YUVA_DONE && fmt.hasAlpha());
+        }
+    } else {
+        if (d->bpc <= 8) d->colorTransform.setChannelDepthScale(1.0);
+    }
+    // http://forum.doom9.org/archive/index.php/t-160211.html
+    ColorSpace cs = ColorSpace_Unknown; //colorSpaceFromFFmpeg(ColorSpace_Unknown /*av_frame_get_colorspace(frame)*/);//todo ÕâÀïÐ´ËÀÁË
+    if (cs == ColorSpace_Unknown) {
+        if (fmt.isRGB()) {
+            if (fmt.isPlanar())
+                cs = ColorSpace_GBR;
+            else
+                cs = ColorSpace_RGB;
+        } else if (fmt.isXYZ()) {
+            cs = ColorSpace_XYZ;
+        } else {
+            if (d->width >= 1280 || d->height > 576)//values from mpv
+                cs = ColorSpace_BT709;
+            else
+                cs = ColorSpace_BT601;
+        }
+    }
+    d->colorTransform.setInputColorSpace(cs);
+    d->colorTransform.setInputColorRange(ColorRange_Limited /*av_frame_get_color_range(frame)*/);
+    static const ColorRange kRgbDispRange = true ? ColorRange_Limited : ColorRange_Full;
+    d->colorTransform.setOutputColorRange(kRgbDispRange);
+    if (fmt != d->video_format) {
+        d->video_format = fmt;
+        d->init_textures_required = true;
+    }
+}
 
 VideoFormat VideoMaterial::currentFormat() const
 {
@@ -953,11 +987,6 @@ bool VideoMaterialPrivate::initTexture(GLuint tex, GLint internal_format, GLenum
 
 VideoMaterialPrivate::~VideoMaterialPrivate()
 {
-    // FIXME: when to delete
-    if (!glloader_current_gl_ctx()) {
-        AF_LOGW("No gl context");
-        return;
-    }
     if (textures.size() != 0) {
         for (int i = 0; i < textures.size(); ++i) {
             GLuint &tex = textures[i];
