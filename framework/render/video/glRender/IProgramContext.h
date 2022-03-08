@@ -5,14 +5,15 @@
 #ifndef SOURCE_IPROGRAMCONTEXT_H
 #define SOURCE_IPROGRAMCONTEXT_H
 
-#include "render/video/IVideoRender.h"
 #include "platform/platform_gl.h"
+#include "render/video/IVideoRender.h"
 #include <utils/AFMediaType.h>
 
 class IProgramContext {
 
 public:
-    static int compileShader(GLuint *shader, const char *src, GLenum type) {
+    static int compileShader(GLuint *shader, const char *src, GLenum type)
+    {
         GLuint shaderId = glCreateShader(type);
         glShaderSource(shaderId, 1, &src, nullptr);
         glCompileShader(shaderId);
@@ -34,14 +35,19 @@ public:
 public:
     virtual ~IProgramContext() = default;
 
-    virtual int initProgram(AFPixelFormat format) = 0;
-
-    virtual void useProgram() = 0;
-
-    virtual void createSurface() {
+    virtual int initProgram(AFPixelFormat format)
+    {
+        return 0;
     }
 
-    virtual void *getSurface() {
+    virtual void useProgram()
+    {}
+
+    virtual void createSurface()
+    {}
+
+    virtual void *getSurface()
+    {
         return nullptr;
     };
 
@@ -51,7 +57,8 @@ public:
 
     virtual void updateRotate(IVideoRender::Rotate rotate) = 0;
 
-    virtual void updateBackgroundColor(uint32_t color) = 0;
+    virtual void updateBackgroundColor(uint32_t color)
+    {}
 
     virtual void updateWindowSize(int width, int height, bool windowChanged) = 0;
 
@@ -68,7 +75,11 @@ public:
         mGLContext = glContext;
     }
 
-	virtual void updateMaskInfo(const std::string& vapInfo, IVideoRender::MaskMode mode, const std::string& data) {}
+    virtual void updateMaskInfo(const std::string &vapInfo, IVideoRender::MaskMode mode, const std::string &data)
+    {}
+
+    virtual void clearScreen(uint32_t color)
+    {}
 
 protected:
     videoRenderingFrameCB mRenderingCb{nullptr};
@@ -78,4 +89,4 @@ protected:
 };
 
 
-#endif //SOURCE_IPROGRAMCONTEXT_H
+#endif//SOURCE_IPROGRAMCONTEXT_H

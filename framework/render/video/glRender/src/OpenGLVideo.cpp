@@ -125,71 +125,6 @@ bool OpenGLVideo::isSupported(VideoFormat::PixelFormat pixfmt)
 {
     return pixfmt != VideoFormat::Format_RGB48BE && pixfmt != VideoFormat::Format_Invalid;
 }
-//
-//void OpenGLVideo::setOpenGLContext(QOpenGLContext *ctx)
-//{
-//    DPTR_D(OpenGLVideo);
-//    if (d.ctx == ctx) return;
-//    double b = 0, c = 0, h = 0, s = 0;
-//    if (d.material) {
-//        b = d.material->brightness();
-//        c = d.material->contrast();
-//        h = d.material->hue();
-//        s = d.material->saturation();
-//        delete d.material;
-//        d.material = 0;
-//    }
-//    d.resetGL();//TODO: is it ok to destroygl resources in another context?
-//    d.ctx = ctx;// Qt4: set to null in resetGL()
-//    if (!ctx) {
-//        return;
-//    }
-//    d.material = new VideoMaterial();
-//    d.material->setBrightness(b);
-//    d.material->setContrast(c);
-//    d.material->setHue(h);
-//    d.material->setSaturation(s);
-//#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-//    d.manager = ctx->findChild<ShaderManager *>(QStringLiteral("__qtav_shader_manager"));
-//#endif
-//    updateViewport();
-//    if (d.manager) return;
-//        // TODO: what if ctx is delete?
-//#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-//    d.manager = new ShaderManager(ctx);
-//    QObject::connect(ctx, SIGNAL(aboutToBeDestroyed()), this, SLOT(resetGL()),
-//                     Qt::DirectConnection);// direct to make sure there is a valid context. makeCurrent in window.aboutToBeDestroyed()?
-//#else
-//    d.manager = new ShaderManager(this);
-//#endif
-//    d.manager->setObjectName(QStringLiteral("__qtav_shader_manager"));
-//    /// get gl info here because context is current(qt ensure it)
-//    //const QByteArray extensions(reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS)));
-//    bool hasGLSL = QOpenGLShaderProgram::hasOpenGLShaderPrograms();
-//    qDebug("OpenGL version: %d.%d  hasGLSL: %d", ctx->format().majorVersion(), ctx->format().minorVersion(), hasGLSL);
-//    static bool sInfo = true;
-//    if (sInfo) {
-//        sInfo = false;
-//        qDebug("GL_VERSION: %s", DYGL(glGetString(GL_VERSION)));
-//        qDebug("GL_VENDOR: %s", DYGL(glGetString(GL_VENDOR)));
-//        qDebug("GL_RENDERER: %s", DYGL(glGetString(GL_RENDERER)));
-//        qDebug("GL_SHADING_LANGUAGE_VERSION: %s", DYGL(glGetString(GL_SHADING_LANGUAGE_VERSION)));
-//        /// check here with current context can ensure the right result. If the first check is in VideoShader/VideoMaterial/decoder or somewhere else, the context can be null
-//        bool v = OpenGLHelper::isOpenGLES();
-//        qDebug("Is OpenGLES: %d", v);
-//        v = OpenGLHelper::isEGL();
-//        qDebug("Is EGL: %d", v);
-//        const int glsl_ver = OpenGLHelper::GLSLVersion();
-//        qDebug("GLSL version: %d", glsl_ver);
-//        v = OpenGLHelper::isPBOSupported();
-//        qDebug("Has PBO: %d", v);
-//        v = OpenGLHelper::has16BitTexture();
-//        qDebug("Has 16bit texture: %d", v);
-//        v = OpenGLHelper::hasRG();
-//        qDebug("Has RG texture: %d", v);
-//        qDebug() << ctx->format();
-//    }
-//}
 
 void OpenGLVideo::setViewport(const QRectF &r)
 {
@@ -202,8 +137,6 @@ void OpenGLVideo::setViewport(const QRectF &r)
         d->matrix.ortho(r);
         d->update_geo = true;// even true for target_rect != d.rect
     }
-
-    glViewport(d->rect.x(), d->rect.y(), d->rect.width(), d->rect.height());
 }
 
 void OpenGLVideo::setBrightness(double value)

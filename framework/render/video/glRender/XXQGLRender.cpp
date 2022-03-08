@@ -200,16 +200,6 @@ int XXQGLRender::VSyncOnInit()
 void XXQGLRender::VSyncOnDestroy()
 {}
 
-void XXQGLRender::glClearScreen()
-{
-    glViewport(0, 0, mVideoSurfaceWidth, mVideoSurfaceHeight);
-    unsigned int backgroundColor = mBackgroundColor;
-    float color[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-    cicada::convertToGLColor(backgroundColor, color);
-    glClearColor(color[0], color[1], color[2], color[3]);
-    glClear(GL_COLOR_BUFFER_BIT);
-}
-
 void XXQGLRender::captureScreen()
 {
     int64_t captureStartTime = af_getsteady_ms();
@@ -298,7 +288,7 @@ IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
         return nullptr;
     }
 
-    int ret = targetProgram->initProgram((AFPixelFormat)frameFormat);
+    int ret = targetProgram->initProgram((AFPixelFormat) frameFormat);
 
     if (ret == 0) {
         targetProgram->setRenderingCb(mRenderingCb, mRenderingCbUserData);
@@ -391,12 +381,11 @@ void XXQGLRender::renderVideo()
     mProgramContext->updateRotate(finalRotate);
     mProgramContext->updateWindowSize(mVideoSurfaceWidth, mVideoSurfaceHeight, false);
     mProgramContext->updateFlip(mFlip);
-    mProgramContext->updateBackgroundColor(mBackgroundColor);
     int ret = -1;
     if (mScreenCleared && mRenderFrame == nullptr) {
         //do not draw last frame when need clear screen.
         if (mVideoSurfaceSizeChanged) {
-            glClearScreen();
+            mProgramContext->clearScreen(mBackgroundColor);
             mVideoSurfaceSizeChanged = false;
         }
     } else {
@@ -441,7 +430,7 @@ void XXQGLRender::renderVideo()
     }
 
     if (mClearScreenOn) {
-        glClearScreen();
+        mProgramContext->clearScreen(mBackgroundColor);
         mScreenCleared = true;
         mClearScreenOn = false;
     }
@@ -491,5 +480,5 @@ void XXQGLRender::clearGLResource()
     auto ctx = glloader_current_gl_ctx();
     if (!ctx) return;
 
-	mPrograms.erase(this);
+    mPrograms.erase(this);
 }

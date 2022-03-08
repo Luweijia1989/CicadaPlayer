@@ -556,91 +556,23 @@ static const char NV12_YUV_FRAGMENT_SHADER[] = R"(
 			}
 )";
 
-XXQYUVProgramContext::XXQYUVProgramContext() : mOpenGL(new OpenGLVideo)
+XXQYUVProgramContext::XXQYUVProgramContext() : mOpenGL(new OpenGLVideo), mWindowWidth(0), mWindowHeight(0), mFrameWidth(0), mFrameHeight(0)
 {
     AF_LOGD("YUVProgramContext");
-    updateDrawRegion();
-    updateTextureCoords();
-    updateUProjection();
-    updateColorRange();
-    updateColorSpace();
-    updateFlipCoords();
 }
 
 XXQYUVProgramContext::~XXQYUVProgramContext()
 {
     AF_LOGD("~YUVProgramContext");
-    //glDisableVertexAttribArray(mPositionLocation);
-    //glDisableVertexAttribArray(mTexCoordLocation);
-    //glDisableVertexAttribArray(mAlphaTexCoordLocation);
-    //glDetachShader(mProgram, mVertShader);
-    //glDetachShader(mProgram, mFragmentShader);
-    //glDeleteShader(mVertShader);
-    //glDeleteShader(mFragmentShader);
-    //glDeleteProgram(mProgram);
-    //glDeleteTextures(3, mYUVTextures);
 
     delete mOpenGL;
-}
-
-int XXQYUVProgramContext::initProgram(AFPixelFormat format)
-{
-    AF_LOGD("createProgram ");
-
-    mPixelFormat = format;
-    return 0;
-    mProgram = glCreateProgram();
-    int mInitRet = compileShader(&mVertShader, YUV_VERTEX_SHADER, GL_VERTEX_SHADER);
-
-    if (mInitRet != 0) {
-        AF_LOGE("compileShader mVertShader failed. ret = %d ", mInitRet);
-        return mInitRet;
-    }
-
-    mInitRet = compileShader(&mFragmentShader, mPixelFormat == AF_PIX_FMT_NV12 ? NV12_YUV_FRAGMENT_SHADER : YUV_FRAGMENT_SHADER,
-                             GL_FRAGMENT_SHADER);
-
-    if (mInitRet != 0) {
-        AF_LOGE("compileShader mFragmentShader failed. ret = %d ", mInitRet);
-        return mInitRet;
-    }
-
-    glAttachShader(mProgram, mVertShader);
-    glAttachShader(mProgram, mFragmentShader);
-    glLinkProgram(mProgram);
-    GLint status;
-    glGetProgramiv(mProgram, GL_LINK_STATUS, &status);
-
-    if (status != GL_TRUE) {
-        int length = 0;
-        GLchar glchar[256] = {0};
-        glGetProgramInfoLog(mProgram, 256, &length, glchar);
-        AF_LOGW("linkProgram  error is %s \n", glchar);
-        return -1;
-    }
-
-    glUseProgram(mProgram);
-    getShaderLocations();
-
-    glEnableVertexAttribArray(mPositionLocation);
-    glEnableVertexAttribArray(mTexCoordLocation);
-    glEnableVertexAttribArray(mAlphaTexCoordLocation);
-
-    createYUVTextures();
-
-    return 0;
-}
-
-void XXQYUVProgramContext::useProgram()
-{
-    glUseProgram(mProgram);
 }
 
 void XXQYUVProgramContext::updateScale(IVideoRender::Scale scale)
 {
     if (mScale != scale) {
         mScale = scale;
-        mRegionChanged = true;
+        mDrawRectChanged = true;
     }
 }
 
@@ -648,7 +580,7 @@ void XXQYUVProgramContext::updateRotate(IVideoRender::Rotate rotate)
 {
     if (mRotate != rotate) {
         mRotate = rotate;
-        mRegionChanged = true;
+        mDrawRectChanged = true;
     }
 }
 
@@ -656,7 +588,7 @@ void XXQYUVProgramContext::updateFlip(IVideoRender::Flip flip)
 {
     if (mFlip != flip) {
         mFlip = flip;
-        mFlipChanged = true;
+        mDrawRectChanged = true;
     }
 }
 
@@ -674,37 +606,14 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame)
 {
     if (frame != nullptr) {
         IAFFrame::videoInfo &videoInfo = frame->getInfo().video;
-        if (mFrameWidth != videoInfo.width || mFrameHeight != videoInfo.height || mDar != videoInfo.dar) {
-            mDar = videoInfo.dar;
+        if (mFrameWidth != videoInfo.width || mFrameHeight != videoInfo.height) {
             mFrameWidth = videoInfo.width;
             mFrameHeight = videoInfo.height;
-            mRegionChanged = true;
-        }
-
-        if (mCropRect.left != videoInfo.crop_left || mCropRect.right != videoInfo.crop_right || mCropRect.top != videoInfo.crop_top ||
-            mCropRect.bottom != videoInfo.crop_bottom) {
-            mCropRect = {videoInfo.crop_left, videoInfo.crop_right, videoInfo.crop_top, videoInfo.crop_bottom};
-            mTextureCoordsChanged = true;
-        }
-
-        int *lineSize = frame->getLineSize();
-        if (lineSize != nullptr && lineSize[0] != mYLineSize) {
-            mYLineSize = lineSize[0];
-            mTextureCoordsChanged = true;
-        }
-
-        if (mColorSpace != videoInfo.colorSpace) {
-            updateColorSpace();
-            mColorSpace = videoInfo.colorSpace;
-        }
-
-        if (mColorRange != videoInfo.colorRange) {
-            updateColorRange();
-            mColorRange = videoInfo.colorRange;
+            mDrawRectChanged = true;
         }
     }
 
-    if (frame == nullptr && !mProjectionChanged && !mRegionChanged && !mTextureCoordsChanged && !mBackgroundColorChanged && !mFlipChanged) {
+    if (frame == nullptr && !mDrawRectChanged && !mBackgroundColorChanged) {
         //frame is null and nothing changed , don`t need redraw. such as paused.
         return -1;
     }
@@ -719,7 +628,7 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame)
         return -1;
     }
 
-    if (mRegionChanged) {
+    if (mDrawRectChanged) {
         auto setOutAspectRatio = [this](double outAspectRatio) {
             double rendererAspectRatio = double(mWindowWidth) / double(mWindowHeight);
             if (mScale == IVideoRender::Scale_Fill) {
@@ -760,12 +669,31 @@ int XXQYUVProgramContext::updateFrame(std::unique_ptr<IAFFrame> &frame)
 
         matrix.setToIdentity();
         matrix.scale((GLfloat) outRect.width() / (GLfloat) mWindowWidth, (GLfloat) outRect.height() / (GLfloat) mWindowHeight, 1);
+        switch (mFlip) {
+            case IVideoRender::Flip_None:
+                break;
+            case IVideoRender::Flip_Horizontal:
+                matrix.scale(-1.0f, 1.0f);
+                break;
+            case IVideoRender::Flip_Vertical:
+                matrix.scale(1.0f, -1.0f);
+                break;
+            case IVideoRender::Flip_Both:
+                matrix.scale(-1.0f, -1.0f);
+                break;
+            default:
+                break;
+        }
         if (mRotate) matrix.rotate(mRotate, 0, 0, 1);// Z axis
 
-        mRegionChanged = false;
+        mDrawRectChanged = false;
     }
 
-	mOpenGL->setViewport(QRectF(0, 0, mWindowWidth, mWindowHeight));
+    mOpenGL->setViewport(QRectF(0, 0, mWindowWidth, mWindowHeight));
+    if (mBackgroundColorChanged) {
+        mOpenGL->fill(mBackgroundColor);
+        mBackgroundColorChanged = false;
+    }
     mOpenGL->render(frame, QRectF(), QRectF(0, 0, mFrameWidth, mFrameHeight), matrix);
 
     return 0;
@@ -839,7 +767,7 @@ void XXQYUVProgramContext::updateVapConfig()
                                       alphaArray.getItem(0).getInt() + alphaArray.getItem(2).getInt(),
                                       alphaArray.getItem(1).getInt() + alphaArray.getItem(3).getInt());
 
-    mMixRender = std::make_unique<MixRenderer>(mPixelFormat);
+    //mMixRender = std::make_unique<MixRenderer>(mPixelFormat);
     mMixRender->setMixResource(mMaskVapData);
     mMixRender->setVapxInfo(json);
 }
@@ -854,356 +782,7 @@ void XXQYUVProgramContext::updateWindowSize(int width, int height, bool windowCh
     mWindowWidth = width;
     mWindowHeight = height;
 
-    mProjectionChanged = true;
-    mRegionChanged = true;
-}
-
-void XXQYUVProgramContext::updateUProjection()
-{
-    mUProjection[0][0] = 2.0f;
-    mUProjection[0][1] = 0.0f;
-    mUProjection[0][2] = 0.0f;
-    mUProjection[0][3] = 0.0f;
-    mUProjection[1][0] = 0.0f;
-    mUProjection[1][1] = 2.0f;
-    mUProjection[1][2] = 0.0f;
-    mUProjection[1][3] = 0.0f;
-    mUProjection[2][0] = 0.0f;
-    mUProjection[2][1] = 0.0f;
-    mUProjection[2][2] = 0.0f;
-    mUProjection[2][3] = 0.0f;
-    mUProjection[3][0] = -1.0f;
-    mUProjection[3][1] = -1.0f;
-    mUProjection[3][2] = 0.0f;
-    mUProjection[3][3] = 1.0f;
-
-    if (mWindowHeight != 0 && mWindowWidth != 0) {
-        mUProjection[0][0] = 2.0f / mWindowWidth;
-        mUProjection[1][1] = 2.0f / mWindowHeight;
-    }
-}
-
-void XXQYUVProgramContext::updateDrawRegion()
-{
-    if (mWindowWidth == 0 || mWindowHeight == 0 || mFrameWidth == 0 || mFrameHeight == 0) {
-        mDrawRegion[0] = (GLfloat) 0;
-        mDrawRegion[1] = (GLfloat) 0;
-        mDrawRegion[2] = (GLfloat) 0;
-        mDrawRegion[3] = (GLfloat) 0;
-        mDrawRegion[4] = (GLfloat) 0;
-        mDrawRegion[5] = (GLfloat) 0;
-        mDrawRegion[6] = (GLfloat) 0;
-        mDrawRegion[7] = (GLfloat) 0;
-        return;
-    }
-
-    float windowWidth = mWindowWidth;
-    float windowHeight = mWindowHeight;
-    float draw_width = mWindowWidth;
-    float draw_height = mWindowHeight;
-    float realWidth = 0;
-    float realHeight = 0;
-    off_x = 0;
-    off_y = 0;
-
-    int targetHeight = mVapConfig ? mVapConfig->height : mFrameHeight;
-    double targetDar = mVapConfig ? (double) mVapConfig->width / (double) mVapConfig->height : mDar;
-
-    if (mRotate == IVideoRender::Rotate::Rotate_90 || mRotate == IVideoRender::Rotate::Rotate_270) {
-        realWidth = targetHeight;
-        realHeight = static_cast<float>(targetHeight * targetDar);
-    } else {
-        realWidth = static_cast<float>(targetHeight * targetDar);
-        realHeight = targetHeight;
-    }
-
-    mScaleWidth = windowWidth / realWidth;
-    mScaleHeight = windowHeight / realHeight;
-
-    if (mScale == IVideoRender::Scale::Scale_AspectFit) {
-        if (mScaleWidth >= mScaleHeight) {
-            draw_width = mScaleHeight * realWidth;
-            off_x = (windowWidth - draw_width) / 2;
-            mScaleWidth = mScaleHeight;
-        } else {
-            draw_height = mScaleWidth * realHeight;
-            off_y = (windowHeight - draw_height) / 2;
-            mScaleHeight = mScaleWidth;
-        }
-    } else if (mScale == IVideoRender::Scale::Scale_AspectFill) {
-        if (mScaleWidth < mScaleHeight) {
-            draw_width = mScaleHeight * realWidth;
-            off_x = (windowWidth - draw_width) / 2;
-            mScaleWidth = mScaleHeight;
-        } else {
-            draw_height = mScaleWidth * realHeight;
-            off_y = (windowHeight - draw_height) / 2;
-            mScaleHeight = mScaleWidth;
-        }
-    }
-
-    if (mRotate == IVideoRender::Rotate::Rotate_None) {
-        mDrawRegion[0] = (GLfloat)(off_x);
-        mDrawRegion[1] = (GLfloat)(off_y);
-        mDrawRegion[2] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[3] = (GLfloat)(off_y);
-        mDrawRegion[4] = (GLfloat)(off_x);
-        mDrawRegion[5] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[6] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[7] = (GLfloat)(off_y + draw_height);
-    } else if (mRotate == IVideoRender::Rotate::Rotate_90) {
-        mDrawRegion[0] = (GLfloat)(off_x);
-        mDrawRegion[1] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[2] = (GLfloat)(off_x);
-        mDrawRegion[3] = (GLfloat)(off_y);
-        mDrawRegion[4] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[5] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[6] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[7] = (GLfloat)(off_y);
-    } else if (mRotate == IVideoRender::Rotate::Rotate_180) {
-        mDrawRegion[0] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[1] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[2] = (GLfloat)(off_x);
-        mDrawRegion[3] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[4] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[5] = (GLfloat)(off_y);
-        mDrawRegion[6] = (GLfloat)(off_x);
-        mDrawRegion[7] = (GLfloat)(off_y);
-    } else if (mRotate == IVideoRender::Rotate::Rotate_270) {
-        mDrawRegion[0] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[1] = (GLfloat)(off_y);
-        mDrawRegion[2] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[3] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[4] = (GLfloat)(off_x);
-        mDrawRegion[5] = (GLfloat)(off_y);
-        mDrawRegion[6] = (GLfloat)(off_x);
-        mDrawRegion[7] = (GLfloat)(off_y + draw_height);
-    }
-}
-
-
-void XXQYUVProgramContext::updateTextureCoords()
-{
-    if (mYLineSize == 0 || mFrameHeight == 0) return;
-
-    int leftX, rightX, topY, bottomY;
-    if (mVapConfig) {
-        leftX = mVapConfig->rgbPointRect.left;
-        rightX = mVapConfig->rgbPointRect.right;
-        topY = mVapConfig->rgbPointRect.top;
-        bottomY = mVapConfig->rgbPointRect.bottom;
-
-        updateAlphaTextureCoords();
-    } else {
-        leftX = mCropRect.left;
-        rightX = mFrameWidth - mCropRect.right;
-        topY = mCropRect.top;
-        bottomY = mFrameHeight - mCropRect.bottom;
-    }
-
-    mTextureCoords[0] = (float) leftX / (float) mYLineSize;
-    mTextureCoords[1] = (float) topY / (float) mFrameHeight;
-
-    mTextureCoords[2] = (float) rightX / (float) mYLineSize;
-    mTextureCoords[3] = (float) topY / (float) mFrameHeight;
-
-    mTextureCoords[4] = (float) leftX / (float) mYLineSize;
-    mTextureCoords[5] = (float) bottomY / (float) mFrameHeight;
-
-    mTextureCoords[6] = (float) rightX / (float) mYLineSize;
-    mTextureCoords[7] = (float) bottomY / (float) mFrameHeight;
-}
-
-void XXQYUVProgramContext::updateAlphaTextureCoords()
-{
-    if (!mVapConfig || mYLineSize == 0 || mFrameHeight == 0) return;
-
-    mAlphaTextureCoords[0] = (float) mVapConfig->alphaPointRect.left / (float) mYLineSize;
-    mAlphaTextureCoords[1] = (float) mVapConfig->alphaPointRect.top / (float) mFrameHeight;
-
-    mAlphaTextureCoords[2] = (float) mVapConfig->alphaPointRect.right / (float) mYLineSize;
-    mAlphaTextureCoords[3] = (float) mVapConfig->alphaPointRect.top / (float) mFrameHeight;
-
-    mAlphaTextureCoords[4] = (float) mVapConfig->alphaPointRect.left / (float) mYLineSize;
-    mAlphaTextureCoords[5] = (float) mVapConfig->alphaPointRect.bottom / (float) mFrameHeight;
-
-    mAlphaTextureCoords[6] = (float) mVapConfig->alphaPointRect.right / (float) mYLineSize;
-    mAlphaTextureCoords[7] = (float) mVapConfig->alphaPointRect.bottom / (float) mFrameHeight;
-}
-
-void XXQYUVProgramContext::updateFlipCoords()
-{
-    switch (mFlip) {
-        case IVideoRender::Flip_None:
-            mFlipCoords[0] = 1.0f;
-            mFlipCoords[1] = 1.0f;
-            break;
-        case IVideoRender::Flip_Horizontal:
-            mFlipCoords[0] = -1.0f;
-            mFlipCoords[1] = 1.0f;
-            break;
-        case IVideoRender::Flip_Vertical:
-            mFlipCoords[0] = 1.0f;
-            mFlipCoords[1] = -1.0f;
-            break;
-        case IVideoRender::Flip_Both:
-            mFlipCoords[0] = -1.0f;
-            mFlipCoords[1] = -1.0f;
-            break;
-        default:
-            break;
-    }
-}
-
-
-void XXQYUVProgramContext::createYUVTextures()
-{
-    //    AF_LOGD("createYUVTextures ");
-
-    glDeleteTextures(3, mYUVTextures);
-    glGenTextures(3, mYUVTextures);
-    //Y
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[0]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    //U
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[1]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    //V
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[2]);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-}
-
-void XXQYUVProgramContext::fillDataToYUVTextures(uint8_t **data, int *pLineSize, int format)
-{
-
-    int uvHeight = mFrameHeight;
-    if (format == AF_PIX_FMT_YUV422P || format == AF_PIX_FMT_YUVJ422P) {
-        uvHeight = mFrameHeight;
-    } else if (format == AF_PIX_FMT_YUV420P || format == AF_PIX_FMT_YUVJ420P) {
-        uvHeight = mFrameHeight / 2;
-    } else if (format == AF_PIX_FMT_NV12) {
-        uvHeight = mFrameHeight / 2;
-    }
-
-    int yWidth = pLineSize[0];
-    int uvWidth = yWidth / 2;//uvWidth may not right in some iOS simulators.
-
-    //use linesize to fill data with texture. some android phones which below 4.4 are not performed as excepted.
-    // crop the extra data when draw.
-    //update y
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[0]);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[0]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, yWidth, mFrameHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data[0]);
-    glUniform1i(mYTexLocation, 0);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-
-    if (mPixelFormat == AF_PIX_FMT_NV12) {
-        //update uv
-        glBindTexture(GL_TEXTURE_2D, mYUVTextures[1]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[1] / 2);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, uvWidth, uvHeight, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, data[1]);
-        glUniform1i(mUTexLocation, 1);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    } else {
-        //update u
-        glBindTexture(GL_TEXTURE_2D, mYUVTextures[1]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[1]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, uvWidth, uvHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data[1]);
-        glUniform1i(mUTexLocation, 1);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-
-        //update v
-        glBindTexture(GL_TEXTURE_2D, mYUVTextures[2]);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, pLineSize[2]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, uvWidth, uvHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data[2]);
-        glUniform1i(mVTexLocation, 2);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    }
-}
-
-void XXQYUVProgramContext::bindYUVTextures()
-{
-    //    AF_LOGD("bindYUVTextures");
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[0]);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[1]);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, mYUVTextures[2]);
-}
-
-void XXQYUVProgramContext::updateColorRange()
-{
-    if (mColorRange == COLOR_RANGE_LIMITIED) {
-        mUColorRange[0] = 16;
-        mUColorRange[1] = 235 - 16;
-        mUColorRange[2] = 240 - 16;
-    } else if (mColorRange == COLOR_RANGE_FULL) {
-        mUColorRange[0] = 0;
-        mUColorRange[1] = 255;
-        mUColorRange[2] = 255;
-    } else {
-        mUColorRange[0] = 16;
-        mUColorRange[1] = 235 - 16;
-        mUColorRange[2] = 240 - 16;
-    }
-}
-
-void XXQYUVProgramContext::updateColorSpace()
-{
-    if (mColorSpace == COLOR_SPACE_BT601) {
-        mUColorSpace[0] = 1.f;
-        mUColorSpace[1] = 1.f;
-        mUColorSpace[2] = 1.f;
-        mUColorSpace[3] = 0.0f;
-        mUColorSpace[4] = -0.344136f;
-        mUColorSpace[5] = 1.772f;
-        mUColorSpace[6] = 1.402f;
-        mUColorSpace[7] = -0.714136f;
-        mUColorSpace[8] = 0.0f;
-    } else if (mColorSpace == COLOR_SPACE_BT709) {
-        mUColorSpace[0] = 1.f;
-        mUColorSpace[1] = 1.f;
-        mUColorSpace[2] = 1.f;
-        mUColorSpace[3] = 0.0f;
-        mUColorSpace[4] = -0.187324f;
-        mUColorSpace[5] = 1.8556f;
-        mUColorSpace[6] = 1.5748f;
-        mUColorSpace[7] = -0.468124f;
-        mUColorSpace[8] = 0.0f;
-    } else if (mColorSpace == COLOR_SPACE_BT2020) {
-        mUColorSpace[0] = 1.f;
-        mUColorSpace[1] = 1.f;
-        mUColorSpace[2] = 1.f;
-        mUColorSpace[3] = 0.0f;
-        mUColorSpace[4] = -0.164553f;
-        mUColorSpace[5] = 1.8814f;
-        mUColorSpace[6] = 1.4746f;
-        mUColorSpace[7] = -0.571353f;
-        mUColorSpace[8] = 0.0f;
-    } else {
-        mUColorSpace[0] = 1.f;
-        mUColorSpace[1] = 1.f;
-        mUColorSpace[2] = 1.f;
-        mUColorSpace[3] = 0.0f;
-        mUColorSpace[4] = -0.344136f;
-        mUColorSpace[5] = 1.772f;
-        mUColorSpace[6] = 1.402f;
-        mUColorSpace[7] = -0.714136f;
-        mUColorSpace[8] = 0.0f;
-    }
+    mDrawRectChanged = true;
 }
 
 void XXQYUVProgramContext::updateBackgroundColor(uint32_t color)
@@ -1214,17 +793,7 @@ void XXQYUVProgramContext::updateBackgroundColor(uint32_t color)
     }
 }
 
-void XXQYUVProgramContext::getShaderLocations()
+void XXQYUVProgramContext::clearScreen(uint32_t color)
 {
-    mProjectionLocation = glGetUniformLocation(mProgram, "u_projection");
-    mColorSpaceLocation = glGetUniformLocation(mProgram, "uColorSpace");
-    mColorRangeLocation = glGetUniformLocation(mProgram, "uColorRange");
-    mFlipCoordsLocation = glGetUniformLocation(mProgram, "u_flipMatrix");
-    mPositionLocation = static_cast<GLuint>(glGetAttribLocation(mProgram, "a_position"));
-    mTexCoordLocation = static_cast<GLuint>(glGetAttribLocation(mProgram, "a_texCoord"));
-    mAlphaTexCoordLocation = static_cast<GLuint>(glGetAttribLocation(mProgram, "a_alpha_texCoord"));
-    mYTexLocation = glGetUniformLocation(mProgram, "y_tex");
-    mUTexLocation = mPixelFormat == AF_PIX_FMT_NV12 ? glGetUniformLocation(mProgram, "uv_tex") : glGetUniformLocation(mProgram, "u_tex");
-    mVTexLocation = glGetUniformLocation(mProgram, "v_tex");
-    mAlphaBlendLocation = glGetUniformLocation(mProgram, "uAlphaBlend");
+	mOpenGL->fill(color);
 }
