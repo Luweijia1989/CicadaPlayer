@@ -4,6 +4,7 @@
 #include <set>
 #include <string.h>//strstr
 #include <utils/frame_work_log.h>
+#include <vector>
 
 #define BUG_GLES3_ANDROID 1//FIXME: N7 android6 gles3 displays red images, only rgb32 is correct
 
@@ -137,19 +138,18 @@ namespace OpenGLHelper {
     {
         if (!isEGL()) return false;
 #ifdef GLLOADER_EGL
-        static std::list<std::string> supported;
-        if (supported.isEmpty()) {
+        static std::vector<std::string> supported;
+        if (supported.size() == 0) {
             EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
             eglInitialize(display, NULL, NULL);
-            supported = QByteArray(eglQueryString(display, EGL_EXTENSIONS)).split(' ');
+            split(eglQueryString(display, EGL_EXTENSIONS), supported, " ");
         }
-        static bool print_exts = true;
-        if (print_exts) {
-            print_exts = false;
-            qDebug() << "EGL extensions: " << supported;
-        }
+
         for (int i = 0; exts[i]; ++i) {
-            if (supported.contains(QByteArray(exts[i]))) return true;
+            for (auto iter = supported.begin(); iter != supported.end(); iter++) {
+                const std::string &s = *iter;
+                if (s == exts[i]) return true;
+            }
         }
 #endif
         return false;

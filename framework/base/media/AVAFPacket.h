@@ -6,7 +6,9 @@
 #define FRAMEWORK_AVPACKET_H
 
 #include "base/media/IAFPacket.h"
+#include "utils/mpark/variant.hpp"
 #include <string>
+#include <map>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -101,10 +103,14 @@ public:
 
     void updateInfo();
 
+	void setMetaData(const std::string &key, const mpark::variant<void *, std::string, int> &value);
+    const mpark::variant<void *, std::string, int> &metaData(const std::string &key);
+
 
 private:
     AVFrame *mAvFrame;
     FrameType mType = FrameTypeUnknown;
+	std::map<std::string, mpark::variant<void *, std::string, int>> mMetaData;
 
     void copyInfo();
 };

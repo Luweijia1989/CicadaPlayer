@@ -64,12 +64,16 @@ void GeometryRenderer::updateGeometry(Geometry *geo)
         const int bs = g->indexDataSize();
         if (bs == ibo_size) {
             void *p = NULL;
+#if defined(GLLOADER_GL)
             if (testFeatures(kMapBuffer)) p = glMapBuffer(ibo, GL_WRITE_ONLY);
+#else defined(GLLOADER_GLES)
+            if (testFeatures(kMapBuffer)) p = glMapBufferOES(ibo, GL_WRITE_ONLY);
+#endif
             if (p) {
                 memcpy(p, g->constIndexData(), bs);
                 glUnmapBuffer(ibo);
             } else {
-                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bs, g->constIndexData());
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, bs, g->constIndexData());
             }
         } else {
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, bs, g->indexData(), GL_STATIC_DRAW);
@@ -90,7 +94,11 @@ void GeometryRenderer::updateGeometry(Geometry *geo)
          */
         if (bs == vbo_size) {// vbo.size() error 0x501 on rpi, and query gl value can be slow
             void *p = NULL;
+#if defined(GLLOADER_GL)
             if (testFeatures(kMapBuffer)) p = glMapBuffer(vbo, GL_WRITE_ONLY);
+#else defined(GLLOADER_GLES)
+            if (testFeatures(kMapBuffer)) p = glMapBufferOES(vbo, GL_WRITE_ONLY);
+#endif
             if (p) {
                 memcpy(p, g->constVertexData(), bs);
                 glUnmapBuffer(vbo);

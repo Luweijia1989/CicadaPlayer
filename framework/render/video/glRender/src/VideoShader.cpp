@@ -556,14 +556,16 @@ bool VideoMaterial::setCurrentFrame(std::unique_ptr<IAFFrame> &frame)
     d->width = frame->getInfo().video.width;
     d->height = frame->getInfo().video.height;
     GLenum new_target = GL_TEXTURE_2D;// not d.target. because metadata "target" is not always set todo
-    //QByteArray t = frame.metaData(QStringLiteral("target")).toByteArray().toLower();
-    //if (t == QByteArrayLiteral("rect")) new_target = GL_TEXTURE_RECTANGLE;
-    //if (new_target != d.target) {
-    //    AF_LOGD("texture target: %#x=>%#x", d.target, new_target);
-    //    // FIXME: not thread safe (in qml)
-    //    d.target = new_target;
-    //    d.init_textures_required = true;
-    //}
+
+    auto &t = avafFrame->metaData("target");
+    auto meta = mpark::get_if<std::string>(&t);
+    if (meta && *meta == "rect") new_target = GL_TEXTURE_RECTANGLE;
+    if (new_target != d->target) {
+        AF_LOGD("texture target: %#x=>%#x", d->target, new_target);
+        // FIXME: not thread safe (in qml)
+        d->target = new_target;
+        d->init_textures_required = true;
+    }
     // TODO: check hw interop change. if change from an interop owns texture to not owns texture, VideoShader must recreate textures because old textures are deleted by previous interop
     const VideoFormat fmt(frame->getInfo().video.format);
     const int bpc_old = d->bpc;
@@ -698,7 +700,7 @@ void VideoMaterialPrivate::uploadPlane(int p, bool updateTexture)
     if (frame->linesize[p] <= 0) return;
     if (try_pbo) {
         GLuint &pb = pbo[p];
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pb);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pb);
         // glMapBuffer() causes sync issue.
         // Call glBufferData() with NULL pointer before glMapBuffer(), the previous data in PBO will be discarded and
         // glMapBuffer() returns a new allocated pointer or an unused block immediately even if GPU is still working with the previous data.
@@ -716,16 +718,16 @@ void VideoMaterialPrivate::uploadPlane(int p, bool updateTexture)
     glBindTexture(target, tex);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexSubImage2D(target, 0, 0, 0, texture_size[p].width(), texture_size[p].height(), data_format[p], data_type[p],
-                         try_pbo ? 0 : frame->data[p]);
+                    try_pbo ? 0 : frame->data[p]);
 
     if (try_pbo) {
-		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     }
 }
 
 void VideoMaterial::unbind()
 {
-    const int nb_planes = d->textures.size();//number of texture id 
+    const int nb_planes = d->textures.size();//number of texture id
     //for (int i = 0; i < nb_planes; ++i) { todo
     //    // unbind planes in the same order as bind. GPU frame's unmap() can be async works, assume the work finished earlier if it started in map() earlier, thus unbind order matter
     //    const int p = (i + 1) % nb_planes;//0 must active at last?
@@ -1134,7 +1136,7 @@ bool VideoMaterialPrivate::ensureTextures()
         }
         if (!tex) {
             AF_LOGD("creating texture for plane %d", p);
-            //GLuint *handle = (GLuint *) frame.createInteropHandle(&tex, GLTextureSurface, p);// take the ownership
+            //GLuint *handle = (GLuint *) frame.createInteropHandle(&tex, GLTextureSurface, p);// take the ownership todo
             //if (handle) {
             //    tex = *handle;
             //    owns_texture[tex] = true;

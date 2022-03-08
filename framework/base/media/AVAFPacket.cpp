@@ -299,3 +299,13 @@ void AVAFFrame::updateInfo()
 {
     copyInfo();
 }
+
+void AVAFFrame::setMetaData(const std::string &key, const mpark::variant<void *, std::string, int> &value)
+{
+	mMetaData[key] = value;
+}
+
+const mpark::variant<void *, std::string, int> &AVAFFrame::metaData(const std::string &key)
+{
+	return mMetaData[key];
+}

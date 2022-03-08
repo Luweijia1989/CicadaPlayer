@@ -3191,6 +3191,10 @@
 #ifdef GLES_EXT_texture_format_BGRA8888
 
 #define GL_BGRA_EXT 0x80E1
+#define GL_BGRA GL_BGRA_EXT
+
+#define GL_BGR_EXT 0x80E0
+#define GL_BGR GL_BGR_EXT
 
 #endif
 
@@ -3209,6 +3213,11 @@
 #define GL_RGBA16_EXT 0x805B
 #define GL_RGB16_EXT 0x8054
 #define GL_RGB16_SNORM_EXT 0x8F9A
+
+#define GL_R16 GL_R16_EXT
+#define GL_RG16 GL_RG16_EXT
+#define GL_RGBA16 GL_RGBA16_EXT
+#define GL_RGB16 GL_RGB16_EXT
 
 #endif
 
@@ -3751,6 +3760,7 @@
 #define GL_ALL_COMPLETED_NV 0x84F2
 #define GL_FENCE_STATUS_NV 0x84F3
 #define GL_FENCE_CONDITION_NV 0x84F4
+#define GL_TEXTURE_RECTANGLE 0x84F5
 
 #endif
 
