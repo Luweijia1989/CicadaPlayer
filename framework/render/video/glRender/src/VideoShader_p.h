@@ -20,10 +20,8 @@ public:
     }
     virtual ~VideoShaderPrivate()
     {
-        if (glloader_current_gl_ctx()) {
-            // FIXME: may be not called from renderering thread. so we still have to detach shaders
-            removeAllShaders();
-        }
+        removeAllShaders();
+        
         glDeleteProgram(program);
         program = 0;
     }
@@ -61,7 +59,7 @@ public:
             return;
         }
 
-		glAttachShader(program, shader);
+        glAttachShader(program, shader);
         if (type == OpenGLHelper::Vertex)
             vertex_shader = shader;
         else
@@ -109,11 +107,12 @@ public:
     std::vector<Uniform> user_uniforms[2];
 };
 
+struct AVFrame;
 class VideoMaterialPrivate {
 public:
     VideoMaterialPrivate()
         : update_texure(true), init_textures_required(true), bpc(0), width(0), height(0), video_format(VideoFormat::Format_Invalid),
-          plane1_linesize(0), effective_tex_width_ratio(1.0), target(GL_TEXTURE_2D), dirty(true), try_pbo(true)
+          plane1_linesize(0), effective_tex_width_ratio(1.0), target(GL_TEXTURE_2D), dirty(true), try_pbo(true), frame(nullptr)
     {
         v_texel_size.reserve(4);
         textures.reserve(4);
@@ -168,4 +167,6 @@ public:
     QMatrix4x4 channel_map;
     std::vector<QVector2D> v_texel_size;
     std::vector<QVector2D> v_texture_size;
+
+    AVFrame *frame;
 };

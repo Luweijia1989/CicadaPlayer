@@ -3,13 +3,14 @@
 #include "VideoShader.h"
 #include "OpenGLHelper.h"
 #include "VideoShader_p.h"
+#include "base/media/AVAFPacket.h"
 #include <cassert>
 #include <cmath>
 #define YUVA_DONE 0
 
 extern "C" {
-#include <libavutil/pixfmt.h>
 #include <libavutil/frame.h>
+#include <libavutil/pixfmt.h>
 }
 /*
  * AVColorSpace:
@@ -449,7 +450,7 @@ bool VideoShader::update(VideoMaterial *material)
 
         initialize();
     }
-    //material->unbind();
+
     const VideoFormat fmt(material->currentFormat());//FIXME: maybe changed in setCurrentFrame(
     //format is out of date because we may use the same shader for different formats
     setVideoFormat(fmt);
@@ -545,13 +546,16 @@ VideoMaterial::~VideoMaterial()
     delete d;
 }
 
-void VideoMaterial::setCurrentFrame(std::unique_ptr<IAFFrame> &frame)
+bool VideoMaterial::setCurrentFrame(std::unique_ptr<IAFFrame> &frame)
 {
+    auto *avafFrame = dynamic_cast<AVAFFrame *>(frame.get());
+    if (!avafFrame) return false;
+
     d->update_texure = true;
     // TODO: move to another function before rendering?
     d->width = frame->getInfo().video.width;
     d->height = frame->getInfo().video.height;
-    GLenum new_target = GL_TEXTURE_2D;// not d.target. because metadata "target" is not always set
+    GLenum new_target = GL_TEXTURE_2D;// not d.target. because metadata "target" is not always set todo
     //QByteArray t = frame.metaData(QStringLiteral("target")).toByteArray().toLower();
     //if (t == QByteArrayLiteral("rect")) new_target = GL_TEXTURE_RECTANGLE;
     //if (new_target != d.target) {
@@ -586,7 +590,7 @@ void VideoMaterial::setCurrentFrame(std::unique_ptr<IAFFrame> &frame)
         if (d->bpc <= 8) d->colorTransform.setChannelDepthScale(1.0);
     }
     // http://forum.doom9.org/archive/index.php/t-160211.html
-    ColorSpace cs = ColorSpace_Unknown; //colorSpaceFromFFmpeg(ColorSpace_Unknown /*av_frame_get_colorspace(frame)*/);//todo ÕâÀïÐ´ËÀÁË
+    ColorSpace cs = colorSpaceFromFFmpeg(av_frame_get_colorspace(avafFrame->ToAVFrame()));
     if (cs == ColorSpace_Unknown) {
         if (fmt.isRGB()) {
             if (fmt.isPlanar())
@@ -603,13 +607,15 @@ void VideoMaterial::setCurrentFrame(std::unique_ptr<IAFFrame> &frame)
         }
     }
     d->colorTransform.setInputColorSpace(cs);
-    d->colorTransform.setInputColorRange(ColorRange_Limited /*av_frame_get_color_range(frame)*/);
+    d->colorTransform.setInputColorRange(colorRangeFromFFmpeg(av_frame_get_color_range(avafFrame->ToAVFrame())));
     static const ColorRange kRgbDispRange = true ? ColorRange_Limited : ColorRange_Full;
     d->colorTransform.setOutputColorRange(kRgbDispRange);
     if (fmt != d->video_format) {
         d->video_format = fmt;
         d->init_textures_required = true;
     }
+    d->frame = avafFrame->ToAVFrame();
+    return true;
 }
 
 VideoFormat VideoMaterial::currentFormat() const
@@ -647,6 +653,8 @@ int VideoMaterial::type() const
 
 bool VideoMaterial::bind()
 {
+    if (!d->frame) return false;
+
     if (!d->ensureResources()) return false;
     const int nb_planes = d->textures.size();//number of texture id
     if (nb_planes <= 0) return false;
@@ -657,25 +665,21 @@ bool VideoMaterial::bind()
         const int p = (i + 1) % nb_planes;//0 must active at last?
         d->uploadPlane(p, d->update_texure);
     }
-#if 0//move to unbind should be fine
-    if (d.update_texure) {
-        d.update_texure = false;
-        d.frame = VideoFrame(); //FIXME: why need this? we must unmap correctly before frame is reset.
-    }
-#endif
+
+    d->frame = nullptr;
     return true;
 }
 
 // TODO: move bindPlane to d.uploadPlane
 void VideoMaterialPrivate::uploadPlane(int p, bool updateTexture)
 {
-    //GLuint &tex = textures[p];
-    //glActiveTexture(GL_TEXTURE0 + p);//0 must active?
-    //if (!updateTexture) {
-    //    glBindTexture(target, tex);
-    //    return;
-    //}
-    //if (!frame.constBits(0)) {
+    GLuint &tex = textures[p];
+    glActiveTexture(GL_TEXTURE0 + p);//0 must active?
+    if (!updateTexture) {
+        glBindTexture(target, tex);
+        return;
+    }
+    //if (!frame.constBits(0)) { todo
     //    // try_pbo ? pbo_id : 0. 0= > interop.createHandle
     //    GLuint tex0 = tex;
     //    if (frame.map(GLTextureSurface, &tex, p)) {
@@ -690,57 +694,48 @@ void VideoMaterialPrivate::uploadPlane(int p, bool updateTexture)
     //    AF_LOGW("map hw surface error");
     //    return;
     //}
-    //// FIXME: why happens on win?
-    //if (frame.bytesPerLine(p) <= 0) return;
-    //if (try_pbo) {
-    //    //AF_LOGD("bind PBO %d", p);
-    //    QOpenGLBuffer &pb = pbo[p];
-    //    pb.bind();
-    //    // glMapBuffer() causes sync issue.
-    //    // Call glBufferData() with NULL pointer before glMapBuffer(), the previous data in PBO will be discarded and
-    //    // glMapBuffer() returns a new allocated pointer or an unused block immediately even if GPU is still working with the previous data.
-    //    // https://www.opengl.org/wiki/Buffer_Object_Streaming#Buffer_re-specification
-    //    pb.allocate(pb.size());
-    //    GLubyte *ptr = (GLubyte *) pb.map(QOpenGLBuffer::WriteOnly);
-    //    if (ptr) {
-    //        memcpy(ptr, frame.constBits(p), pb.size());
-    //        pb.unmap();
-    //    }
-    //}
-    ////AF_LOGD("bpl[%d]=%d width=%d", p, frame.bytesPerLine(p), frame.planeWidth(p));
-    //DYGL(glBindTexture(target, tex));
-    ////setupQuality();
-    ////DYGL(glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    ////DYGL(glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    //// This is necessary for non-power-of-two textures
-    ////glPixelStorei(GL_UNPACK_ALIGNMENT, get_alignment(stride)); 8, 4, 2, 1
-    //// glPixelStorei(GL_UNPACK_ROW_LENGTH, stride/glbpp); // for stride%glbpp > 0?
-    //DYGL(glTexSubImage2D(target, 0, 0, 0, texture_size[p].width(), texture_size[p].height(), data_format[p], data_type[p],
-    //                     try_pbo ? 0 : frame.constBits(p)));
-    //if (false) {//texture_size[].width()*gl_bpp != bytesPerLine[]
-    //    for (int y = 0; y < plane0Size.height(); ++y)
-    //        DYGL(glTexSubImage2D(target, 0, 0, y, texture_size[p].width(), 1, data_format[p], data_type[p],
-    //                             try_pbo ? 0 : frame.constBits(p) + y * plane0Size.width()));
-    //}
-    ////DYGL(glBindTexture(target, 0)); // no bind 0 because glActiveTexture was called
-    //if (try_pbo) {
-    //    pbo[p].release();
-    //}
+    // FIXME: why happens on win?
+    if (frame->linesize[p] <= 0) return;
+    if (try_pbo) {
+        GLuint &pb = pbo[p];
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pb);
+        // glMapBuffer() causes sync issue.
+        // Call glBufferData() with NULL pointer before glMapBuffer(), the previous data in PBO will be discarded and
+        // glMapBuffer() returns a new allocated pointer or an unused block immediately even if GPU is still working with the previous data.
+        // https://www.opengl.org/wiki/Buffer_Object_Streaming#Buffer_re-specification
+        GLint value = -1;
+        glGetBufferParameteriv(GL_PIXEL_UNPACK_BUFFER, GL_BUFFER_SIZE, &value);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, value, nullptr, GL_DYNAMIC_DRAW);
+        GLubyte *ptr = (GLubyte *) glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, value, GL_MAP_WRITE_BIT);
+        if (ptr) {
+            memcpy(ptr, frame->data[p], value);
+            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        }
+    }
+
+    glBindTexture(target, tex);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexSubImage2D(target, 0, 0, 0, texture_size[p].width(), texture_size[p].height(), data_format[p], data_type[p],
+                         try_pbo ? 0 : frame->data[p]);
+
+    if (try_pbo) {
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    }
 }
 
 void VideoMaterial::unbind()
 {
-    //const int nb_planes = d->textures.size();//number of texture id
-    //for (int i = 0; i < nb_planes; ++i) {
+    const int nb_planes = d->textures.size();//number of texture id 
+    //for (int i = 0; i < nb_planes; ++i) { todo
     //    // unbind planes in the same order as bind. GPU frame's unmap() can be async works, assume the work finished earlier if it started in map() earlier, thus unbind order matter
     //    const int p = (i + 1) % nb_planes;//0 must active at last?
     //    d->frame.unmap(&d.textures[p]);
     //}
-    //if (d->update_texure) {
-    //    d->update_texure = false;
-    //    d->frame = VideoFrame();//FIXME: why need this? we must unmap correctly before frame is reset.
-    //}
-    //setDirty(false);
+    if (d->update_texure) {
+        d->update_texure = false;
+        //d->frame = VideoFrame();//FIXME: why need this? we must unmap correctly before frame is reset.
+    }
+    setDirty(false);
 }
 
 int VideoMaterial::compare(const VideoMaterial *other) const
@@ -789,9 +784,7 @@ QVector2D VideoMaterial::vectorTo8bit() const
 
 int VideoMaterial::planeCount() const
 {
-    //todo ===================
-    return 2;
-    //return d->frame.planeCount();
+    return d->video_format.planeCount();
 }
 
 double VideoMaterial::brightness() const
@@ -956,20 +949,16 @@ QRectF VideoMaterial::mapToTexture(int plane, const QRectF &roi, int normalize) 
 
 bool VideoMaterialPrivate::initPBO(int plane, int size)
 {
-    //QOpenGLBuffer &pb = pbo[plane];
-    //if (!pb.isCreated()) {
-    //    AF_LOGD("Creating PBO for plane %d, size: %d...", plane, size);
-    //    pb.create();
-    //}
-    //if (!pb.bind()) {
-    //    AF_LOGW("Failed to bind PBO for plane %d!!!!!!", plane);
-    //    try_pbo = false;
-    //    return false;
-    //}
-    ////pb.setUsagePattern(QOpenGLBuffer::DynamicCopy);
-    //AF_LOGD("Allocate PBO size %d", size);
-    //pb.allocate(size);
-    //pb.release();//bind to 0
+    GLuint &pb = pbo[plane];
+    if (!pb) {
+        AF_LOGD("Creating PBO for plane %d, size: %d...", plane, size);
+        glGenBuffers(1, &pb);
+    }
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pb);
+
+    AF_LOGD("Allocate PBO size %d", size);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     return true;
 }
 
@@ -1061,103 +1050,103 @@ bool VideoMaterialPrivate::updateTextureParameters(const VideoFormat &fmt)
 
 bool VideoMaterialPrivate::ensureResources()
 {
-    //if (!update_texure)//video frame is already uploaded and displayed
-    //    return true;
-    //const VideoFormat &fmt = video_format;
-    //if (!fmt.isValid()) return false;
-    //// update textures if format, texture target, valid texture width(normalized), plane 0 size or plane 1 line size changed
-    //bool update_textures = init_textures_required;
-    //const int nb_planes = fmt.planeCount();
-    //// effective size may change even if plane size not changed
-    //bool effective_tex_width_ratio_changed = true;
-    //for (int i = 0; i < nb_planes; ++i) {
-    //    if ((double) frame.effectiveBytesPerLine(i) / (double) frame.bytesPerLine(i) == effective_tex_width_ratio) {
-    //        effective_tex_width_ratio_changed = false;
-    //        break;
-    //    }
-    //}
-    //const int linsize0 = frame.bytesPerLine(0);
-    //if (update_textures || effective_tex_width_ratio_changed || linsize0 != plane0Size.width() || frame.height() != plane0Size.height() ||
-    //    (plane1_linesize > 0 && frame.bytesPerLine(1) != plane1_linesize)) {// no need to check height if plane 0 sizes are equal?
-    //    update_textures = true;
-    //    dirty = true;
-    //    v_texel_size.resize(nb_planes);
-    //    v_texture_size.resize(nb_planes);
-    //    texture_size.resize(nb_planes);
-    //    effective_tex_width.resize(nb_planes);
-    //    effective_tex_width_ratio = 1.0;
-    //    for (int i = 0; i < nb_planes; ++i) {
-    //        AF_LOGD("plane linesize %d: padded = %d, effective = %d. theoretical plane size: %dx%d", i, frame.bytesPerLine(i),
-    //                frame.effectiveBytesPerLine(i), frame.planeWidth(i), frame.planeHeight(i));
-    //        // we have to consider size of opengl format. set bytesPerLine here and change to width later
-    //        texture_size[i] = QSize(frame.bytesPerLine(i), frame.planeHeight(i));
-    //        effective_tex_width[i] = frame.effectiveBytesPerLine(i);//store bytes here, modify as width later
-    //        // usually they are the same. If not, the difference is small. min value can avoid rendering the invalid data.
-    //        effective_tex_width_ratio =
-    //                qMin(effective_tex_width_ratio, (double) frame.effectiveBytesPerLine(i) / (double) frame.bytesPerLine(i));
-    //    }
-    //    plane1_linesize = 0;
-    //    if (nb_planes > 1) {
-    //        // height? how about odd?
-    //        plane1_linesize = frame.bytesPerLine(1);
-    //    }
-    //    /*
-    //      let wr[i] = valid_bpl[i]/bpl[i], frame from avfilter maybe wr[1] < wr[0]
-    //      e.g. original frame plane 0: 720/768; plane 1,2: 360/384,
-    //      filtered frame plane 0: 720/736, ... (16 aligned?)
-    //     */
-    //    AF_LOGD("effective_tex_width_ratio=%f", effective_tex_width_ratio);
-    //    plane0Size.setWidth(linsize0);
-    //    plane0Size.setHeight(frame.height());
-    //}
-    //if (update_textures) {
-    //    updateTextureParameters(fmt);
-    //    // check pbo support
-    //    try_pbo = try_pbo && OpenGLHelper::isPBOSupported();
-    //    // check PBO support with bind() is fine, no need to check extensions
-    //    if (try_pbo) {
-    //        pbo.resize(nb_planes);
-    //        for (int i = 0; i < nb_planes; ++i) {
-    //            AF_LOGD("Init PBO for plane %d", i);
-    //            pbo[i] = QOpenGLBuffer(QOpenGLBuffer::PixelUnpackBuffer);//QOpenGLBuffer is shared, must initialize 1 by 1 but not use fill
-    //            if (!initPBO(i, frame.bytesPerLine(i) * frame.planeHeight(i))) {
-    //                AF_LOGW("Failed to init PBO for plane %d", i);
-    //                break;
-    //            }
-    //        }
-    //    }
-    //}
+    if (!update_texure)//video frame is already uploaded and displayed
+        return true;
+    const VideoFormat &fmt = video_format;
+    if (!fmt.isValid()) return false;
+    // update textures if format, texture target, valid texture width(normalized), plane 0 size or plane 1 line size changed
+    bool update_textures = init_textures_required;
+    const int nb_planes = fmt.planeCount();
+    // effective size may change even if plane size not changed
+    bool effective_tex_width_ratio_changed = true;
+    for (int i = 0; i < nb_planes; ++i) {
+        if ((double) fmt.bytesPerLine(frame->width, i) / (double) frame->linesize[i] == effective_tex_width_ratio) {
+            effective_tex_width_ratio_changed = false;
+            break;
+        }
+    }
+    const int linsize0 = frame->linesize[0];
+    if (update_textures || effective_tex_width_ratio_changed || linsize0 != plane0Size.width() || frame->height != plane0Size.height() ||
+        (plane1_linesize > 0 && frame->linesize[1] != plane1_linesize)) {// no need to check height if plane 0 sizes are equal?
+        update_textures = true;
+        dirty = true;
+        v_texel_size.resize(nb_planes);
+        v_texture_size.resize(nb_planes);
+        texture_size.resize(nb_planes);
+        effective_tex_width.resize(nb_planes);
+        effective_tex_width_ratio = 1.0;
+        for (int i = 0; i < nb_planes; ++i) {
+            AF_LOGD("plane linesize %d: padded = %d, effective = %d. theoretical plane size: %dx%d", i, frame->linesize[i],
+                    fmt.bytesPerLine(frame->width, i), fmt.width(frame->width, i),
+                    i == 0 ? frame->height : fmt.chromaHeight(frame->height));
+            // we have to consider size of opengl format. set bytesPerLine here and change to width later
+            texture_size[i] = QSize(frame->linesize[i], i == 0 ? frame->height : fmt.chromaHeight(frame->height));
+            effective_tex_width[i] = fmt.bytesPerLine(frame->width, i);//store bytes here, modify as width later
+            // usually they are the same. If not, the difference is small. min value can avoid rendering the invalid data.
+            effective_tex_width_ratio =
+                    std::min<double>(effective_tex_width_ratio, (double) fmt.bytesPerLine(frame->width, i) / (double) frame->linesize[i]);
+        }
+        plane1_linesize = 0;
+        if (nb_planes > 1) {
+            // height? how about odd?
+            plane1_linesize = frame->linesize[1];
+        }
+        /*
+          let wr[i] = valid_bpl[i]/bpl[i], frame from avfilter maybe wr[1] < wr[0]
+          e.g. original frame plane 0: 720/768; plane 1,2: 360/384,
+          filtered frame plane 0: 720/736, ... (16 aligned?)
+         */
+        AF_LOGD("effective_tex_width_ratio=%f", effective_tex_width_ratio);
+        plane0Size.setWidth(linsize0);
+        plane0Size.setHeight(frame->height);
+    }
+    if (update_textures) {
+        updateTextureParameters(fmt);
+        // check pbo support
+        try_pbo = try_pbo && OpenGLHelper::isPBOSupported();
+        // check PBO support with bind() is fine, no need to check extensions
+        if (try_pbo) {
+            pbo.resize(nb_planes);
+            for (int i = 0; i < nb_planes; ++i) {
+                AF_LOGD("Init PBO for plane %d", i);
+                if (!initPBO(i, frame->linesize[i] * (i == 0 ? frame->height : fmt.chromaHeight(frame->height)))) {
+                    AF_LOGW("Failed to init PBO for plane %d", i);
+                    break;
+                }
+            }
+        }
+    }
     return true;
 }
 
 bool VideoMaterialPrivate::ensureTextures()
 {
-    //if (!init_textures_required) return true;
-    //// create in bindPlane loop will cause wrong texture binding
-    //const int nb_planes = video_format.planeCount();
-    //for (int p = 0; p < nb_planes; ++p) {
-    //    GLuint &tex = textures[p];
-    //    if (tex) {// can be 0 if resized to a larger size
-    //        AF_LOGD("try to delete texture for plane %d (id=%u). can delete: %d", p, tex, owns_texture[tex]);
-    //        if (owns_texture[tex]) DYGL(glDeleteTextures(1, &tex));
-    //        owns_texture.remove(tex);
-    //        tex = 0;
-    //    }
-    //    if (!tex) {
-    //        AF_LOGD("creating texture for plane %d", p);
-    //        GLuint *handle = (GLuint *) frame.createInteropHandle(&tex, GLTextureSurface, p);// take the ownership
-    //        if (handle) {
-    //            tex = *handle;
-    //            owns_texture[tex] = true;
-    //        } else {
-    //            DYGL(glGenTextures(1, &tex));
-    //            owns_texture[tex] = true;
-    //            initTexture(tex, internal_format[p], data_format[p], data_type[p], texture_size[p].width(), texture_size[p].height());
-    //        }
-    //        AF_LOGD("texture for plane %d is created (id=%u)", p, tex);
-    //    }
-    //}
-    //init_textures_required = false;
+    if (!init_textures_required) return true;
+    // create in bindPlane loop will cause wrong texture binding
+    const int nb_planes = video_format.planeCount();
+    for (int p = 0; p < nb_planes; ++p) {
+        GLuint &tex = textures[p];
+        if (tex) {// can be 0 if resized to a larger size
+            AF_LOGD("try to delete texture for plane %d (id=%u). can delete: %d", p, tex, owns_texture[tex]);
+            if (owns_texture[tex]) glDeleteTextures(1, &tex);
+            owns_texture.erase(tex);
+            tex = 0;
+        }
+        if (!tex) {
+            AF_LOGD("creating texture for plane %d", p);
+            //GLuint *handle = (GLuint *) frame.createInteropHandle(&tex, GLTextureSurface, p);// take the ownership
+            //if (handle) {
+            //    tex = *handle;
+            //    owns_texture[tex] = true;
+            //} else {
+            glGenTextures(1, &tex);
+            owns_texture[tex] = true;
+            initTexture(tex, internal_format[p], data_format[p], data_type[p], texture_size[p].width(), texture_size[p].height());
+            //}
+            AF_LOGD("texture for plane %d is created (id=%u)", p, tex);
+        }
+    }
+    init_textures_required = false;
     return true;
 }
 

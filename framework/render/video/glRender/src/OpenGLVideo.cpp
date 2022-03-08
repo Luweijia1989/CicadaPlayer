@@ -262,15 +262,15 @@ void OpenGLVideo::fill(const int &color)
 
 void OpenGLVideo::render(std::unique_ptr<IAFFrame> &frame, const QRectF &target, const QRectF &roi, const QMatrix4x4 &transform)
 {
-	d->material->setCurrentFrame(frame);
+    if (!d->material->setCurrentFrame(frame)) return;
 
     const __int64 mt = d->material->type();
     if (d->material_type != mt) {
         d->material_type = mt;
     }
 
-    //if (!d->material->bind())// bind first because texture parameters(target) mapped from native buffer is unknown before it
-    //    return;
+    if (!d->material->bind())// bind first because texture parameters(target) mapped from native buffer is unknown before it
+        return;
     VideoShader *shader = d->user_shader;
     if (!shader) shader = d->manager->prepareMaterial(d->material, mt);
     glViewport(
@@ -287,10 +287,9 @@ void OpenGLVideo::render(std::unique_ptr<IAFFrame> &frame, const QRectF &target,
         glEnable(GL_BLEND);
         glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);//
     }
-    //if (d.mesh_type == OpenGLVideo::SphereMesh)
-    //DYGL(glEnable(GL_CULL_FACE)); // required for sphere! FIXME: broken in qml and qgvf
+
     d->gr->render();
     if (blending) glDisable(GL_BLEND);
-    // d.shader->program()->release(); //glUseProgram(0)
+
     d->material->unbind();
 }

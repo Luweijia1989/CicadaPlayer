@@ -19,7 +19,7 @@ namespace OpenGLHelper {
 
     bool useDeprecatedFormats()
     {
-        static bool v = true;
+        static bool v = false;
         return v;
     }
 
@@ -124,7 +124,13 @@ namespace OpenGLHelper {
 
     bool isOpenGLES()
     {
+#ifdef GLLOADER_GL
         return false;
+#endif
+
+#ifdef GLLOADER_GLES
+        return true;
+#endif//  GLLOADER_GLES
     }
 
     bool hasExtensionEGL(const char *exts[])

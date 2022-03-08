@@ -160,7 +160,7 @@ class VideoMaterial {
 public:
     VideoMaterial();
     ~VideoMaterial();
-    void setCurrentFrame(std::unique_ptr<IAFFrame> &frame);
+    bool setCurrentFrame(std::unique_ptr<IAFFrame> &frame);
     VideoFormat currentFormat() const;
     VideoShader *createShader() const;
     virtual int type() const;
