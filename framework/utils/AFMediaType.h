@@ -379,13 +379,11 @@ typedef struct {
 
 } Stream_meta;
 
-
 enum color_space {
-    COLOR_SPACE_UNSPECIFIED = 0,
-    COLOR_SPACE_BT709 = 1,
-    COLOR_SPACE_BT601 = 2,
-    COLOR_SPACE_BT2020 = 6
-};
+    AF_COLOR_SPACE_UNSPECIFIED = 0,
+    AF_COLOR_SPACE_BT709 = 1, 
+	AF_COLOR_SPACE_BT601 = 2, 
+	AF_COLOR_SPACE_BT2020 = 6 };
 
 enum color_range {
     COLOR_RANGE_UNSPECIFIED = 0,

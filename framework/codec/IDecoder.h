@@ -105,14 +105,6 @@ namespace Cicada {
 
         virtual int getFrame(std::unique_ptr<IAFFrame> &frame, uint64_t timeOut) = 0;
 
-#ifdef ENABLE_HWDECODER
-        virtual void dec_set_hw_device_content(CICADAHWDeviceType type, void *cont)
-        {
-            mHw_device_cont = cont;
-            mHwDevicetype = type;
-        }
-#endif
-
         /*
          * return the number of error packet in decoding progress
          * you can use this to decide stop or continue the decoding

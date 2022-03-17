@@ -71,6 +71,10 @@ set(SOURCE_FILES
         globalNetWorkManager.cpp
         globalNetWorkManager.h
         )
+ 
+file(GLOB VLCFILE vlc/*.*)
+add_definitions(-DHAVE_CONFIG_H)
+add_definitions(-D__STDC_NO_VLA__)
 
 list(APPEND SOURCE_FILES
         ../base/media/IAFPacket.cpp
@@ -80,6 +84,9 @@ list(APPEND SOURCE_FILES
 		../base/media/avcompat.h
 		../base/media/VideoFormat.h
 		../base/media/VideoFormat.cpp
+
+		${VLCFILE}
+
         )
 
 list(APPEND SOURCE_FILES

@@ -407,17 +407,17 @@ int AVColorSpace2AF(enum AVColorSpace space)
     switch (space) {
         case AVCOL_SPC_BT470BG:
         case AVCOL_SPC_SMPTE170M:
-            return COLOR_SPACE_BT601;
+            return AF_COLOR_SPACE_BT601;
 
         case AVCOL_SPC_BT709:
-            return COLOR_SPACE_BT709;
+            return AF_COLOR_SPACE_BT709;
 
         case AVCOL_SPC_BT2020_NCL:
         case AVCOL_SPC_BT2020_CL:
-            return COLOR_SPACE_BT2020;
+            return AF_COLOR_SPACE_BT2020;
 
         default:
-            return COLOR_SPACE_UNSPECIFIED;
+            return AF_COLOR_SPACE_UNSPECIFIED;
     }
 }
 

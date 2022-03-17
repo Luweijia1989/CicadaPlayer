@@ -7,6 +7,7 @@ include_directories(video/glRender/platform/glloader/include/angle/include)
 include_directories(video/glRender/src/base)
 include_directories(video/glRender/src/math3d)
 include_directories(video/glRender)
+
 list(APPEND SRC_FILES
         video/vsync/timedVSync.cpp
         video/vsync/timedVSync.h
@@ -70,6 +71,7 @@ list(APPEND SRC_FILES
 		video/glRender/src/math3d/qvector3d.h
 		video/glRender/src/math3d/qvector4d.cpp
 		video/glRender/src/math3d/qvector4d.h
+
 		)
 
 #if (APPLE)
@@ -142,6 +144,7 @@ endif ()
 if (WIN32)
 	add_definitions(-DSTBI_WINDOWS_UTF8)
 	add_definitions(-DGLLOADER_SOURCE)
+	#add_definitions(-DGLLOADER_GLES_SUPPORT)
     list(APPEND SRC_FILES
                 video/glRender/XXQGLRender.cpp
                 video/glRender/XXQGLRender.h

@@ -12,8 +12,6 @@
 #include "base/media/AVAFPacket.h"
 #include "codecPrototype.h"
 
-#define ENABLE_HWDECODER
-
 typedef struct cicada_decoder_handle_v_t cicada_decoder_handle_v;
 
 namespace Cicada{
@@ -23,15 +21,17 @@ namespace Cicada{
             AVCodecContext *codecCont;
             AVCodec *codec;
             AVFrame *avFrame;
-#ifdef ENABLE_HWDECODER
-			AVFrame *swFrame = nullptr;
-#endif
+
             video_info vInfo;
-//            struct SwsContext *img_convert_ctx;
-//            int swscale_panding;
-//            AVFrame *tmp_picture;
-//            enum AVPixelFormat dstFormat;
+
             int flags;
+
+			/* VA API */
+            AVPixelFormat pix_fmt;
+            int profile;
+            int level;
+			int width;
+			int height;
         };
     public:
         avcodecDecoder();
@@ -87,7 +87,7 @@ namespace Cicada{
         void decoder_updateMetaData(const Stream_meta *meta) override
         {}
 
-    private:
+    public:
         decoder_handle_v *mPDecoder = nullptr;
     };
 }

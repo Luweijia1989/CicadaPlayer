@@ -6,6 +6,8 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
+#include <libavcodec/avcodec.h>
 };
 
 #include <utils/AFUtils.h>
@@ -20,39 +22,109 @@ extern "C" {
 #include "base/media/AVAFPacket.h"
 #include <utils/errors/framework_error.h>
 
+#include "vlc/VideoAcceleration.h"
+
 #define  MAX_INPUT_SIZE 4
 
 using namespace std;
 
 namespace Cicada {
-#ifdef ENABLE_HWDECODER
-	static AVBufferRef *hw_device_ctx = NULL;
-    static enum AVPixelFormat hw_pix_fmt;
-    static int hw_decoder_init(AVCodecContext *ctx, const enum AVHWDeviceType type)
+    static enum AVPixelFormat ffmpeg_GetFormat(AVCodecContext *p_context, const enum AVPixelFormat *pi_fmt)
     {
-        int err = 0;
+        auto *p_sys = ((avcodecDecoder *) p_context->opaque)->mPDecoder;
 
-        if ((err = av_hwdevice_ctx_create(&hw_device_ctx, type, NULL, NULL, 0)) < 0) {
-            AF_LOGE("Failed to create specified HW device.");
-            return err;
-        }
-        ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+        /* Enumerate available formats */
+        enum AVPixelFormat swfmt = avcodec_default_get_format(p_context, pi_fmt);
+        bool can_hwaccel = false;
 
-        return err;
-    }
+        for (size_t i = 0; pi_fmt[i] != AV_PIX_FMT_NONE; i++) {
+            const AVPixFmtDescriptor *dsc = av_pix_fmt_desc_get(pi_fmt[i]);
+            if (dsc == NULL) continue;
+            bool hwaccel = (dsc->flags & AV_PIX_FMT_FLAG_HWACCEL) != 0;
 
-    static enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts)
-    {
-        const enum AVPixelFormat *p;
-
-        for (p = pix_fmts; *p != -1; p++) {
-            if (*p == hw_pix_fmt) return *p;
+            AF_LOGD("available %sware decoder output format %d (%s)", hwaccel ? "hard" : "soft", pi_fmt[i], dsc->name);
+            if (hwaccel) can_hwaccel = true;
         }
 
-        AF_LOGE("Failed to get HW surface format");
-        return AV_PIX_FMT_NONE;
-    }
+        if (p_sys->pix_fmt == AV_PIX_FMT_NONE) goto no_reuse;
+
+        if (p_sys->width != p_context->coded_width || p_sys->height != p_context->coded_height) {
+            AF_LOGD("mismatched dimensions %ux%u was %ux%u", p_context->coded_width, p_context->coded_height, p_sys->width,
+                    p_sys->height);
+            goto no_reuse;
+        }
+        if (p_context->profile != p_sys->profile || p_context->level > p_sys->level) {
+            AF_LOGD("mismatched profile level %d/%d was %d/%d", p_context->profile, p_context->level, p_sys->profile, p_sys->level);
+            goto no_reuse;
+        }
+
+        for (size_t i = 0; pi_fmt[i] != AV_PIX_FMT_NONE; i++)
+            if (pi_fmt[i] == p_sys->pix_fmt) {
+                return p_sys->pix_fmt;
+            }
+
+	no_reuse:
+		//todo destroy old hw
+
+
+        p_sys->profile = p_context->profile;
+        p_sys->level = p_context->level;
+		p_sys->width = p_context->coded_width;
+		p_sys->height = p_context->coded_height;
+
+        if (!can_hwaccel) return swfmt;
+
+#if (LIBAVCODEC_VERSION_MICRO >= 100) && (LIBAVCODEC_VERSION_INT < AV_VERSION_INT(57, 83, 101))
+        if (p_context->active_thread_type) {
+            AF_LOGD("thread type %d: disabling hardware acceleration", p_context->active_thread_type);
+            return swfmt;
+        }
 #endif
+
+        static const AVPixelFormat hwfmts[] = {
+#ifdef _WIN32
+            AV_PIX_FMT_D3D11VA_VLD,
+            AV_PIX_FMT_DXVA2_VLD,
+#endif
+            AV_PIX_FMT_VAAPI_VLD,
+#if (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(52, 4, 0))
+            AV_PIX_FMT_VDPAU,
+#endif
+            AV_PIX_FMT_NONE,
+        };
+
+        for (size_t i = 0; hwfmts[i] != AV_PIX_FMT_NONE; i++) {
+            AVPixelFormat hwfmt = AV_PIX_FMT_NONE;
+            for (size_t j = 0; hwfmt == AV_PIX_FMT_NONE && pi_fmt[j] != AV_PIX_FMT_NONE; j++)
+                if (hwfmts[i] == pi_fmt[j]) hwfmt = hwfmts[i];
+
+            if (hwfmt == AV_PIX_FMT_NONE) continue;
+
+            auto i_chroma = VideoAcceleration::vlc_va_GetChroma(hwfmt, swfmt);
+            if (i_chroma == 0) continue;      /* Unknown brand of hardware acceleration */
+            if (p_context->width == 0 || p_context->height == 0) { /* should never happen */
+                AF_LOGE("unspecified video dimensions");
+                continue;
+            }
+            const AVPixFmtDescriptor *dsc = av_pix_fmt_desc_get(hwfmt);
+            AF_LOGD("trying format %s", dsc ? dsc->name : "unknown");
+            
+			auto va = VideoAcceleration::createVA(p_context, hwfmt);
+			if (!va)
+				continue;
+
+			AF_LOGD("Using %s for hardware decoding", va->description());
+
+            //p_sys->p_va = va;
+            p_sys->pix_fmt = hwfmt;
+            p_context->draw_horiz_band = NULL;
+            return hwfmt;
+        }
+
+        /* Fallback to default behaviour */
+        p_sys->pix_fmt = swfmt;
+        return swfmt;
+    }
 
     avcodecDecoder avcodecDecoder::se(0);
 
@@ -67,11 +139,6 @@ namespace Cicada {
 
             avcodec_free_context(&mPDecoder->codecCont);
             mPDecoder->codecCont = nullptr;
-
-#ifdef ENABLE_HWDECODER
-			if (hw_device_ctx)
-				av_buffer_unref(&hw_device_ctx);
-#endif
         }
 
         mPDecoder->codec = nullptr;
@@ -112,31 +179,11 @@ namespace Cicada {
         }
 
         mPDecoder->flags = DECFLAG_SW;
-#ifdef ENABLE_HWDECODER
-        if (flags & DECFLAG_HW) {
-			const char *hw_name = "dxva2";
-			auto type = av_hwdevice_find_type_by_name(hw_name);
-			if (type != AV_HWDEVICE_TYPE_NONE) {
-                for (auto i = 0;; i++) {
-                    const AVCodecHWConfig *config = avcodec_get_hw_config(mPDecoder->codec, i);
-                    if (!config) {
-                        AF_LOGE("Decoder %s does not support device type %s.", mPDecoder->codec->name, av_hwdevice_get_type_name(type));
-                        break;
-                    }
-                    if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX && config->device_type == type) {
-                        hw_pix_fmt = config->pix_fmt;
-                        break;
-                    }
-                }
+		if (!isAudio) {
+			mPDecoder->codecCont->get_format = ffmpeg_GetFormat;
+			mPDecoder->codecCont->opaque = this;
+		}
 
-				if (hw_pix_fmt != AV_PIX_FMT_NONE) {
-					mPDecoder->codecCont->get_format = get_hw_format;
-					if (hw_decoder_init(mPDecoder->codecCont, type) < 0)
-						return -1;
-				}
-			}
-        }
-#endif
         av_opt_set_int(mPDecoder->codecCont, "refcounted_frames", 1, 0);
         int threadcount = (AFGetCpuCount() > 0 ? AFGetCpuCount() + 1 : 0);
 
@@ -148,6 +195,7 @@ namespace Cicada {
 
         AF_LOGI("set decoder thread as :%d\n", threadcount);
         mPDecoder->codecCont->thread_count = threadcount;
+		mPDecoder->codecCont->thread_safe_callbacks = true;
 
         if (avcodec_open2(mPDecoder->codecCont, mPDecoder->codec, nullptr) < 0) {
             AF_LOGE("could not open codec\n");
@@ -219,16 +267,6 @@ namespace Cicada {
         }
 
 		auto dst = mPDecoder->avFrame;
-#ifdef ENABLE_HWDECODER
-		if (mPDecoder->avFrame->format == hw_pix_fmt) {
-			if (!mPDecoder->swFrame)
-				mPDecoder->swFrame = av_frame_alloc();
-
-			av_hwframe_transfer_data(mPDecoder->swFrame, mPDecoder->avFrame, 0);
-			av_frame_copy_props(mPDecoder->swFrame, mPDecoder->avFrame);
-			dst = mPDecoder->swFrame;
-		}
-#endif
         int64_t timePosition = INT64_MIN;
         if (dst->metadata){
             AVDictionaryEntry *t = av_dict_get(dst->metadata,"timePosition", nullptr,AV_DICT_IGNORE_SUFFIX);

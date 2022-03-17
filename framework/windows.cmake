@@ -18,7 +18,10 @@ if (MSVC)
   set(COMMON_INC_DIR ${COMMON_INC_DIR}
           ${WINDOWS_INSTALL_DIR}/ffmpeg/win32/${ARCH}/include
           ${PROJECT_SOURCE_DIR}
+		  ${PROJECT_SOURCE_DIR}/utils/vlc
           ${CMAKE_CURRENT_LIST_DIR}/../external/boost)
+  find_package(GLEW REQUIRED)
+  link_libraries(GLEW::GLEW)
   find_package(curl REQUIRED)
   link_libraries(CURL::libcurl)
           #find_package(FFMPEG REQUIRED)
