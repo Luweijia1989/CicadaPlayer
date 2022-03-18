@@ -19,9 +19,13 @@ public:
 
     static vlc_fourcc_t vlc_va_GetChroma(AVPixelFormat hwfmt, AVPixelFormat swfmt);
 
+	virtual int open() = 0;
+	virtual void close() = 0;
+
+	int getFrame(AVFrame *frame);
     virtual std::string description() = 0;
     virtual int get(void **opaque, uint8_t **data) = 0;
-    virtual void release(void **opaque, uint8_t **data) = 0;
+    virtual void release(void *opaque, uint8_t *data) = 0;
 
 public:
     AVCodecContext *mCtx = nullptr;

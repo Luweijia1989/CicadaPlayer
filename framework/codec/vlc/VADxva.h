@@ -12,13 +12,14 @@ class DirectXVADXVA2;
 class VADxva : public VAD3D {
 public:
     VADxva(AVCodecContext *ctx, AVPixelFormat fmt) : VAD3D(ctx, fmt)
-    {
-        open();
-    }
+    {}
     std::string description() override;
 
-    int open();
-    void close();
+    virtual int open() override;
+    virtual void close() override;
+
+    virtual int get(void **opaque, uint8_t **data) override;
+    virtual void release(void *opaque, uint8_t *data) override;
 
     virtual int createDevice() override;
     virtual void destroyDevice() override;
@@ -38,6 +39,10 @@ public:
 
 private:
     std::string DxDescribe();
+    int resetVideoDecoder()
+    {
+        return VLC_EGENERIC;
+    }
 
 public:
     DirectXVADXVA2 *mDirectxVA = nullptr;

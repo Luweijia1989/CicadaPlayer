@@ -7,7 +7,7 @@
 #define MAX_SURFACE_COUNT 64
 
 struct va_surface_t {
-    va_surface_t() : refcount(0)
+    va_surface_t() : refcount(1)
     {}
     virtual ~va_surface_t()
     {}
@@ -23,14 +23,12 @@ public:
     {}
 
     virtual std::string description() = 0;
-    virtual int get(void **opaque, uint8_t **data) override;
-    virtual void release(void **opaque, uint8_t **data) override;
 
-    int open();
-    void close();
+    int openDXResource();
+    void closeDXResource();
     int setupDecoder(const AVCodecContext *, unsigned count, int alignment);
     int setupSurfaces(unsigned count);
-    int get(va_surface_t **surface);
+    int getVASurface(va_surface_t **surface);
     void surfaceAddRef(va_surface_t *);
     void surfaceRelease(va_surface_t *);
 
@@ -54,10 +52,10 @@ private:
     void destroyDecoder();
     va_surface_t *getSurface();
 
-private:
-    unsigned surface_count;
-    int surface_width;
-    int surface_height;
+public:
+    unsigned surface_count = 0;
+    int surface_width = 0;
+    int surface_height = 0;
 
-    va_surface_t *surface[MAX_SURFACE_COUNT];
+    va_surface_t *surface[MAX_SURFACE_COUNT] = {0};
 };

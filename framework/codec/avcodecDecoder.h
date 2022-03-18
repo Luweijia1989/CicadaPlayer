@@ -14,6 +14,8 @@
 
 typedef struct cicada_decoder_handle_v_t cicada_decoder_handle_v;
 
+class VideoAcceleration;
+
 namespace Cicada{
     class CICADA_CPLUS_EXTERN avcodecDecoder : public ActiveDecoder, private codecPrototype {
     private:
@@ -27,6 +29,7 @@ namespace Cicada{
             int flags;
 
 			/* VA API */
+            VideoAcceleration *mVA = nullptr;
             AVPixelFormat pix_fmt;
             int profile;
             int level;
@@ -41,8 +44,9 @@ namespace Cicada{
         static bool is_supported(enum AFCodecID codec);
 
         void setEOF() override
-        {
-        }
+        {}
+
+        void close_va_decoder();
 
     private:
         explicit avcodecDecoder(int dummy)

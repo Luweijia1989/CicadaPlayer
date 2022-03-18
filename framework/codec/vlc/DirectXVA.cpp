@@ -333,7 +333,7 @@ int DirectXVA::FindVideoServiceConversion(const AVCodecContext *avctx)
 
 int DirectXVA::directxVAOpen()
 {
-    if (mD3d->open() != VLC_SUCCESS) goto error;
+    if (mD3d->openDXResource() != VLC_SUCCESS) goto error;
 
     return VLC_SUCCESS;
 
@@ -342,7 +342,7 @@ error:
 }
 void DirectXVA::directxVAClose()
 {
-    mD3d->close();
+    mD3d->closeDXResource();
 }
 int DirectXVA::directxVASetup(const AVCodecContext *avctx, int flag_xbox)
 {

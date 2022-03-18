@@ -60,7 +60,7 @@ public:
     int getInputList(input_list_t *);
     int setupOutput(const GUID *input);
 
-private:
+public:
     VADxva *mVAD3D = nullptr;
     /* for pre allocation */
     IDirect3DSurface9 *hw_surface[MAX_SURFACE_COUNT] = { 0 };

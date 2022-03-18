@@ -1,5 +1,6 @@
 #include "VideoAcceleration.h"
 #include "VADxva.h"
+#include <iostream>
 
 VideoAcceleration *VideoAcceleration::createVA(AVCodecContext *ctx, AVPixelFormat fmt)
 {
@@ -60,4 +61,39 @@ vlc_fourcc_t VideoAcceleration::vlc_va_GetChroma(AVPixelFormat hwfmt, AVPixelFor
         default:
             return 0;
     }
+}
+
+typedef struct ffmpeg_va_ref_t {
+    VideoAcceleration *va;
+    void *opaque;//va surface from AVFrame.opaque
+} ffmpeg_va_ref_t;
+
+static void ffmpeg_release_va_buffer2(void *opaque, uint8_t *data)
+{
+    ffmpeg_va_ref_t *ref = (ffmpeg_va_ref_t *) opaque;
+    ref->va->release(ref->opaque, data);
+    delete ref;
+}
+
+int VideoAcceleration::getFrame(AVFrame *frame)
+{
+    if (get(&frame->opaque, &frame->data[0])) {
+        std::clog << "hardware acceleration picture allocation failed";
+        return -1;
+    }
+    assert(frame->data[0] != NULL);
+    /* data[0] must be non-NULL for libavcodec internal checks.
+     * data[3] actually contains the format-specific surface handle. */
+    frame->data[3] = frame->data[0];
+
+    ffmpeg_va_ref_t *ref = new ffmpeg_va_ref_t;
+    ref->va = this;
+    ref->opaque = frame->opaque;
+    frame->buf[0] = av_buffer_create(frame->data[0], 0, ffmpeg_release_va_buffer2, ref, 0);
+    if (frame->buf[0] == NULL) {
+        ffmpeg_release_va_buffer2(ref, frame->data[0]);
+        return -1;
+    }
+
+    return 0;
 }

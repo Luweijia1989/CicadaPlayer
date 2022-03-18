@@ -26,9 +26,39 @@ extern "C" {
 
 #define  MAX_INPUT_SIZE 4
 
+#ifdef WIN32
+/*** CPU ***/
+unsigned vlc_GetCPUCount(void)
+{
+    SYSTEM_INFO systemInfo;
+
+    GetNativeSystemInfo(&systemInfo);
+
+    return systemInfo.dwNumberOfProcessors;
+}
+#endif
+
 using namespace std;
 
 namespace Cicada {
+    static int lavc_GetFrame(struct AVCodecContext *ctx, AVFrame *frame, int flags)
+    {
+        auto *p_sys = ((avcodecDecoder *) ctx->opaque)->mPDecoder;
+
+        for (unsigned i = 0; i < AV_NUM_DATA_POINTERS; i++) {
+            frame->data[i] = NULL;
+            frame->linesize[i] = 0;
+            frame->buf[i] = NULL;
+        }
+        frame->opaque = NULL;
+
+        if (p_sys->mVA == NULL) {
+            return avcodec_default_get_buffer2(ctx, frame, flags);
+        }
+        
+		return p_sys->mVA->getFrame(frame);
+    }
+
     static enum AVPixelFormat ffmpeg_GetFormat(AVCodecContext *p_context, const enum AVPixelFormat *pi_fmt)
     {
         auto *p_sys = ((avcodecDecoder *) p_context->opaque)->mPDecoder;
@@ -64,8 +94,7 @@ namespace Cicada {
             }
 
 	no_reuse:
-		//todo destroy old hw
-
+        ((avcodecDecoder *) p_context->opaque)->close_va_decoder();
 
         p_sys->profile = p_context->profile;
         p_sys->level = p_context->level;
@@ -113,9 +142,14 @@ namespace Cicada {
 			if (!va)
 				continue;
 
-			AF_LOGD("Using %s for hardware decoding", va->description());
+			if (va->open() != VLC_SUCCESS) {
+				delete va;
+				continue;
+			}
 
-            //p_sys->p_va = va;
+			AF_LOGD("Using %s for hardware decoding", va->description().c_str());
+
+            p_sys->mVA = va;
             p_sys->pix_fmt = hwfmt;
             p_context->draw_horiz_band = NULL;
             return hwfmt;
@@ -127,6 +161,15 @@ namespace Cicada {
     }
 
     avcodecDecoder avcodecDecoder::se(0);
+
+	void avcodecDecoder::close_va_decoder()
+	{
+        if (mPDecoder->mVA) {
+            mPDecoder->mVA->close();
+            delete mPDecoder->mVA;
+			mPDecoder->mVA = nullptr;
+        }
+	}
 
     void avcodecDecoder::close_decoder()
     {
@@ -140,9 +183,12 @@ namespace Cicada {
             avcodec_free_context(&mPDecoder->codecCont);
             mPDecoder->codecCont = nullptr;
         }
+        mPDecoder->codec = nullptr;		
 
-        mPDecoder->codec = nullptr;
         av_frame_free(&mPDecoder->avFrame);
+
+		close_va_decoder();
+
         delete mPDecoder;
         mPDecoder = nullptr;
     }
@@ -180,22 +226,48 @@ namespace Cicada {
 
         mPDecoder->flags = DECFLAG_SW;
 		if (!isAudio) {
-			mPDecoder->codecCont->get_format = ffmpeg_GetFormat;
+            mPDecoder->codecCont->get_format = ffmpeg_GetFormat;
+            mPDecoder->codecCont->get_buffer2 = lavc_GetFrame;
 			mPDecoder->codecCont->opaque = this;
+
+			int i_thread_count = vlc_GetCPUCount();
+            if (i_thread_count > 1) i_thread_count++;
+
+#if VLC_WINSTORE_APP
+            i_thread_count = __MIN(i_thread_count, 6);
+#else
+            i_thread_count = std::min<int>(i_thread_count, mPDecoder->codec->id == AV_CODEC_ID_HEVC ? 10 : 6);
+#endif
+            
+            i_thread_count = std::min<int>(i_thread_count, mPDecoder->codec->id == AV_CODEC_ID_HEVC ? 32 : 16);
+            AF_LOGD("allowing %d thread(s) for decoding", i_thread_count);
+            mPDecoder->codecCont->thread_count = i_thread_count;
+            mPDecoder->codecCont->thread_safe_callbacks = true;
+
+            switch (mPDecoder->codec->id) {
+                case AV_CODEC_ID_MPEG4:
+                case AV_CODEC_ID_H263:
+                    mPDecoder->codecCont->thread_type = 0;
+                    break;
+                case AV_CODEC_ID_MPEG1VIDEO:
+                case AV_CODEC_ID_MPEG2VIDEO:
+                    mPDecoder->codecCont->thread_type &= ~FF_THREAD_SLICE;
+                    /* fall through */
+#if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 1, 0))
+                case AV_CODEC_ID_H264:
+                case AV_CODEC_ID_VC1:
+                case AV_CODEC_ID_WMV3:
+                    p_context->thread_type &= ~FF_THREAD_FRAME;
+#endif
+                default:
+                    break;
+            }
+		} else {
+            mPDecoder->codecCont->thread_count = 1;
+            mPDecoder->codecCont->thread_safe_callbacks = true;
 		}
 
         av_opt_set_int(mPDecoder->codecCont, "refcounted_frames", 1, 0);
-        int threadcount = (AFGetCpuCount() > 0 ? AFGetCpuCount() + 1 : 0);
-
-        if ((flags & DECFLAG_OUTPUT_FRAME_ASAP)
-                && ((0 == threadcount) || (threadcount > 2))) {
-            // set too much thread need more video buffer in ffmpeg
-            threadcount = 2;
-        }
-
-        AF_LOGI("set decoder thread as :%d\n", threadcount);
-        mPDecoder->codecCont->thread_count = threadcount;
-		mPDecoder->codecCont->thread_safe_callbacks = true;
 
         if (avcodec_open2(mPDecoder->codecCont, mPDecoder->codec, nullptr) < 0) {
             AF_LOGE("could not open codec\n");

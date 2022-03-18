@@ -13,14 +13,7 @@ void VAD3D::destroyDecoder()
     surface_count = 0;
 }
 
-int VAD3D::get(void **opaque, uint8_t **data)
-{
-	return 0;
-}
-void VAD3D::release(void **opaque, uint8_t **data)
-{}
-
-int VAD3D::open()
+int VAD3D::openDXResource()
 {
     /* */
     if (createDevice()) {
@@ -44,7 +37,7 @@ int VAD3D::open()
 error:
     return -1;
 }
-void VAD3D::close()
+void VAD3D::closeDXResource()
 {
     destroyDecoder();
     destroyVideoService();
@@ -125,7 +118,7 @@ va_surface_t *VAD3D::getSurface()
 
 #define CLOCK_FREQ 1000000
 #define VOUT_OUTMEM_SLEEP CLOCK_FREQ / 50
-int VAD3D::get(va_surface_t **surface)
+int VAD3D::getVASurface(va_surface_t **surface)
 {
     unsigned tries = (CLOCK_FREQ + VOUT_OUTMEM_SLEEP) / VOUT_OUTMEM_SLEEP;
 
