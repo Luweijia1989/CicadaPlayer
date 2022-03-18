@@ -18,8 +18,6 @@
 #undef GL_ES
 #elif TARGET_PLATFORM == PLATFORM_WIN32
 #include <windows.h>
-#include <glloader/glloader.h>
-//#include <glloader/glloader_gles.h>
 #undef GL_ES
 #endif
 

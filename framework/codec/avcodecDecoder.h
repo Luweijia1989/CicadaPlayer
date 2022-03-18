@@ -11,6 +11,9 @@
 #include <codec/IDecoder.h>
 #include "base/media/AVAFPacket.h"
 #include "codecPrototype.h"
+extern "C" {
+#include <vlc_es.h>
+}
 
 typedef struct cicada_decoder_handle_v_t cicada_decoder_handle_v;
 
@@ -24,11 +27,10 @@ namespace Cicada{
             AVCodec *codec;
             AVFrame *avFrame;
 
-            video_info vInfo;
-
             int flags;
 
 			/* VA API */
+            video_format_t videoForamt = {0};
             VideoAcceleration *mVA = nullptr;
             AVPixelFormat pix_fmt;
             int profile;
@@ -47,6 +49,8 @@ namespace Cicada{
         {}
 
         void close_va_decoder();
+
+        int getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fmt, enum AVPixelFormat sw_pix_fmt);
 
     private:
         explicit avcodecDecoder(int dummy)
@@ -90,7 +94,6 @@ namespace Cicada{
 
         void decoder_updateMetaData(const Stream_meta *meta) override
         {}
-
     public:
         decoder_handle_v *mPDecoder = nullptr;
     };

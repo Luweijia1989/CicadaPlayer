@@ -90,7 +90,9 @@ namespace Cicada {
 
         for (size_t i = 0; pi_fmt[i] != AV_PIX_FMT_NONE; i++)
             if (pi_fmt[i] == p_sys->pix_fmt) {
-                return p_sys->pix_fmt;
+                if (((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, p_sys->pix_fmt, swfmt) == 0) {
+					return p_sys->pix_fmt;
+                }
             }
 
 	no_reuse:
@@ -137,7 +139,9 @@ namespace Cicada {
             }
             const AVPixFmtDescriptor *dsc = av_pix_fmt_desc_get(hwfmt);
             AF_LOGD("trying format %s", dsc ? dsc->name : "unknown");
-            
+            if (((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, hwfmt, swfmt))
+				continue;
+
 			auto va = VideoAcceleration::createVA(p_context, hwfmt);
 			if (!va)
 				continue;
@@ -155,7 +159,8 @@ namespace Cicada {
             return hwfmt;
         }
 
-        /* Fallback to default behaviour */
+        AF_LOGE("Fallback to default behaviour");
+        ((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, swfmt, swfmt);
         p_sys->pix_fmt = swfmt;
         return swfmt;
     }
@@ -191,6 +196,132 @@ namespace Cicada {
 
         delete mPDecoder;
         mPDecoder = nullptr;
+    }
+
+    int avcodecDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fmt, enum AVPixelFormat sw_pix_fmt)
+    {
+        int width = ctx->coded_width;
+        int height = ctx->coded_height;
+
+        video_format_Init(&mPDecoder->videoForamt, 0);
+
+        if (pix_fmt == sw_pix_fmt) { /* software decoding */
+            int aligns[AV_NUM_DATA_POINTERS];
+
+            avcodec_align_dimensions2(ctx, &width, &height, aligns);
+        } else /* hardware decoding */
+            mPDecoder->videoForamt.i_chroma = VideoAcceleration::vlc_va_GetChroma(pix_fmt, sw_pix_fmt);
+
+        if (width == 0 || height == 0 || width > 8192 || height > 8192 || width < ctx->width || height < ctx->height) {
+            AF_LOGE("Invalid frame size %dx%d vsz %dx%d", width, height, ctx->width, ctx->height);
+            return -1; /* invalid display size */
+        }
+
+        mPDecoder->videoForamt.i_width = width;
+        mPDecoder->videoForamt.i_height = height;
+        mPDecoder->videoForamt.i_visible_width = ctx->width;
+        mPDecoder->videoForamt.i_visible_height = ctx->height;
+
+        mPDecoder->videoForamt.i_sar_num = ctx->sample_aspect_ratio.num;
+        mPDecoder->videoForamt.i_sar_den = ctx->sample_aspect_ratio.den;
+
+        if (mPDecoder->videoForamt.i_sar_num == 0 || mPDecoder->videoForamt.i_sar_den == 0) mPDecoder->videoForamt.i_sar_num = mPDecoder->videoForamt.i_sar_den = 1;       
+
+        /* FIXME we should only set the known values and let the core decide
+     * later of fallbacks, but we can't do that with a boolean */
+        switch (ctx->color_range) {
+            case AVCOL_RANGE_JPEG:
+                mPDecoder->videoForamt.b_color_range_full = true;
+                break;
+            case AVCOL_RANGE_UNSPECIFIED:
+                mPDecoder->videoForamt.b_color_range_full = !vlc_fourcc_IsYUV(mPDecoder->videoForamt.i_chroma);
+                break;
+            case AVCOL_RANGE_MPEG:
+            default:
+                mPDecoder->videoForamt.b_color_range_full = false;
+                break;
+        }
+
+        switch (ctx->colorspace) {
+            case AVCOL_SPC_BT709:
+                mPDecoder->videoForamt.space = COLOR_SPACE_BT709;
+                break;
+            case AVCOL_SPC_SMPTE170M:
+            case AVCOL_SPC_BT470BG:
+                mPDecoder->videoForamt.space = COLOR_SPACE_BT601;
+                break;
+            case AVCOL_SPC_BT2020_NCL:
+            case AVCOL_SPC_BT2020_CL:
+                mPDecoder->videoForamt.space = COLOR_SPACE_BT2020;
+                break;
+            default:
+                break;
+        }
+
+        switch (ctx->color_trc) {
+            case AVCOL_TRC_LINEAR:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_LINEAR;
+                break;
+            case AVCOL_TRC_GAMMA22:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_SRGB;
+                break;
+            case AVCOL_TRC_BT709:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_BT709;
+                break;
+            case AVCOL_TRC_SMPTE170M:
+            case AVCOL_TRC_BT2020_10:
+            case AVCOL_TRC_BT2020_12:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_BT2020;
+                break;
+            case AVCOL_TRC_ARIB_STD_B67:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_ARIB_B67;
+                break;
+            case AVCOL_TRC_SMPTE2084:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_SMPTE_ST2084;
+                break;
+            case AVCOL_TRC_SMPTE240M:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_SMPTE_240;
+                break;
+            case AVCOL_TRC_GAMMA28:
+                mPDecoder->videoForamt.transfer = TRANSFER_FUNC_BT470_BG;
+                break;
+            default:
+                break;
+        }
+
+        switch (ctx->color_primaries) {
+            case AVCOL_PRI_BT709:
+                mPDecoder->videoForamt.primaries = COLOR_PRIMARIES_BT709;
+                break;
+            case AVCOL_PRI_BT470BG:
+                mPDecoder->videoForamt.primaries = COLOR_PRIMARIES_BT601_625;
+                break;
+            case AVCOL_PRI_SMPTE170M:
+            case AVCOL_PRI_SMPTE240M:
+                mPDecoder->videoForamt.primaries = COLOR_PRIMARIES_BT601_525;
+                break;
+            case AVCOL_PRI_BT2020:
+                mPDecoder->videoForamt.primaries = COLOR_PRIMARIES_BT2020;
+                break;
+            default:
+                break;
+        }
+
+        switch (ctx->chroma_sample_location) {
+            case AVCHROMA_LOC_LEFT:
+                mPDecoder->videoForamt.chroma_location = CHROMA_LOCATION_LEFT;
+                break;
+            case AVCHROMA_LOC_CENTER:
+                mPDecoder->videoForamt.chroma_location = CHROMA_LOCATION_CENTER;
+                break;
+            case AVCHROMA_LOC_TOPLEFT:
+                mPDecoder->videoForamt.chroma_location = CHROMA_LOCATION_TOP_LEFT;
+                break;
+            default:
+                break;
+        }
+
+        return 0;
     }
 
     int avcodecDecoder::init_decoder(const Stream_meta *meta, void *wnd, uint64_t flags,
@@ -276,12 +407,8 @@ namespace Cicada {
         }
 
         mPDecoder->avFrame = av_frame_alloc();
-        mPDecoder->vInfo.height = mPDecoder->codecCont->height;
-        mPDecoder->vInfo.width = mPDecoder->codecCont->width;
-        mPDecoder->vInfo.pix_fmt = mPDecoder->codecCont->pix_fmt;
         return 0;
     }
-
 
     avcodecDecoder::avcodecDecoder() : ActiveDecoder()
     {
@@ -346,7 +473,7 @@ namespace Cicada {
                 timePosition = atoll(t->value);
             }
         }
-        pFrame = unique_ptr<IAFFrame>(new AVAFFrame(dst));
+        pFrame = unique_ptr<IAFFrame>(new AVAFFrame(&mPDecoder->videoForamt, dst));
         pFrame->getInfo().timePosition = timePosition;
         return ret;
     };

@@ -83,7 +83,9 @@ public:
     explicit AVAFFrame(const AFFrameInfo &info, const uint8_t **data, const int *lineSize, int lineNums,
                        IAFFrame::FrameType type = FrameTypeUnknown);
 
-    explicit AVAFFrame(AVFrame *frame, FrameType type = FrameTypeUnknown);
+    explicit AVAFFrame(void *fmt, AVFrame *frame, FrameType type = FrameTypeUnknown);
+
+	explicit AVAFFrame(AVFrame *frame, FrameType type = FrameTypeUnknown);
 
     explicit AVAFFrame(AVFrame **frame, FrameType type = FrameTypeUnknown);
 

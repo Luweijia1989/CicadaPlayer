@@ -207,6 +207,14 @@ AVAFFrame::AVAFFrame(AVFrame **frame, IAFFrame::FrameType type) : mType(type)
 }
 
 
+AVAFFrame::AVAFFrame(void *fmt, AVFrame *frame, FrameType type) : mAvFrame(av_frame_clone(frame)), mType(type)
+{
+    assert(mAvFrame != nullptr);
+    copyInfo();
+    if (mType == FrameTypeVideo)
+		mInfo.video.vlc_fmt = fmt;
+}
+
 AVAFFrame::AVAFFrame(AVFrame *frame, FrameType type) : mAvFrame(av_frame_clone(frame)), mType(type)
 {
     assert(mAvFrame != nullptr);

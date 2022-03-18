@@ -168,6 +168,8 @@ public:
         int colorRange;
         int colorSpace;
 
+		void *vlc_fmt;
+
         bool operator==(const videoInfo &info) const
         {
             return this->width == info.width && this->height == info.height && this->format == info.format;

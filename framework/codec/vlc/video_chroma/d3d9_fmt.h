@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vlc_picture.h>
+#include "vlc_es.h"
 
 #define COBJMACROS
 #include <d3d9.h>
