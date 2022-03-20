@@ -1,12 +1,12 @@
 #pragma once
 
 #include "gl_base.h"
-#include <vlc_common.h>
-#include <vlc_es.h>
-#include <string>
 
 extern "C" {
 #include <libavutil/frame.h>
+#include <vlc_common.h>
+#include <vlc_es.h>
+#include <vlc_memstream.h>
 }
 
 struct pl_context;
@@ -118,7 +118,7 @@ public:
     bool b_dump_shaders = true;
 
     /* Available gl extensions (from GL_EXTENSIONS) */
-    std::string glexts;
+    const char *glexts;
 
     /* True if the current API is OpenGL ES, set by the caller */
     bool is_gles = false;

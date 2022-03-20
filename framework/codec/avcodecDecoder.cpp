@@ -131,8 +131,8 @@ namespace Cicada {
 
             if (hwfmt == AV_PIX_FMT_NONE) continue;
 
-            auto i_chroma = VideoAcceleration::vlc_va_GetChroma(hwfmt, swfmt);
-            if (i_chroma == 0) continue;      /* Unknown brand of hardware acceleration */
+            p_sys->videoForamt.i_chroma = VideoAcceleration::vlc_va_GetChroma(hwfmt, swfmt);
+            if (p_sys->videoForamt.i_chroma == 0) continue;        /* Unknown brand of hardware acceleration */
             if (p_context->width == 0 || p_context->height == 0) { /* should never happen */
                 AF_LOGE("unspecified video dimensions");
                 continue;
@@ -209,6 +209,7 @@ namespace Cicada {
             int aligns[AV_NUM_DATA_POINTERS];
 
             avcodec_align_dimensions2(ctx, &width, &height, aligns);
+            mPDecoder->videoForamt.i_chroma = FindVlcChroma(pix_fmt);
         } else /* hardware decoding */
             mPDecoder->videoForamt.i_chroma = VideoAcceleration::vlc_va_GetChroma(pix_fmt, sw_pix_fmt);
 
@@ -225,7 +226,47 @@ namespace Cicada {
         mPDecoder->videoForamt.i_sar_num = ctx->sample_aspect_ratio.num;
         mPDecoder->videoForamt.i_sar_den = ctx->sample_aspect_ratio.den;
 
-        if (mPDecoder->videoForamt.i_sar_num == 0 || mPDecoder->videoForamt.i_sar_den == 0) mPDecoder->videoForamt.i_sar_num = mPDecoder->videoForamt.i_sar_den = 1;       
+        if (mPDecoder->videoForamt.i_sar_num == 0 || mPDecoder->videoForamt.i_sar_den == 0) mPDecoder->videoForamt.i_sar_num = mPDecoder->videoForamt.i_sar_den = 1;      
+
+		const vlc_chroma_description_t *p_dsc = vlc_fourcc_GetChromaDescription(mPDecoder->videoForamt.i_chroma);
+        if (!p_dsc) return VLC_EGENERIC;
+
+        /* We want V (width/height) to respect:
+        (V * p_dsc->p[i].w.i_num) % p_dsc->p[i].w.i_den == 0
+        (V * p_dsc->p[i].w.i_num/p_dsc->p[i].w.i_den * p_dsc->i_pixel_size) % 16 == 0
+		   Which is respected if you have
+		   V % lcm( p_dsc->p[0..planes].w.i_den * 16) == 0
+		*/
+
+        auto LCM = [](int a, int b) { return a * b / GCD(a, b); };
+
+        int i_modulo_w = 1;
+        int i_modulo_h = 1;
+        unsigned int i_ratio_h = 1;
+        for (unsigned i = 0; i < p_dsc->plane_count; i++) {
+            i_modulo_w = LCM(i_modulo_w, 16 * p_dsc->p[i].w.den);
+            i_modulo_h = LCM(i_modulo_h, 16 * p_dsc->p[i].h.den);
+            if (i_ratio_h < p_dsc->p[i].h.den) i_ratio_h = p_dsc->p[i].h.den;
+        }
+        i_modulo_h = LCM(i_modulo_h, 32);
+
+        const int i_width_aligned = (mPDecoder->videoForamt.i_width + i_modulo_w - 1) / i_modulo_w * i_modulo_w;
+        const int i_height_aligned = (mPDecoder->videoForamt.i_height + i_modulo_h - 1) / i_modulo_h * i_modulo_h;
+        const int i_height_extra = 2 * i_ratio_h; /* This one is a hack for some ASM functions */
+        for (unsigned i = 0; i < p_dsc->plane_count; i++) {
+            auto *p = &mPDecoder->videoForamt.plane[i];
+
+            p->i_lines = (i_height_aligned + i_height_extra) * p_dsc->p[i].h.num / p_dsc->p[i].h.den;
+            p->i_visible_lines =
+                    (mPDecoder->videoForamt.i_visible_height + (p_dsc->p[i].h.den - 1)) / p_dsc->p[i].h.den * p_dsc->p[i].h.num;
+            p->i_pitch = i_width_aligned * p_dsc->p[i].w.num / p_dsc->p[i].w.den * p_dsc->pixel_size;
+            p->i_visible_pitch = (mPDecoder->videoForamt.i_visible_width + (p_dsc->p[i].w.den - 1)) / p_dsc->p[i].w.den *
+                                 p_dsc->p[i].w.num * p_dsc->pixel_size;
+            p->i_pixel_pitch = p_dsc->pixel_size;
+
+            assert((p->i_pitch % 16) == 0);
+        }
+        mPDecoder->videoForamt.i_planes = p_dsc->plane_count;
 
         /* FIXME we should only set the known values and let the core decide
      * later of fallbacks, but we can't do that with a boolean */

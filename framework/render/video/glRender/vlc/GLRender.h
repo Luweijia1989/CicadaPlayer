@@ -1,7 +1,8 @@
 #pragma once
 #include "gl_common.h"
+extern "C" {
 #include <vlc_es.h>
-#include <string>
+}
 
 #ifndef GL_CLAMP_TO_EDGE
 #define GL_CLAMP_TO_EDGE 0x812F
@@ -105,13 +106,13 @@ private:
     int linkShaderProgram();
 
     GLuint BuildVertexShader(unsigned plane_count);
-    int GenTextures(const GLsizei *tex_width, const GLsizei *tex_height, GLuint *textures);
+    int GenTextures();
 
     GLBase *glBase = nullptr;
     OpenGLTextureConverter *textureConvter = nullptr;
     opengl_vtable_t vt;
     video_format_t fmt = {0};
-	std::string extensions;
+    const char *extensions;
 
     GLsizei tex_width[PICTURE_PLANE_MAX] = {0};
     GLsizei tex_height[PICTURE_PLANE_MAX] = {0};

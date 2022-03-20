@@ -82,7 +82,7 @@ static void getOrientationTransformMatrix(video_orientation_t orientation, GLflo
 }
 
 GLRender::GLRender(video_format_t *format) : fmt(*format)
-{
+{// if initgl return false, should delete self
 #ifdef WIN32
     glBase = new WGL();
 #endif
@@ -213,7 +213,7 @@ bool GLRender::initGL()
     GL_ASSERT_NOERROR();
 
     extensions = (const char *) vt.GetString(GL_EXTENSIONS);
-    if (extensions.length() == 0) {
+    if (!extensions) {
         std::clog << "glGetString returned NULL" << std::endl;
         return false;
     }
@@ -243,8 +243,8 @@ bool GLRender::initGL()
      * so checks for extensions are bound to fail. Check for OpenGL ES version instead. */
     supports_npot = true;
 #else
-    supports_npot = HasExtension(extensions.c_str(), "GL_ARB_texture_non_power_of_two") ||
-                    HasExtension(extensions.c_str(), "GL_APPLE_texture_2D_limited_npot");
+    supports_npot = HasExtension(extensions, "GL_ARB_texture_non_power_of_two") ||
+                    HasExtension(extensions, "GL_APPLE_texture_2D_limited_npot");
 #endif
 
     GL_ASSERT_NOERROR();
@@ -273,7 +273,7 @@ bool GLRender::initGL()
     }
 
     if (!textureConvter->handle_texs_gen) {
-        ret = GenTextures(tex_width, tex_height, texture);
+        ret = GenTextures();
         if (ret != VLC_SUCCESS) {
             return false;
         }
@@ -298,12 +298,12 @@ bool GLRender::initGL()
     return true;
 }
 
-int GLRender::GenTextures(const GLsizei *tex_width, const GLsizei *tex_height, GLuint *textures)
+int GLRender::GenTextures()
 {
-    vt.GenTextures(textureConvter->tex_count, textures);
+    vt.GenTextures(textureConvter->tex_count, texture);
 
     for (unsigned i = 0; i < textureConvter->tex_count; i++) {
-        vt.BindTexture(textureConvter->tex_target, textures[i]);
+        vt.BindTexture(textureConvter->tex_target, texture[i]);
 
 #if !defined(USE_OPENGL_ES2)
         /* Set the texture parameters */
@@ -317,10 +317,10 @@ int GLRender::GenTextures(const GLsizei *tex_width, const GLsizei *tex_height, G
         vt.TexParameteri(textureConvter->tex_target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
 
-    int ret = textureConvter->pf_allocate_textures(textures, tex_width, tex_height);
+    int ret = textureConvter->pf_allocate_textures(texture, tex_width, tex_height);
     if (ret != VLC_SUCCESS) {
-        vt.DeleteTextures(textureConvter->tex_count, textures);
-        memset(textures, 0, textureConvter->tex_count * sizeof(GLuint));
+        vt.DeleteTextures(textureConvter->tex_count, texture);
+        memset(texture, 0, textureConvter->tex_count * sizeof(GLuint));
         return ret;
     }
 
@@ -377,9 +377,6 @@ int GLRender::initShaderProgram()
 
     if (!textureConvter) return VLC_ENOMEM;
 
-    ret = textureConvter->init();
-    if (ret != VLC_SUCCESS) return VLC_EGENERIC;
-
     textureConvter->gl = glBase;
     textureConvter->vt = &vt;
     textureConvter->b_dump_shaders = true;
@@ -394,6 +391,9 @@ int GLRender::initShaderProgram()
     textureConvter->glsl_precision_header = "";
 #endif
     textureConvter->fmt = fmt;
+
+    ret = textureConvter->init();
+    if (ret != VLC_SUCCESS) return VLC_EGENERIC;
 
 #if 0
     // create the main libplacebo context

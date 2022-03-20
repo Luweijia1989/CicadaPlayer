@@ -13,6 +13,7 @@
 #include "codecPrototype.h"
 extern "C" {
 #include <vlc_es.h>
+#include <chroma.h>
 }
 
 typedef struct cicada_decoder_handle_v_t cicada_decoder_handle_v;

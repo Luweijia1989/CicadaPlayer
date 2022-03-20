@@ -2,9 +2,9 @@
 #include "config.h"
 #include <cassert>
 #include <iostream>
-#include <vlc_fixups.h>
 
 extern "C" {
+#include <vlc_fixups.h>
 #include <libavutil/pixdesc.h>
 }
 
@@ -96,7 +96,7 @@ int GLSoftwareTextureConverter::init()
     }
 
     /* OpenGL or OpenGL ES2 with GL_EXT_unpack_subimage ext */
-    pbo_cache->has_unpack_subimage = !is_gles || HasExtension(glexts.c_str(), "GL_EXT_unpack_subimage");
+    pbo_cache->has_unpack_subimage = !is_gles || HasExtension(glexts, "GL_EXT_unpack_subimage");
 
     bool allow_dr = true;
     if (allow_dr) {
@@ -116,8 +116,8 @@ int GLSoftwareTextureConverter::init()
         const unsigned char *ogl_version = vt->GetString(GL_VERSION);
         const bool glver_ok = strverscmp((const char *) ogl_version, "3.0") >= 0;
 
-        const bool has_pbo = glver_ok && (HasExtension(glexts.c_str(), "GL_ARB_pixel_buffer_object") ||
-                                          HasExtension(glexts.c_str(), "GL_EXT_pixel_buffer_object"));
+        const bool has_pbo = glver_ok && (HasExtension(glexts, "GL_ARB_pixel_buffer_object") ||
+                                          HasExtension(glexts, "GL_EXT_pixel_buffer_object"));
 
         const bool supports_pbo = has_pbo && vt->BufferData && vt->BufferSubData;
         if (supports_pbo && pbo_pics_alloc() == 0) {
