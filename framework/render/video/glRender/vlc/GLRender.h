@@ -1,6 +1,6 @@
 #pragma once
-#include "gl_common.h"
 #include "../IVideoRender.h"
+#include "gl_common.h"
 extern "C" {
 #include <libavutil/frame.h>
 #include <vlc_es.h>
@@ -122,7 +122,7 @@ private:
     void DrawWithShaders();
     int SetupCoords(const float *left, const float *top, const float *right, const float *bottom);
     int BuildRectangle(unsigned nbPlanes, GLfloat **vertexCoord, GLfloat **textureCoord, unsigned *nbVertices, GLushort **indices,
-                              unsigned *nbIndices, const float *left, const float *top, const float *right, const float *bottom);
+                       unsigned *nbIndices, const float *left, const float *top, const float *right, const float *bottom);
 
     GLBase *glBase = nullptr;
     OpenGLTextureConverter *textureConvter = nullptr;
@@ -165,4 +165,10 @@ private:
     float f_z;    /* Position of the camera on the shpere radius vector */
     float f_z_min;
     float f_sar;
+
+    IVideoRender::Rotate last_rotate = IVideoRender::Rotate_None;
+    IVideoRender::Scale last_scale = IVideoRender::Scale_Fill;
+    IVideoRender::Flip last_flip = IVideoRender::Flip_None;
+    int last_view_width = 0;
+    int last_view_height = 0;
 };

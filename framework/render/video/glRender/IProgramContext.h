@@ -12,27 +12,6 @@
 class IProgramContext {
 
 public:
-    static int compileShader(GLuint *shader, const char *src, GLenum type)
-    {
-        GLuint shaderId = glCreateShader(type);
-        glShaderSource(shaderId, 1, &src, nullptr);
-        glCompileShader(shaderId);
-        GLint status;
-        glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
-
-        if (status != GL_TRUE) {
-            int length = 0;
-            GLchar glchar[256] = {0};
-            glGetShaderInfoLog(shaderId, 256, &length, glchar);
-            glDeleteShader(shaderId);
-            return -1;
-        }
-
-        *shader = shaderId;
-        return 0;
-    }
-
-public:
     virtual ~IProgramContext() = default;
 
     virtual int initProgram(AFPixelFormat format)

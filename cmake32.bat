@@ -1,0 +1,1 @@
+cmake . -DCMAKE_PREFIX_PATH="C:/Users/posat/Documents/vcpkg/installed/x86-windows-static" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="C:/Users/posat/Documents/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x86-windows-static -DQTDIR=C:/Qt/5.14.2/msvc2017 -B build32 -G "Visual Studio 15 2017"

@@ -781,59 +781,84 @@ void GLRender::clearScreen(uint32_t color)
 void GLRender::udpateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth,
                               int viewHeight)
 {
-    if (scale == IVideoRender::Scale_Fill) {
-        prgm.var.AspectRatio[0] = 1.0f;
-        prgm.var.AspectRatio[1] = 1.0f;
-    } else {
-        float renderAspectRatio = (float) viewWidth / (float) viewHeight;
-        float outAspectRatio = (float) fmt.i_visible_width / (float) fmt.i_visible_height;
-        float dar = (rotate % 180) ? 1.0 / outAspectRatio : outAspectRatio;
-        if (renderAspectRatio >= dar) {//equals to original video aspect ratio here, also equals to out ratio
-            //renderer is too wide, use renderer's height, horizonal align center
-            const int h = viewHeight;
-            const int w = std::round(dar * (float) h);
-            prgm.var.AspectRatio[0] = (float) w / (float) viewWidth;
-            prgm.var.AspectRatio[1] = 1.0f;
-        } else if (renderAspectRatio < dar) {
-            //renderer is too high, use renderer's width
-            const int w = viewWidth;
-            const int h = std::round((float) w / dar);
+    if (last_scale != scale || last_view_width != viewWidth || last_view_height != viewHeight) {
+        last_scale = scale;
+        last_view_width = viewWidth;
+        last_view_height = viewHeight;
+        if (scale == IVideoRender::Scale_Fill) {
             prgm.var.AspectRatio[0] = 1.0f;
-            prgm.var.AspectRatio[1] = (float) h / (float) viewHeight;
+            prgm.var.AspectRatio[1] = 1.0f;
+        } else {
+            float renderAspectRatio = (float) viewWidth / (float) viewHeight;
+            float outAspectRatio = (float) fmt.i_visible_width / (float) fmt.i_visible_height;
+            float dar = (rotate % 180) ? 1.0 / outAspectRatio : outAspectRatio;
+            if (renderAspectRatio >= dar) {//equals to original video aspect ratio here, also equals to out ratio
+                //renderer is too wide, use renderer's height, horizonal align center
+                if (scale == IVideoRender::Scale_AspectFit) {
+                    const int h = viewHeight;
+                    const int w = std::round(dar * (float) h);
+                    prgm.var.AspectRatio[0] = (float) w / (float) viewWidth;
+                    prgm.var.AspectRatio[1] = 1.0f;
+                } else {
+                    const int w = viewWidth;
+                    const int h = std::round((float) w / dar);
+                    prgm.var.AspectRatio[0] = 1.0f;
+                    prgm.var.AspectRatio[1] = (float) h / (float) viewHeight;
+                }
+            } else if (renderAspectRatio < dar) {
+                //renderer is too high, use renderer's width
+                if (scale == IVideoRender::Scale_AspectFit) {
+                    const int w = viewWidth;
+                    const int h = std::round((float) w / dar);
+                    prgm.var.AspectRatio[0] = 1.0f;
+                    prgm.var.AspectRatio[1] = (float) h / (float) viewHeight;
+                } else {
+                    const int h = viewHeight;
+                    const int w = std::round(dar * (float) h);
+                    prgm.var.AspectRatio[0] = (float) w / (float) viewWidth;
+                    prgm.var.AspectRatio[1] = 1.0f;
+                }
+            }
         }
     }
 
-    switch (rotate) {
-        case IVideoRender::Rotate_None:
-            getOrientationTransformMatrix(ORIENT_NORMAL, prgm.var.OrientationMatrix);
-            break;
-        case IVideoRender::Rotate_90:
-            getOrientationTransformMatrix(ORIENT_ROTATED_90, prgm.var.OrientationMatrix);
-            break;
-        case IVideoRender::Rotate_180:
-            getOrientationTransformMatrix(ORIENT_ROTATED_180, prgm.var.OrientationMatrix);
-            break;
-        case IVideoRender::Rotate_270:
-            getOrientationTransformMatrix(ORIENT_ROTATED_270, prgm.var.OrientationMatrix);
-            break;
-        default:
-            break;
+    if (last_rotate != rotate) {
+        last_rotate = rotate;
+        switch (rotate) {
+            case IVideoRender::Rotate_None:
+                getOrientationTransformMatrix(ORIENT_NORMAL, prgm.var.OrientationMatrix);
+                break;
+            case IVideoRender::Rotate_90:
+                getOrientationTransformMatrix(ORIENT_ROTATED_90, prgm.var.OrientationMatrix);
+                break;
+            case IVideoRender::Rotate_180:
+                getOrientationTransformMatrix(ORIENT_ROTATED_180, prgm.var.OrientationMatrix);
+                break;
+            case IVideoRender::Rotate_270:
+                getOrientationTransformMatrix(ORIENT_ROTATED_270, prgm.var.OrientationMatrix);
+                break;
+            default:
+                break;
+        }
     }
 
-    switch (flip) {
-        case IVideoRender::Flip_None:
-            getOrientationTransformMatrix(ORIENT_NORMAL, prgm.var.OrientationMatrix);
-            break;
-        case IVideoRender::Flip_Horizontal:
-            getOrientationTransformMatrix(ORIENT_HFLIPPED, prgm.var.OrientationMatrix);
-            break;
-        case IVideoRender::Flip_Vertical:
-            getOrientationTransformMatrix(ORIENT_VFLIPPED, prgm.var.OrientationMatrix);
-            break;
-        case IVideoRender::Flip_Both:
-            getOrientationTransformMatrix(ORIENT_ANTI_TRANSPOSED, prgm.var.OrientationMatrix);
-            break;
-        default:
-            break;
+    if (last_flip != flip) {
+        last_flip = flip;
+        switch (flip) {
+            case IVideoRender::Flip_None:
+                getOrientationTransformMatrix(ORIENT_NORMAL, prgm.var.OrientationMatrix);
+                break;
+            case IVideoRender::Flip_Horizontal:
+                getOrientationTransformMatrix(ORIENT_HFLIPPED, prgm.var.OrientationMatrix);
+                break;
+            case IVideoRender::Flip_Vertical:
+                getOrientationTransformMatrix(ORIENT_VFLIPPED, prgm.var.OrientationMatrix);
+                break;
+            case IVideoRender::Flip_Both:
+                getOrientationTransformMatrix(ORIENT_ANTI_TRANSPOSED, prgm.var.OrientationMatrix);
+                break;
+            default:
+                break;
+        }
     }
 }

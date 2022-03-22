@@ -87,7 +87,7 @@ unique_ptr<IVideoRender> videoRenderFactory::create(uint64_t flags)
 #if defined(GLRENDER)
     return std::unique_ptr<IVideoRender>(new GLRender());
 #elif defined(ENABLE_SDL)
-    return std::unique_ptr<IVideoRender>(new SdlAFVideoRender());
+	return std::unique_ptr<IVideoRender>(new XXQGLRender());
 #elif defined(ENABLE_CHEAT_RENDER)
     return std::unique_ptr<IVideoRender>(new DummyVideoRender());
 #endif
