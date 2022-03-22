@@ -1,5 +1,6 @@
 #pragma once
 #include "gl_common.h"
+#include "../IVideoRender.h"
 extern "C" {
 #include <libavutil/frame.h>
 #include <vlc_es.h>
@@ -73,6 +74,7 @@ struct GLProgram {
         GLfloat YRotMatrix[16];
         GLfloat XRotMatrix[16];
         GLfloat ZoomMatrix[16];
+        GLfloat AspectRatio[2];
     } var;
 
     struct { /* UniformLocation */
@@ -82,6 +84,7 @@ struct GLProgram {
         GLint YRotMatrix;
         GLint XRotMatrix;
         GLint ZoomMatrix;
+        GLint AspectRatio;
     } uloc;
     struct { /* AttribLocation */
         GLint MultiTexCoord[3];
@@ -100,6 +103,7 @@ public:
     void clearScreen(uint32_t color);
     int prepareGLFrame(AVFrame *frame);
     int displayGLFrame(const video_format_t *source, int viewWidth, int viewHeight);
+    void udpateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth, int viewHeight);
 
 private:
     void ResizeFormatToGLMaxTexSize(unsigned int max_tex_size);

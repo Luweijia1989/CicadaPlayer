@@ -362,6 +362,9 @@ void GLRender::getViewpointMatrixes()
     memcpy(prgm.var.YRotMatrix, identity, sizeof(identity));
     memcpy(prgm.var.XRotMatrix, identity, sizeof(identity));
     memcpy(prgm.var.ZoomMatrix, identity, sizeof(identity));
+
+    prgm.var.AspectRatio[0] = 1.0f;
+    prgm.var.AspectRatio[1] = 1.0f;
 }
 
 int GLRender::initShaderProgram()
@@ -514,6 +517,7 @@ int GLRender::linkShaderProgram()
     GET_ULOC(YRotMatrix, "YRotMatrix");
     GET_ULOC(XRotMatrix, "XRotMatrix");
     GET_ULOC(ZoomMatrix, "ZoomMatrix");
+    GET_ULOC(AspectRatio, "AspectRatio");
 
     GET_ALOC(VertexPosition, "VertexPosition");
     GET_ALOC(MultiTexCoord[0], "MultiTexCoord0");
@@ -547,23 +551,24 @@ error:
 GLuint GLRender::BuildVertexShader(unsigned plane_count)
 {
     /* Basic vertex shader */
-    static const char *template_str =
-            "#version %u\n"
-            "varying vec2 TexCoord0;\n"
-            "attribute vec4 MultiTexCoord0;\n"
-            "%s%s"
-            "attribute vec3 VertexPosition;\n"
-            "uniform mat4 OrientationMatrix;\n"
-            "uniform mat4 ProjectionMatrix;\n"
-            "uniform mat4 XRotMatrix;\n"
-            "uniform mat4 YRotMatrix;\n"
-            "uniform mat4 ZRotMatrix;\n"
-            "uniform mat4 ZoomMatrix;\n"
-            "void main() {\n"
-            " TexCoord0 = vec4(OrientationMatrix * MultiTexCoord0).st;\n"
-            "%s%s"
-            " gl_Position = ProjectionMatrix * ZoomMatrix * ZRotMatrix * XRotMatrix * YRotMatrix * vec4(VertexPosition, 1.0);\n"
-            "}";
+    static const char *template_str = "#version %u\n"
+                                      "varying vec2 TexCoord0;\n"
+                                      "attribute vec4 MultiTexCoord0;\n"
+                                      "%s%s"
+                                      "attribute vec3 VertexPosition;\n"
+                                      "uniform mat4 OrientationMatrix;\n"
+                                      "uniform mat4 ProjectionMatrix;\n"
+                                      "uniform mat4 XRotMatrix;\n"
+                                      "uniform mat4 YRotMatrix;\n"
+                                      "uniform mat4 ZRotMatrix;\n"
+                                      "uniform mat4 ZoomMatrix;\n"
+                                      "uniform vec2 AspectRatio;\n"
+                                      "void main() {\n"
+                                      " TexCoord0 = vec4(OrientationMatrix * MultiTexCoord0).st;\n"
+                                      "%s%s"
+                                      " gl_Position = vec4(AspectRatio, 1.0, 1.0) * ProjectionMatrix * ZoomMatrix * ZRotMatrix * "
+                                      "XRotMatrix * YRotMatrix * vec4(VertexPosition, 1.0);\n"
+                                      "}";
 
     const char *coord1_header = plane_count > 1 ? "varying vec2 TexCoord1;\nattribute vec4 MultiTexCoord1;\n" : "";
     const char *coord1_code = plane_count > 1 ? " TexCoord1 = vec4(OrientationMatrix * MultiTexCoord1).st;\n" : "";
@@ -690,6 +695,7 @@ void GLRender::DrawWithShaders()
     vt.UniformMatrix4fv(prgm.uloc.YRotMatrix, 1, GL_FALSE, prgm.var.YRotMatrix);
     vt.UniformMatrix4fv(prgm.uloc.XRotMatrix, 1, GL_FALSE, prgm.var.XRotMatrix);
     vt.UniformMatrix4fv(prgm.uloc.ZoomMatrix, 1, GL_FALSE, prgm.var.ZoomMatrix);
+    vt.Uniform2f(prgm.uloc.AspectRatio, prgm.var.AspectRatio[0], prgm.var.AspectRatio[1]);
 
     vt.DrawElements(GL_TRIANGLES, nb_indices, GL_UNSIGNED_SHORT, 0);
 }
@@ -770,4 +776,64 @@ void GLRender::clearScreen(uint32_t color)
     cicada::convertToGLColor(color, c);
     vt.ClearColor(c[0], c[1], c[2], c[3]);
     vt.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void GLRender::udpateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth,
+                              int viewHeight)
+{
+    if (scale == IVideoRender::Scale_Fill) {
+        prgm.var.AspectRatio[0] = 1.0f;
+        prgm.var.AspectRatio[1] = 1.0f;
+    } else {
+        float renderAspectRatio = (float) viewWidth / (float) viewHeight;
+        float outAspectRatio = (float) fmt.i_visible_width / (float) fmt.i_visible_height;
+        float dar = (rotate % 180) ? 1.0 / outAspectRatio : outAspectRatio;
+        if (renderAspectRatio >= dar) {//equals to original video aspect ratio here, also equals to out ratio
+            //renderer is too wide, use renderer's height, horizonal align center
+            const int h = viewHeight;
+            const int w = std::round(dar * (float) h);
+            prgm.var.AspectRatio[0] = (float) w / (float) viewWidth;
+            prgm.var.AspectRatio[1] = 1.0f;
+        } else if (renderAspectRatio < dar) {
+            //renderer is too high, use renderer's width
+            const int w = viewWidth;
+            const int h = std::round((float) w / dar);
+            prgm.var.AspectRatio[0] = 1.0f;
+            prgm.var.AspectRatio[1] = (float) h / (float) viewHeight;
+        }
+    }
+
+    switch (rotate) {
+        case IVideoRender::Rotate_None:
+            getOrientationTransformMatrix(ORIENT_NORMAL, prgm.var.OrientationMatrix);
+            break;
+        case IVideoRender::Rotate_90:
+            getOrientationTransformMatrix(ORIENT_ROTATED_90, prgm.var.OrientationMatrix);
+            break;
+        case IVideoRender::Rotate_180:
+            getOrientationTransformMatrix(ORIENT_ROTATED_180, prgm.var.OrientationMatrix);
+            break;
+        case IVideoRender::Rotate_270:
+            getOrientationTransformMatrix(ORIENT_ROTATED_270, prgm.var.OrientationMatrix);
+            break;
+        default:
+            break;
+    }
+
+    switch (flip) {
+        case IVideoRender::Flip_None:
+            getOrientationTransformMatrix(ORIENT_NORMAL, prgm.var.OrientationMatrix);
+            break;
+        case IVideoRender::Flip_Horizontal:
+            getOrientationTransformMatrix(ORIENT_HFLIPPED, prgm.var.OrientationMatrix);
+            break;
+        case IVideoRender::Flip_Vertical:
+            getOrientationTransformMatrix(ORIENT_VFLIPPED, prgm.var.OrientationMatrix);
+            break;
+        case IVideoRender::Flip_Both:
+            getOrientationTransformMatrix(ORIENT_ANTI_TRANSPOSED, prgm.var.OrientationMatrix);
+            break;
+        default:
+            break;
+    }
 }

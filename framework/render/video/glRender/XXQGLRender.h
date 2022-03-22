@@ -42,7 +42,7 @@ public:
 
     int clearScreen() override;
 
-    void setBackgroundColor(unsigned int color) override;
+    void setBackgroundColor(uint32_t color) override;
 
     int renderFrame(std::unique_ptr<IAFFrame> &frame) override;
 

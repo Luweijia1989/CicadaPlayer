@@ -5,6 +5,8 @@ cmake-build-debug*/
 .DS_Store
 cmdline/build/
 /build
+/build32
+/build64
 build_xcode/
 platform/Flutter/ios/IOS_SDK/SDK/
 platform/Flutter/.gradle/

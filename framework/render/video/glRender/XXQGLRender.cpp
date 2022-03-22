@@ -373,7 +373,10 @@ void XXQGLRender::renderVideo()
         auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
         auto format = (video_format_t *) mRenderFrame->getInfo().video.vlc_fmt;
         ret = mGLRender->prepareGLFrame(frame);
-        if (ret == VLC_SUCCESS) ret = mGLRender->displayGLFrame(format, mVideoSurfaceWidth, mVideoSurfaceHeight);
+        if (ret == VLC_SUCCESS) {
+            mGLRender->udpateOutParam(mRotate, mScale, mFlip, mVideoSurfaceWidth, mVideoSurfaceHeight);
+            ret = mGLRender->displayGLFrame(format, mVideoSurfaceWidth, mVideoSurfaceHeight);
+        }
     }
 
     if (ret == 0) {
