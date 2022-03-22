@@ -12,7 +12,7 @@
 
 typedef bool (*videoRenderingFrameCB)(void *userData, IAFFrame *frame, const CicadaJSONItem &params);
 
-class IProgramContext;
+class GLRender;
 class IVideoRender {
 
 public:
@@ -224,7 +224,7 @@ protected:
     videoRenderingFrameCB mRenderingCb{nullptr};
     void *mRenderingCbUserData{nullptr};
 
-	static std::map<void *, std::map<int, std::unique_ptr<IProgramContext>>> mPrograms;
+	static std::map<void *, std::map<int, std::unique_ptr<GLRender>>> mRenders;
 };
 
 

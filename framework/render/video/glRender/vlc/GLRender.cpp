@@ -1,6 +1,9 @@
 #include "GLRender.h"
+#include "D3D9TextureConverter.h"
 #include "GLSoftwareTextureConverter.h"
+#include "base/utils.h"
 #include "wgl.h"
+#include <cassert>
 #include <iostream>
 
 #ifdef WIN32
@@ -243,8 +246,8 @@ bool GLRender::initGL()
      * so checks for extensions are bound to fail. Check for OpenGL ES version instead. */
     supports_npot = true;
 #else
-    supports_npot = HasExtension(extensions, "GL_ARB_texture_non_power_of_two") ||
-                    HasExtension(extensions, "GL_APPLE_texture_2D_limited_npot");
+    supports_npot =
+            HasExtension(extensions, "GL_ARB_texture_non_power_of_two") || HasExtension(extensions, "GL_APPLE_texture_2D_limited_npot");
 #endif
 
     GL_ASSERT_NOERROR();
@@ -371,7 +374,7 @@ int GLRender::initShaderProgram()
         return VLC_EGENERIC;
     }
     if (desc->plane_count == 0) {
-
+        textureConvter = new D3D9TextureConverter(fmt.extra_info);
     } else
         textureConvter = new GLSoftwareTextureConverter();
 
@@ -393,7 +396,11 @@ int GLRender::initShaderProgram()
     textureConvter->fmt = fmt;
 
     ret = textureConvter->init();
-    if (ret != VLC_SUCCESS) return VLC_EGENERIC;
+    if (ret != VLC_SUCCESS) {
+        delete textureConvter;
+        textureConvter = nullptr;
+        return VLC_EGENERIC;
+    }
 
 #if 0
     // create the main libplacebo context
@@ -573,4 +580,194 @@ GLuint GLRender::BuildVertexShader(unsigned plane_count)
     textureConvter->vt->CompileShader(shader);
     free(code);
     return shader;
+}
+
+int GLRender::prepareGLFrame(AVFrame *frame)
+{
+    GL_ASSERT_NOERROR();
+
+    /* Update the texture */
+    int ret = VLC_EGENERIC;
+    if (textureConvter) ret = textureConvter->pf_update(texture, tex_width, tex_height, frame);
+
+    GL_ASSERT_NOERROR();
+    return ret;
+}
+
+int GLRender::BuildRectangle(unsigned nbPlanes, GLfloat **vertexCoord, GLfloat **textureCoord, unsigned *nbVertices, GLushort **indices,
+                             unsigned *nbIndices, const float *left, const float *top, const float *right, const float *bottom)
+{
+    *nbVertices = 4;
+    *nbIndices = 6;
+
+    *vertexCoord = (GLfloat *) malloc(*nbVertices * 3 * sizeof(GLfloat));
+    if (*vertexCoord == NULL) return VLC_ENOMEM;
+    *textureCoord = (GLfloat *) malloc(nbPlanes * *nbVertices * 2 * sizeof(GLfloat));
+    if (*textureCoord == NULL) {
+        free(*vertexCoord);
+        return VLC_ENOMEM;
+    }
+    *indices = (GLushort *) malloc(*nbIndices * sizeof(GLushort));
+    if (*indices == NULL) {
+        free(*textureCoord);
+        free(*vertexCoord);
+        return VLC_ENOMEM;
+    }
+
+    static const GLfloat coord[] = {-1.0, 1.0, -1.0f, -1.0, -1.0, -1.0f, 1.0, 1.0, -1.0f, 1.0, -1.0, -1.0f};
+
+    memcpy(*vertexCoord, coord, *nbVertices * 3 * sizeof(GLfloat));
+
+    for (unsigned p = 0; p < nbPlanes; ++p) {
+        const GLfloat tex[] = {left[p], top[p], left[p], bottom[p], right[p], top[p], right[p], bottom[p]};
+
+        memcpy(*textureCoord + p * *nbVertices * 2, tex, *nbVertices * 2 * sizeof(GLfloat));
+    }
+
+    const GLushort ind[] = {0, 1, 2, 2, 1, 3};
+
+    memcpy(*indices, ind, *nbIndices * sizeof(GLushort));
+
+    return VLC_SUCCESS;
+}
+
+int GLRender::SetupCoords(const float *left, const float *top, const float *right, const float *bottom)
+{
+    GLfloat *vertexCoord = NULL;
+    GLfloat *textureCoord = NULL;
+    GLushort *indices = NULL;
+    unsigned nbVertices, nbIndices;
+
+    int i_ret = BuildRectangle(textureConvter->tex_count, &vertexCoord, &textureCoord, &nbVertices, &indices, &nbIndices, left, top, right,
+                               bottom);
+
+    if (i_ret != VLC_SUCCESS) return i_ret;
+
+    for (unsigned j = 0; j < textureConvter->tex_count; j++) {
+        vt.BindBuffer(GL_ARRAY_BUFFER, texture_buffer_object[j]);
+        vt.BufferData(GL_ARRAY_BUFFER, nbVertices * 2 * sizeof(GLfloat), textureCoord + j * nbVertices * 2, GL_STATIC_DRAW);
+    }
+
+    vt.BindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
+    vt.BufferData(GL_ARRAY_BUFFER, nbVertices * 3 * sizeof(GLfloat), vertexCoord, GL_STATIC_DRAW);
+
+    vt.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object);
+    vt.BufferData(GL_ELEMENT_ARRAY_BUFFER, nbIndices * sizeof(GLushort), indices, GL_STATIC_DRAW);
+
+    free(textureCoord);
+    free(vertexCoord);
+    free(indices);
+
+    this->nb_indices = nbIndices;
+
+    return VLC_SUCCESS;
+}
+
+void GLRender::DrawWithShaders()
+{
+    textureConvter->pf_prepare_shader(tex_width, tex_height, 1.0f);
+
+    for (unsigned j = 0; j < textureConvter->tex_count; j++) {
+        assert(texture[j] != 0);
+        vt.ActiveTexture(GL_TEXTURE0 + j);
+        vt.BindTexture(textureConvter->tex_target, texture[j]);
+
+        vt.BindBuffer(GL_ARRAY_BUFFER, texture_buffer_object[j]);
+
+        assert(prgm.aloc.MultiTexCoord[j] != -1);
+        vt.EnableVertexAttribArray(prgm.aloc.MultiTexCoord[j]);
+        vt.VertexAttribPointer(prgm.aloc.MultiTexCoord[j], 2, GL_FLOAT, 0, 0, 0);
+    }
+
+    vt.BindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
+    vt.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object);
+    vt.EnableVertexAttribArray(prgm.aloc.VertexPosition);
+    vt.VertexAttribPointer(prgm.aloc.VertexPosition, 3, GL_FLOAT, 0, 0, 0);
+
+    vt.UniformMatrix4fv(prgm.uloc.OrientationMatrix, 1, GL_FALSE, prgm.var.OrientationMatrix);
+    vt.UniformMatrix4fv(prgm.uloc.ProjectionMatrix, 1, GL_FALSE, prgm.var.ProjectionMatrix);
+    vt.UniformMatrix4fv(prgm.uloc.ZRotMatrix, 1, GL_FALSE, prgm.var.ZRotMatrix);
+    vt.UniformMatrix4fv(prgm.uloc.YRotMatrix, 1, GL_FALSE, prgm.var.YRotMatrix);
+    vt.UniformMatrix4fv(prgm.uloc.XRotMatrix, 1, GL_FALSE, prgm.var.XRotMatrix);
+    vt.UniformMatrix4fv(prgm.uloc.ZoomMatrix, 1, GL_FALSE, prgm.var.ZoomMatrix);
+
+    vt.DrawElements(GL_TRIANGLES, nb_indices, GL_UNSIGNED_SHORT, 0);
+}
+
+
+void GLRender::GetTextureCropParamsForStereo(unsigned i_nbTextures, const float *stereoCoefs, const float *stereoOffsets, float *left,
+                                             float *top, float *right, float *bottom)
+{
+    for (unsigned i = 0; i < i_nbTextures; ++i) {
+        float f_2eyesWidth = right[i] - left[i];
+        left[i] = left[i] + f_2eyesWidth * stereoOffsets[0];
+        right[i] = left[i] + f_2eyesWidth * stereoCoefs[0];
+
+        float f_2eyesHeight = bottom[i] - top[i];
+        top[i] = top[i] + f_2eyesHeight * stereoOffsets[1];
+        bottom[i] = top[i] + f_2eyesHeight * stereoCoefs[1];
+    }
+}
+
+int GLRender::displayGLFrame(const video_format_t *source, int viewWidth, int viewHeight)
+{
+    GL_ASSERT_NOERROR();
+
+    if (!textureConvter) return VLC_EGENERIC;
+
+    vt.Viewport(0, 0, viewWidth, viewHeight);
+
+    /* Why drawing here and not in Render()? Because this way, the
+       OpenGL providers can call vout_display_opengl_Display to force redraw.
+       Currently, the OS X provider uses it to get a smooth window resizing */
+    vt.Clear(GL_COLOR_BUFFER_BIT);
+
+    vt.UseProgram(prgm.id);
+
+    if (source->i_x_offset != last_source.i_x_offset || source->i_y_offset != last_source.i_y_offset ||
+        source->i_visible_width != last_source.i_visible_width || source->i_visible_height != last_source.i_visible_height) {
+        float left[PICTURE_PLANE_MAX];
+        float top[PICTURE_PLANE_MAX];
+        float right[PICTURE_PLANE_MAX];
+        float bottom[PICTURE_PLANE_MAX];
+        for (unsigned j = 0; j < textureConvter->tex_count; j++) {
+            float scale_w = (float) textureConvter->texs[j].w.num / textureConvter->texs[j].w.den / tex_width[j];
+            float scale_h = (float) textureConvter->texs[j].h.num / textureConvter->texs[j].h.den / tex_height[j];
+
+            /* Warning: if NPOT is not supported a larger texture is
+               allocated. This will cause right and bottom coordinates to
+               land on the edge of two texels with the texels to the
+               right/bottom uninitialized by the call to
+               glTexSubImage2D. This might cause a green line to appear on
+               the right/bottom of the display.
+               There are two possible solutions:
+               - Manually mirror the edges of the texture.
+               - Add a "-1" when computing right and bottom, however the
+               last row/column might not be displayed at all.
+            */
+            left[j] = (source->i_x_offset + 0) * scale_w;
+            top[j] = (source->i_y_offset + 0) * scale_h;
+            right[j] = (source->i_x_offset + source->i_visible_width) * scale_w;
+            bottom[j] = (source->i_y_offset + source->i_visible_height) * scale_h;
+        }
+
+        int ret = SetupCoords(left, top, right, bottom);
+        if (ret != VLC_SUCCESS) return ret;
+
+        last_source.i_x_offset = source->i_x_offset;
+        last_source.i_y_offset = source->i_y_offset;
+        last_source.i_visible_width = source->i_visible_width;
+        last_source.i_visible_height = source->i_visible_height;
+    }
+    DrawWithShaders();
+
+    return VLC_SUCCESS;
+}
+
+void GLRender::clearScreen(uint32_t color)
+{
+    float c[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    cicada::convertToGLColor(color, c);
+    vt.ClearColor(c[0], c[1], c[2], c[3]);
+    vt.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

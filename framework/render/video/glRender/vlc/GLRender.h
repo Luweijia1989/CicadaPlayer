@@ -1,6 +1,7 @@
 #pragma once
 #include "gl_common.h"
 extern "C" {
+#include <libavutil/frame.h>
 #include <vlc_es.h>
 }
 
@@ -96,6 +97,9 @@ public:
     ~GLRender();
 
     bool initGL();
+    void clearScreen(uint32_t color);
+    int prepareGLFrame(AVFrame *frame);
+    int displayGLFrame(const video_format_t *source, int viewWidth, int viewHeight);
 
 private:
     void ResizeFormatToGLMaxTexSize(unsigned int max_tex_size);
@@ -107,6 +111,14 @@ private:
 
     GLuint BuildVertexShader(unsigned plane_count);
     int GenTextures();
+
+    void TextureCropForStereo(float *left, float *top, float *right, float *bottom);
+    void GetTextureCropParamsForStereo(unsigned i_nbTextures, const float *stereoCoefs, const float *stereoOffsets, float *left, float *top,
+                                       float *right, float *bottom);
+    void DrawWithShaders();
+    int SetupCoords(const float *left, const float *top, const float *right, const float *bottom);
+    int BuildRectangle(unsigned nbPlanes, GLfloat **vertexCoord, GLfloat **textureCoord, unsigned *nbVertices, GLushort **indices,
+                              unsigned *nbIndices, const float *left, const float *top, const float *right, const float *bottom);
 
     GLBase *glBase = nullptr;
     OpenGLTextureConverter *textureConvter = nullptr;

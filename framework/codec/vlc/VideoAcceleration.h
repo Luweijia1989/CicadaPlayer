@@ -15,17 +15,19 @@ public:
     VideoAcceleration(AVCodecContext *ctx, AVPixelFormat fmt) : mCtx(ctx), mFmt(fmt)
     {}
 
-	static VideoAcceleration *createVA(AVCodecContext *ctx, AVPixelFormat fmt);
+    static VideoAcceleration *createVA(AVCodecContext *ctx, AVPixelFormat fmt);
 
     static vlc_fourcc_t vlc_va_GetChroma(AVPixelFormat hwfmt, AVPixelFormat swfmt);
 
-	virtual int open() = 0;
-	virtual void close() = 0;
+    virtual int open() = 0;
+    virtual void close() = 0;
 
-	int getFrame(AVFrame *frame);
+    int getFrame(AVFrame *frame);
     virtual std::string description() = 0;
     virtual int get(void **opaque, uint8_t **data) = 0;
     virtual void release(void *opaque, uint8_t *data) = 0;
+
+    virtual void *getExtraInfoForRender() = 0;
 
 public:
     AVCodecContext *mCtx = nullptr;

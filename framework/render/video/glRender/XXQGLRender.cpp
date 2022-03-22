@@ -5,6 +5,8 @@
 
 #include "XXQGLRender.h"
 #include "XXQProgramContext.h"
+#include "vlc/GLRender.h"
+#include <base/media/AVAFPacket.h>
 #include <cassert>
 #include <cstdlib>
 #include <render/video/glRender/base/utils.h>
@@ -202,21 +204,21 @@ void XXQGLRender::VSyncOnDestroy()
 
 void XXQGLRender::captureScreen()
 {
-    int64_t captureStartTime = af_getsteady_ms();
-    GLint pView[4];
-    glGetIntegerv(GL_VIEWPORT, pView);
-    int width = pView[2];
-    int height = pView[3];
-    GLsizei bufferSize = width * height * sizeof(GLubyte) * 4;//RGBA
-    GLubyte *bufferData = (GLubyte *) malloc(bufferSize);
-    memset(bufferData, 0, bufferSize);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glReadPixels(pView[0], pView[1], pView[2], pView[3], GL_RGBA, GL_UNSIGNED_BYTE, bufferData);
-    int64_t captureEndTime = af_getsteady_ms();
-    AF_LOGD("capture cost time : capture = %d ms", (captureEndTime - captureStartTime));
-    mCaptureFunc(bufferData, width, height);
-    free(bufferData);
-    mCaptureOn = false;
+    //int64_t captureStartTime = af_getsteady_ms();
+    //GLint pView[4];
+    //glGetIntegerv(GL_VIEWPORT, pView);
+    //int width = pView[2];
+    //int height = pView[3];
+    //GLsizei bufferSize = width * height * sizeof(GLubyte) * 4;//RGBA
+    //GLubyte *bufferData = (GLubyte *) malloc(bufferSize);
+    //memset(bufferData, 0, bufferSize);
+    //glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    //glReadPixels(pView[0], pView[1], pView[2], pView[3], GL_RGBA, GL_UNSIGNED_BYTE, bufferData);
+    //int64_t captureEndTime = af_getsteady_ms();
+    //AF_LOGD("capture cost time : capture = %d ms", (captureEndTime - captureStartTime));
+    //mCaptureFunc(bufferData, width, height);
+    //free(bufferData);
+    //mCaptureOn = false;
 }
 
 int XXQGLRender::setDisPlay(void *view)
@@ -265,39 +267,22 @@ void *XXQGLRender::getSurface(bool cached)
     return nullptr;
 }
 
-IProgramContext *XXQGLRender::getProgram(int frameFormat, IAFFrame *frame)
+GLRender *XXQGLRender::getRender(int frameFormat, IAFFrame *frame)
 {
-    if (mPrograms.count(this) > 0) {
-        std::map<int, std::unique_ptr<IProgramContext>> &program = mPrograms[this];
+    if (mRenders.count(this) > 0) {
+        std::map<int, std::unique_ptr<GLRender>> &program = mRenders[this];
         if (program.count(frameFormat) > 0) {
-            IProgramContext *pContext = program[frameFormat].get();
-            pContext->setRenderingCb(mRenderingCb, mRenderingCbUserData);
-            pContext->useProgram();
-            return pContext;
+            GLRender *render = program[frameFormat].get();
+            return render;
         }
     }
 
-    std::unique_ptr<IProgramContext> targetProgram{nullptr};
+    std::unique_ptr<GLRender> render = std::make_unique<GLRender>((video_format_t *) frame->getInfo().video.vlc_fmt);
+    if (!render->initGL()) return nullptr;
 
-    if (frameFormat == AF_PIX_FMT_YUV420P || frameFormat == AF_PIX_FMT_YUVJ420P || frameFormat == AF_PIX_FMT_YUV422P ||
-        frameFormat == AF_PIX_FMT_YUVJ422P || frameFormat == AF_PIX_FMT_NV12) {
-        targetProgram = unique_ptr<IProgramContext>(new XXQYUVProgramContext());
-    }
-
-    if (targetProgram == nullptr) {
-        return nullptr;
-    }
-
-    int ret = targetProgram->initProgram((AFPixelFormat) frameFormat);
-
-    if (ret == 0) {
-        targetProgram->setRenderingCb(mRenderingCb, mRenderingCbUserData);
-        std::map<int, std::unique_ptr<IProgramContext>> &program = mPrograms[this];
-        program[frameFormat] = std::move(targetProgram);
-        return program[frameFormat].get();
-    } else {
-        return nullptr;
-    }
+    std::map<int, std::unique_ptr<GLRender>> &program = mRenders[this];
+    program[frameFormat] = std::move(render);
+    return program[frameFormat].get();
 }
 
 
@@ -327,10 +312,13 @@ void XXQGLRender::surfaceChanged()
 // 在qt渲染线程调用
 void XXQGLRender::renderVideo()
 {
-    auto ctx = glloader_current_gl_ctx();
-    if (!ctx) return;
+    //   auto ctx = glloader_current_gl_ctx();
+    //   if (!ctx) return;
+    //   auto cc = wglGetCurrentDC();
+    //   auto hwnd = WindowFromDC(cc);
+    //   AF_LOGD("renderActually .");
 
-    //  AF_LOGD("renderActually .");
+
     int64_t renderStartTime = af_getsteady_ms();
 
     {
@@ -344,10 +332,10 @@ void XXQGLRender::renderVideo()
 
     if (mRenderFrame != nullptr) {
         mProgramFormat = mRenderFrame->getInfo().video.format;
-        mProgramContext = getProgram(mProgramFormat, mRenderFrame.get());
+        mGLRender = getRender(mProgramFormat, mRenderFrame.get());
     }
 
-    if (mProgramContext == nullptr) {
+    if (mGLRender == nullptr) {
         mProgramFormat = -1;
         return;
     }
@@ -373,53 +361,19 @@ void XXQGLRender::renderVideo()
         finalRotate = Rotate_270;
     }
 
-    mMaskInfoMutex.lock();
-    mProgramContext->updateMaskInfo(mMaskVapInfo, mMode, mMaskVapData);
-    mMaskInfoMutex.unlock();
-
-    mProgramContext->updateScale(mScale);
-    mProgramContext->updateRotate(finalRotate);
-    mProgramContext->updateWindowSize(mVideoSurfaceWidth, mVideoSurfaceHeight, false);
-    mProgramContext->updateFlip(mFlip);
     int ret = -1;
     if (mScreenCleared && mRenderFrame == nullptr) {
         //do not draw last frame when need clear screen.
         if (mVideoSurfaceSizeChanged) {
-            mProgramContext->clearScreen(mBackgroundColor);
+            mGLRender->clearScreen(mBackgroundColor);
             mVideoSurfaceSizeChanged = false;
         }
     } else {
         mScreenCleared = false;
-        ret = mProgramContext->updateFrame(mRenderFrame);
-    }
-    //work around for glReadPixels is upside-down.
-    {
-        std::unique_lock<std::mutex> locker(mCaptureMutex);
-
-        if (mCaptureOn && mCaptureFunc != nullptr) {
-            //if need capture , update flip and other
-            if (mFlip == Flip_None) {
-                mProgramContext->updateFlip(Flip_Vertical);
-            } else if (mFlip == Flip_Vertical) {
-                mProgramContext->updateFlip(Flip_None);
-            } else if (mFlip == Flip_Horizontal) {
-                mProgramContext->updateFlip(Flip_Both);
-            }
-
-            if (finalRotate == Rotate_90) {
-                mProgramContext->updateRotate(Rotate_270);
-            } else if (finalRotate == Rotate_270) {
-                mProgramContext->updateRotate(Rotate_90);
-            }
-
-            std::unique_ptr<IAFFrame> dummyFrame = nullptr;
-            mProgramContext->updateFrame(dummyFrame);
-            captureScreen();
-            //reset flip and other
-            mProgramContext->updateFlip(mFlip);
-            mProgramContext->updateRotate(finalRotate);
-            mProgramContext->updateFrame(dummyFrame);
-        }
+        auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
+        auto format = (video_format_t *) mRenderFrame->getInfo().video.vlc_fmt;
+        ret = mGLRender->prepareGLFrame(frame);
+        if (ret == VLC_SUCCESS) ret = mGLRender->displayGLFrame(format, mVideoSurfaceWidth, mVideoSurfaceHeight);
     }
 
     if (ret == 0) {
@@ -430,7 +384,7 @@ void XXQGLRender::renderVideo()
     }
 
     if (mClearScreenOn) {
-        mProgramContext->clearScreen(mBackgroundColor);
+        mGLRender->clearScreen(mBackgroundColor);
         mScreenCleared = true;
         mClearScreenOn = false;
     }
@@ -477,8 +431,8 @@ void XXQGLRender::setVapInfo(const std::string &info)
 
 void XXQGLRender::clearGLResource()
 {
-    auto ctx = glloader_current_gl_ctx();
-    if (!ctx) return;
+    /*auto ctx = glloader_current_gl_ctx();
+    if (!ctx) return;*/
 
-    mPrograms.erase(this);
+    mRenders.erase(this);
 }

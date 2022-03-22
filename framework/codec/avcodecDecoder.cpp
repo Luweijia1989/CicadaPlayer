@@ -4,27 +4,28 @@
 #define LOG_TAG "avcodecDecoder"
 
 extern "C" {
+#include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavutil/imgutils.h>
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
-#include <libavcodec/avcodec.h>
 };
 
-#include <utils/AFUtils.h>
-#include <cstring>
-#include <cstdlib>
-#include <utils/frame_work_log.h>
-#include <utils/mediaFrame.h>
-#include <utils/ffmpeg_utils.h>
-#include <cassert>
-#include <deque>
 #include "avcodecDecoder.h"
 #include "base/media/AVAFPacket.h"
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <utils/AFUtils.h>
 #include <utils/errors/framework_error.h>
+#include <utils/ffmpeg_utils.h>
+#include <utils/frame_work_log.h>
+#include <utils/mediaFrame.h>
 
 #include "vlc/VideoAcceleration.h"
 
-#define  MAX_INPUT_SIZE 4
+#define MAX_INPUT_SIZE 4
 
 #ifdef WIN32
 /*** CPU ***/
@@ -55,8 +56,8 @@ namespace Cicada {
         if (p_sys->mVA == NULL) {
             return avcodec_default_get_buffer2(ctx, frame, flags);
         }
-        
-		return p_sys->mVA->getFrame(frame);
+
+        return p_sys->mVA->getFrame(frame);
     }
 
     static enum AVPixelFormat ffmpeg_GetFormat(AVCodecContext *p_context, const enum AVPixelFormat *pi_fmt)
@@ -79,8 +80,7 @@ namespace Cicada {
         if (p_sys->pix_fmt == AV_PIX_FMT_NONE) goto no_reuse;
 
         if (p_sys->width != p_context->coded_width || p_sys->height != p_context->coded_height) {
-            AF_LOGD("mismatched dimensions %ux%u was %ux%u", p_context->coded_width, p_context->coded_height, p_sys->width,
-                    p_sys->height);
+            AF_LOGD("mismatched dimensions %ux%u was %ux%u", p_context->coded_width, p_context->coded_height, p_sys->width, p_sys->height);
             goto no_reuse;
         }
         if (p_context->profile != p_sys->profile || p_context->level > p_sys->level) {
@@ -91,17 +91,17 @@ namespace Cicada {
         for (size_t i = 0; pi_fmt[i] != AV_PIX_FMT_NONE; i++)
             if (pi_fmt[i] == p_sys->pix_fmt) {
                 if (((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, p_sys->pix_fmt, swfmt) == 0) {
-					return p_sys->pix_fmt;
+                    return p_sys->pix_fmt;
                 }
             }
 
-	no_reuse:
+    no_reuse:
         ((avcodecDecoder *) p_context->opaque)->close_va_decoder();
 
         p_sys->profile = p_context->profile;
         p_sys->level = p_context->level;
-		p_sys->width = p_context->coded_width;
-		p_sys->height = p_context->coded_height;
+        p_sys->width = p_context->coded_width;
+        p_sys->height = p_context->coded_height;
 
         if (!can_hwaccel) return swfmt;
 
@@ -139,23 +139,21 @@ namespace Cicada {
             }
             const AVPixFmtDescriptor *dsc = av_pix_fmt_desc_get(hwfmt);
             AF_LOGD("trying format %s", dsc ? dsc->name : "unknown");
-            if (((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, hwfmt, swfmt))
-				continue;
 
-			auto va = VideoAcceleration::createVA(p_context, hwfmt);
-			if (!va)
-				continue;
+            auto va = VideoAcceleration::createVA(p_context, hwfmt);
+            if (!va) continue;
 
-			if (va->open() != VLC_SUCCESS) {
-				delete va;
-				continue;
-			}
+            if (va->open() != VLC_SUCCESS) {
+                delete va;
+                continue;
+            }
 
-			AF_LOGD("Using %s for hardware decoding", va->description().c_str());
+            AF_LOGD("Using %s for hardware decoding", va->description().c_str());
 
             p_sys->mVA = va;
             p_sys->pix_fmt = hwfmt;
             p_context->draw_horiz_band = NULL;
+            ((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, hwfmt, swfmt);
             return hwfmt;
         }
 
@@ -167,14 +165,14 @@ namespace Cicada {
 
     avcodecDecoder avcodecDecoder::se(0);
 
-	void avcodecDecoder::close_va_decoder()
-	{
+    void avcodecDecoder::close_va_decoder()
+    {
         if (mPDecoder->mVA) {
             mPDecoder->mVA->close();
             delete mPDecoder->mVA;
-			mPDecoder->mVA = nullptr;
+            mPDecoder->mVA = nullptr;
         }
-	}
+    }
 
     void avcodecDecoder::close_decoder()
     {
@@ -188,11 +186,11 @@ namespace Cicada {
             avcodec_free_context(&mPDecoder->codecCont);
             mPDecoder->codecCont = nullptr;
         }
-        mPDecoder->codec = nullptr;		
+        mPDecoder->codec = nullptr;
 
         av_frame_free(&mPDecoder->avFrame);
 
-		close_va_decoder();
+        close_va_decoder();
 
         delete mPDecoder;
         mPDecoder = nullptr;
@@ -202,12 +200,12 @@ namespace Cicada {
     {
         int width = ctx->coded_width;
         int height = ctx->coded_height;
+        int aligns[AV_NUM_DATA_POINTERS] = {0};
 
         video_format_Init(&mPDecoder->videoForamt, 0);
 
-        if (pix_fmt == sw_pix_fmt) { /* software decoding */
-            int aligns[AV_NUM_DATA_POINTERS];
-
+        bool software_decoding = pix_fmt == sw_pix_fmt;
+        if (software_decoding) { /* software decoding */
             avcodec_align_dimensions2(ctx, &width, &height, aligns);
             mPDecoder->videoForamt.i_chroma = FindVlcChroma(pix_fmt);
         } else /* hardware decoding */
@@ -218,17 +216,7 @@ namespace Cicada {
             return -1; /* invalid display size */
         }
 
-        mPDecoder->videoForamt.i_width = width;
-        mPDecoder->videoForamt.i_height = height;
-        mPDecoder->videoForamt.i_visible_width = ctx->width;
-        mPDecoder->videoForamt.i_visible_height = ctx->height;
-
-        mPDecoder->videoForamt.i_sar_num = ctx->sample_aspect_ratio.num;
-        mPDecoder->videoForamt.i_sar_den = ctx->sample_aspect_ratio.den;
-
-        if (mPDecoder->videoForamt.i_sar_num == 0 || mPDecoder->videoForamt.i_sar_den == 0) mPDecoder->videoForamt.i_sar_num = mPDecoder->videoForamt.i_sar_den = 1;      
-
-		const vlc_chroma_description_t *p_dsc = vlc_fourcc_GetChromaDescription(mPDecoder->videoForamt.i_chroma);
+        const vlc_chroma_description_t *p_dsc = vlc_fourcc_GetChromaDescription(mPDecoder->videoForamt.i_chroma);
         if (!p_dsc) return VLC_EGENERIC;
 
         /* We want V (width/height) to respect:
@@ -238,21 +226,37 @@ namespace Cicada {
 		   V % lcm( p_dsc->p[0..planes].w.i_den * 16) == 0
 		*/
 
-        auto LCM = [](int a, int b) { return a * b / GCD(a, b); };
+        int tw = ctx->coded_width;
+        if (software_decoding) {
+            int linesize[4] = {0};
+            int unaligned = 0;
+            do {
+                // NOTE: do not align linesizes individually, this breaks e.g. assumptions
+                // that linesize[0] == 2*linesize[1] in the MPEG-encoder for 4:2:2
+                av_image_fill_linesizes(linesize, sw_pix_fmt, width);
+                width += width & ~(width - 1);
 
-        int i_modulo_w = 1;
-        int i_modulo_h = 1;
-        unsigned int i_ratio_h = 1;
-        for (unsigned i = 0; i < p_dsc->plane_count; i++) {
-            i_modulo_w = LCM(i_modulo_w, 16 * p_dsc->p[i].w.den);
-            i_modulo_h = LCM(i_modulo_h, 16 * p_dsc->p[i].h.den);
-            if (i_ratio_h < p_dsc->p[i].h.den) i_ratio_h = p_dsc->p[i].h.den;
+                unaligned = 0;
+                for (int i = 0; i < 4; i++) unaligned |= linesize[i] % aligns[i];
+            } while (unaligned);
+            tw = linesize[0] / p_dsc->pixel_size;
         }
-        i_modulo_h = LCM(i_modulo_h, 32);
 
-        const int i_width_aligned = (mPDecoder->videoForamt.i_width + i_modulo_w - 1) / i_modulo_w * i_modulo_w;
-        const int i_height_aligned = (mPDecoder->videoForamt.i_height + i_modulo_h - 1) / i_modulo_h * i_modulo_h;
-        const int i_height_extra = 2 * i_ratio_h; /* This one is a hack for some ASM functions */
+        const int i_width_aligned = tw;
+        const int i_height_aligned = ctx->coded_height;
+        const int i_height_extra = 0; /* This one is a hack for some ASM functions */
+
+        mPDecoder->videoForamt.i_width = i_width_aligned;
+        mPDecoder->videoForamt.i_height = i_height_aligned;
+        mPDecoder->videoForamt.i_visible_width = ctx->width;
+        mPDecoder->videoForamt.i_visible_height = ctx->height;
+
+        mPDecoder->videoForamt.i_sar_num = ctx->sample_aspect_ratio.num;
+        mPDecoder->videoForamt.i_sar_den = ctx->sample_aspect_ratio.den;
+
+        if (mPDecoder->videoForamt.i_sar_num == 0 || mPDecoder->videoForamt.i_sar_den == 0)
+            mPDecoder->videoForamt.i_sar_num = mPDecoder->videoForamt.i_sar_den = 1;
+
         for (unsigned i = 0; i < p_dsc->plane_count; i++) {
             auto *p = &mPDecoder->videoForamt.plane[i];
 
@@ -362,11 +366,12 @@ namespace Cicada {
                 break;
         }
 
+        if (mPDecoder->mVA) mPDecoder->videoForamt.extra_info = mPDecoder->mVA->getExtraInfoForRender();
+
         return 0;
     }
 
-    int avcodecDecoder::init_decoder(const Stream_meta *meta, void *wnd, uint64_t flags,
-                                     const DrmInfo *drmInfo)
+    int avcodecDecoder::init_decoder(const Stream_meta *meta, void *wnd, uint64_t flags, const DrmInfo *drmInfo)
     {
         auto codecId = (enum AVCodecID) CodecID2AVCodecID(meta->codec);
         mPDecoder->codec = avcodec_find_decoder(codecId);
@@ -397,12 +402,12 @@ namespace Cicada {
         }
 
         mPDecoder->flags = DECFLAG_SW;
-		if (!isAudio) {
+        if (!isAudio) {
             mPDecoder->codecCont->get_format = ffmpeg_GetFormat;
             mPDecoder->codecCont->get_buffer2 = lavc_GetFrame;
-			mPDecoder->codecCont->opaque = this;
+            mPDecoder->codecCont->opaque = this;
 
-			int i_thread_count = vlc_GetCPUCount();
+            int i_thread_count = vlc_GetCPUCount();
             if (i_thread_count > 1) i_thread_count++;
 
 #if VLC_WINSTORE_APP
@@ -410,7 +415,7 @@ namespace Cicada {
 #else
             i_thread_count = std::min<int>(i_thread_count, mPDecoder->codec->id == AV_CODEC_ID_HEVC ? 10 : 6);
 #endif
-            
+
             i_thread_count = std::min<int>(i_thread_count, mPDecoder->codec->id == AV_CODEC_ID_HEVC ? 32 : 16);
             AF_LOGD("allowing %d thread(s) for decoding", i_thread_count);
             mPDecoder->codecCont->thread_count = i_thread_count;
@@ -434,10 +439,10 @@ namespace Cicada {
                 default:
                     break;
             }
-		} else {
+        } else {
             mPDecoder->codecCont->thread_count = 1;
             mPDecoder->codecCont->thread_safe_callbacks = true;
-		}
+        }
 
         av_opt_set_int(mPDecoder->codecCont, "refcounted_frames", 1, 0);
 
@@ -456,7 +461,7 @@ namespace Cicada {
         mName = "VD.avcodec";
         mPDecoder = new decoder_handle_v();
         memset(mPDecoder, 0, sizeof(decoder_handle_v));
-//        mPDecoderder->dstFormat = AV_PIX_FMT_NONE;
+        //        mPDecoderder->dstFormat = AV_PIX_FMT_NONE;
 
         avcodec_register_all();
         mFlags |= DECFLAG_PASSTHROUGH_INFO;
@@ -469,14 +474,14 @@ namespace Cicada {
 
     bool avcodecDecoder::is_supported(enum AFCodecID codec)
     {
-//        return codec == AF_CODEC_ID_H264
-//               || codec == AF_CODEC_ID_MPEG4
-//               || codec == AF_CODEC_ID_HEVC
-//               || codec == AF_CODEC_ID_AAC
-//               || codec == AF_CODEC_ID_MP1
-//               || codec == AF_CODEC_ID_MP2
-//               || codec == AF_CODEC_ID_MP3
-//               || codec == AF_CODEC_ID_PCM_S16LE;
+        //        return codec == AF_CODEC_ID_H264
+        //               || codec == AF_CODEC_ID_MPEG4
+        //               || codec == AF_CODEC_ID_HEVC
+        //               || codec == AF_CODEC_ID_AAC
+        //               || codec == AF_CODEC_ID_MP1
+        //               || codec == AF_CODEC_ID_MP2
+        //               || codec == AF_CODEC_ID_MP3
+        //               || codec == AF_CODEC_ID_PCM_S16LE;
         if (avcodec_find_decoder(CodecID2AVCodecID(codec))) {
             return true;
         }
@@ -506,11 +511,11 @@ namespace Cicada {
             return -EAGAIN;
         }
 
-		auto dst = mPDecoder->avFrame;
+        auto dst = mPDecoder->avFrame;
         int64_t timePosition = INT64_MIN;
-        if (dst->metadata){
-            AVDictionaryEntry *t = av_dict_get(dst->metadata,"timePosition", nullptr,AV_DICT_IGNORE_SUFFIX);
-            if (t){
+        if (dst->metadata) {
+            AVDictionaryEntry *t = av_dict_get(dst->metadata, "timePosition", nullptr, AV_DICT_IGNORE_SUFFIX);
+            if (t) {
                 timePosition = atoll(t->value);
             }
         }
@@ -542,10 +547,10 @@ namespace Cicada {
             AF_LOGD("send null to decoder\n");
         }
 
-        if (pkt){
+        if (pkt) {
             AVDictionary *dict = nullptr;
             int size = 0;
-            av_dict_set_int(&dict,"timePosition",pPacket->getInfo().timePosition,0);
+            av_dict_set_int(&dict, "timePosition", pPacket->getInfo().timePosition, 0);
             uint8_t *metadata = av_packet_pack_dictionary(dict, &size);
             av_dict_free(&dict);
 
@@ -573,7 +578,7 @@ namespace Cicada {
             AF_LOGD("Decode EOF\n");
             ret = 0;
         } else {
-            AF_LOGE("Error while decoding frame %d :%s\n", ret,  getErrorString(ret));
+            AF_LOGE("Error while decoding frame %d :%s\n", ret, getErrorString(ret));
         }
 
         return ret;
@@ -587,4 +592,4 @@ namespace Cicada {
         //return mPDecoder->codecCont->extradata_size == 0;
         return false;
     }
-}
+}// namespace Cicada

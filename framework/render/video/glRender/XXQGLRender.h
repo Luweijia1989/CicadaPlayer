@@ -96,7 +96,7 @@ private:
 
     void calculateFPS(int64_t tick);
 
-    IProgramContext *getProgram(int frameFormat, IAFFrame *frame = nullptr);
+    GLRender *getRender(int frameFormat, IAFFrame *frame = nullptr);
 
     int onVsyncInner(int64_t tick);
 
@@ -143,7 +143,7 @@ private:
     int64_t mVSyncPeriod;
     af_scalable_clock mRenderClock;
 
-    IProgramContext *mProgramContext = nullptr;
+    GLRender *mGLRender = nullptr;
     int mProgramFormat = -1;
 
     bool mClearScreenOn = false;

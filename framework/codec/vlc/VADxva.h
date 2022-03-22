@@ -37,6 +37,8 @@ public:
 
     virtual va_surface_t *newSurfaceContext(int surface_index) override;
 
+	virtual void *getExtraInfoForRender() override;
+
 private:
     std::string DxDescribe();
     int resetVideoDecoder()

@@ -35,7 +35,7 @@ public:
     GLSoftwareTextureConverter();
     ~GLSoftwareTextureConverter();
 
-	int init() override;
+    int init() override;
 
     int pf_allocate_textures(GLuint *textures, const GLsizei *tex_width, const GLsizei *tex_height);
 

@@ -44,6 +44,11 @@ public:
         return wglGetProcAddress(name);
     }
 
+	void releaseCurrent() override
+	{
+        wglMakeCurrent(hGLDC, nullptr);
+	}
+
 private:
     HDC hGLDC;
     HGLRC hGLRC;

@@ -337,3 +337,8 @@ void VADxva::release(void *opaque, uint8_t *data)
 {
     surfaceRelease((va_surface_t *) opaque);
 }
+
+void *VADxva::getExtraInfoForRender()
+{
+    return d3d_dev.devex;
+}
