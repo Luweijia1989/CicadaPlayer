@@ -371,12 +371,12 @@ void XXQGLRender::renderVideo()
     } else {
         mScreenCleared = false;
         auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
-        auto format = (video_format_t *) mRenderFrame->getInfo().video.vlc_fmt;
-        ret = mGLRender->prepareGLFrame(frame);
-        if (ret == VLC_SUCCESS) {
-            mGLRender->udpateOutParam(mRotate, mScale, mFlip, mVideoSurfaceWidth, mVideoSurfaceHeight);
-            ret = mGLRender->displayGLFrame(format, mVideoSurfaceWidth, mVideoSurfaceHeight);
-        }
+        auto info = mRenderFrame->getInfo().video;
+
+        mMaskInfoMutex.lock();
+        ret = mGLRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, mRenderFrame->getInfo().video.frameIndex, mRotate, mScale,
+                                        mFlip, (video_format_t *) info.vlc_fmt, mVideoSurfaceWidth, mVideoSurfaceHeight);
+        mMaskInfoMutex.unlock();
     }
 
     if (ret == 0) {

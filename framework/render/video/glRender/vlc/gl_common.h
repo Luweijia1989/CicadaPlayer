@@ -200,8 +200,18 @@ typedef struct {
     PFNGLBUFFERDATAPROC BufferData;
     PFNGLDELETEBUFFERSPROC DeleteBuffers;
 
+	/* VAO */
+	PFNGLGENVERTEXARRAYSPROC GenVertexArrays;
+	PFNGLBINDVERTEXARRAYPROC BindVertexArray;
+	PFNGLDELETEVERTEXARRAYSPROC DeleteVertexArrays;
+
     /* Framebuffers commands */
     PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC GetFramebufferAttachmentParameteriv;
+	PFNGLGENFRAMEBUFFERSPROC GenFramebuffers;
+	PFNGLDELETEFRAMEBUFFERSPROC DeleteFramebuffers;
+	PFNGLBINDFRAMEBUFFERPROC BindFramebuffer;
+	PFNGLFRAMEBUFFERTEXTURE2DPROC FramebufferTexture2D;
+	PFNGLCHECKFRAMEBUFFERSTATUSPROC CheckFramebufferStatus;
 
     /* Commands used for PBO and/or Persistent mapping */
     PFNGLBUFFERSUBDATAPROC BufferSubData;                   /* can be NULL */

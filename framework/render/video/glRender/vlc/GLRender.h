@@ -48,22 +48,6 @@ extern "C" {
 
 #define PICTURE_PLANE_MAX 5
 
-typedef struct {
-    GLuint texture;
-    GLsizei width;
-    GLsizei height;
-
-    float alpha;
-
-    float top;
-    float left;
-    float bottom;
-    float right;
-
-    float tex_width;
-    float tex_height;
-} gl_region_t;
-
 struct GLProgram {
     GLuint id;
 
@@ -94,6 +78,7 @@ struct GLProgram {
 
 class GLBase;
 class OpenGLTextureConverter;
+class GiftEffectRender;
 class GLRender {
 public:
     GLRender(video_format_t *format);
@@ -101,9 +86,9 @@ public:
 
     bool initGL();
     void clearScreen(uint32_t color);
-    int prepareGLFrame(AVFrame *frame);
-    int displayGLFrame(const video_format_t *source, int viewWidth, int viewHeight);
-    void udpateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth, int viewHeight);
+    int displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode mode, const std::string &data, AVFrame *frame, int frameIndex,
+                       IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, const video_format_t *source,
+                       int viewWidth, int viewHeight);
 
 private:
     void ResizeFormatToGLMaxTexSize(unsigned int max_tex_size);
@@ -116,7 +101,6 @@ private:
     GLuint BuildVertexShader(unsigned plane_count);
     int GenTextures();
 
-    void TextureCropForStereo(float *left, float *top, float *right, float *bottom);
     void GetTextureCropParamsForStereo(unsigned i_nbTextures, const float *stereoCoefs, const float *stereoOffsets, float *left, float *top,
                                        float *right, float *bottom);
     void DrawWithShaders();
@@ -124,8 +108,14 @@ private:
     int BuildRectangle(unsigned nbPlanes, GLfloat **vertexCoord, GLfloat **textureCoord, unsigned *nbVertices, GLushort **indices,
                        unsigned *nbIndices, const float *left, const float *top, const float *right, const float *bottom);
 
+    int prepareGLFrame(AVFrame *frame);
+    int displayGLFrameInternal(const video_format_t *source, int viewWidth, int viewHeight);
+    void updateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth, int viewHeight);
+
     GLBase *glBase = nullptr;
     OpenGLTextureConverter *textureConvter = nullptr;
+    GiftEffectRender *giftEffectRender = nullptr;
+
     opengl_vtable_t vt;
     video_format_t fmt = {0};
     const char *extensions;
@@ -134,9 +124,6 @@ private:
     GLsizei tex_height[PICTURE_PLANE_MAX] = {0};
 
     GLuint texture[PICTURE_PLANE_MAX];
-
-    int region_count = 0;
-    gl_region_t *region = nullptr;
 
     /* One YUV program and one RGBA program (for subpics) */
     GLProgram prgm = {0}; /* Main program */

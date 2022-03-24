@@ -1,6 +1,7 @@
 #include "GLRender.h"
 #include "D3D9TextureConverter.h"
 #include "GLSoftwareTextureConverter.h"
+#include "GiftEffectRender.h"
 #include "base/utils.h"
 #include "wgl.h"
 #include <cassert>
@@ -93,6 +94,8 @@ GLRender::GLRender(video_format_t *format) : fmt(*format)
 
 GLRender::~GLRender()
 {
+    if (giftEffectRender) delete giftEffectRender;
+
     if (textureConvter) {
         const size_t main_tex_count = textureConvter->tex_count;
         const bool main_del_texs = !textureConvter->handle_texs_gen;
@@ -103,11 +106,6 @@ GLRender::~GLRender()
     }
     vt.DeleteBuffers(1, &vertex_buffer_object);
     vt.DeleteBuffers(1, &index_buffer_object);
-
-    for (int i = 0; i < region_count; i++) {
-        if (region[i].texture) vt.DeleteTextures(1, &region[i].texture);
-    }
-    free(region);
 
     destroyShaderProgram();
 
@@ -201,6 +199,15 @@ bool GLRender::initGL()
     GET_PROC_ADDR(BufferData, PFNGLBUFFERDATAPROC);
     GET_PROC_ADDR(DeleteBuffers, PFNGLDELETEBUFFERSPROC);
 
+    GET_PROC_ADDR(GenVertexArrays, PFNGLGENVERTEXARRAYSPROC);
+    GET_PROC_ADDR(BindVertexArray, PFNGLBINDVERTEXARRAYPROC);
+    GET_PROC_ADDR(DeleteVertexArrays, PFNGLDELETEVERTEXARRAYSPROC);
+
+    GET_PROC_ADDR(GenFramebuffers, PFNGLGENFRAMEBUFFERSPROC);
+    GET_PROC_ADDR(DeleteFramebuffers, PFNGLDELETEFRAMEBUFFERSPROC);
+    GET_PROC_ADDR(BindFramebuffer, PFNGLBINDFRAMEBUFFERPROC);
+    GET_PROC_ADDR(FramebufferTexture2D, PFNGLFRAMEBUFFERTEXTURE2DPROC);
+    GET_PROC_ADDR(CheckFramebufferStatus, PFNGLCHECKFRAMEBUFFERSTATUSPROC);
     GET_PROC_ADDR_OPTIONAL(GetFramebufferAttachmentParameteriv, PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC);
 
     GET_PROC_ADDR_OPTIONAL(BufferSubData, PFNGLBUFFERSUBDATAPROC);
@@ -293,10 +300,6 @@ bool GLRender::initGL()
     vt.GenBuffers(1, &vertex_buffer_object);
     vt.GenBuffers(1, &index_buffer_object);
     vt.GenBuffers(textureConvter->tex_count, texture_buffer_object);
-
-    /* */
-    region_count = 0;
-    region = NULL;
 
     return true;
 }
@@ -715,18 +718,49 @@ void GLRender::GetTextureCropParamsForStereo(unsigned i_nbTextures, const float 
     }
 }
 
-int GLRender::displayGLFrame(const video_format_t *source, int viewWidth, int viewHeight)
+int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode mode, const std::string &data, AVFrame *frame,
+                             int frameIndex, IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip,
+                             const video_format_t *source, int viewWidth, int viewHeight)
+{
+    if (prepareGLFrame(frame) != VLC_SUCCESS) return VLC_EGENERIC;
+
+    if (vapInfo.length() == 0 && mode == IVideoRender::Mask_None) {
+        if (giftEffectRender) {
+            delete giftEffectRender;
+            giftEffectRender = nullptr;
+        }
+    } else {
+        if (giftEffectRender && giftEffectRender->maskInfoChanged(vapInfo, mode, data)) {
+            delete giftEffectRender;
+            giftEffectRender = nullptr;
+        }
+        if (!giftEffectRender) giftEffectRender = new GiftEffectRender(&vt, &fmt, vapInfo, mode, data);
+    }
+
+    if (giftEffectRender) {
+        giftEffectRender->setViewSize(viewWidth, viewHeight);
+        giftEffectRender->setTransformInfo(rotate, scale, flip);
+
+        FBOBindHelper helper(giftEffectRender);
+        displayGLFrameInternal(source, viewWidth, viewHeight);
+    } else {
+        updateOutParam(rotate, scale, flip, viewWidth, viewHeight);
+        vt.Viewport(0, 0, viewWidth, viewHeight);
+        displayGLFrameInternal(source, viewWidth, viewHeight);
+    }
+    return 0;
+}
+
+int GLRender::displayGLFrameInternal(const video_format_t *source, int viewWidth, int viewHeight)
 {
     GL_ASSERT_NOERROR();
 
     if (!textureConvter) return VLC_EGENERIC;
 
-    vt.Viewport(0, 0, viewWidth, viewHeight);
-
     /* Why drawing here and not in Render()? Because this way, the
        OpenGL providers can call vout_display_opengl_Display to force redraw.
        Currently, the OS X provider uses it to get a smooth window resizing */
-    vt.Clear(GL_COLOR_BUFFER_BIT);
+    //vt.Clear(GL_COLOR_BUFFER_BIT);
 
     vt.UseProgram(prgm.id);
 
@@ -778,7 +812,7 @@ void GLRender::clearScreen(uint32_t color)
     vt.Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void GLRender::udpateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth,
+void GLRender::updateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth,
                               int viewHeight)
 {
     if (last_scale != scale || last_view_width != viewWidth || last_view_height != viewHeight) {

@@ -15,15 +15,15 @@ OpenGLWidget::OpenGLWidget()
 
     player->setVideoSurfaceSize(1, 1);
     player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); });
-    //player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"E:/test.jpg\"}");
-    player->SetRotateMode(ROTATE_MODE_90);
+    player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"E:/test.jpg\"}");
+    player->SetRotateMode(ROTATE_MODE_0);
     player->SetScaleMode(SM_FIT);
 
 	//player->SetSpeed(0.5);
     player->SetDefaultBandWidth(1000 * 1000);
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("C:\\Users\\posat\\Desktop\\7p.mp4");
+    player->SetDataSource("C:\\Users\\posat\\Desktop\\test.mp4");
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);
