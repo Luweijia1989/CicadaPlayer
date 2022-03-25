@@ -8,22 +8,22 @@
 
 OpenGLWidget::OpenGLWidget()
 {
-       setAttribute(Qt::WA_TranslucentBackground);
-    setWindowFlag(Qt::FramelessWindowHint);
+    //   setAttribute(Qt::WA_TranslucentBackground);
+    //setWindowFlag(Qt::FramelessWindowHint);
 
     player = std::shared_ptr<MediaPlayer>(new MediaPlayer());
 
     player->setVideoSurfaceSize(1, 1);
     player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); });
-    player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
-    player->SetRotateMode(ROTATE_MODE_90);
+    //player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
+    player->SetRotateMode(ROTATE_MODE_0);
     player->SetScaleMode(SM_FIT);
 
     //player->SetSpeed(0.5);
     player->SetDefaultBandWidth(1000 * 1000);
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("C:\\Users\\posat\\Desktop\\vap1.mp4");
+    player->SetDataSource("C:\\Users\\posat\\Desktop\\7p.mp4");
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);
