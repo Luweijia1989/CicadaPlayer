@@ -8,15 +8,15 @@
 
 OpenGLWidget::OpenGLWidget()
 {
-    //   setAttribute(Qt::WA_TranslucentBackground);
-    //setWindowFlag(Qt::FramelessWindowHint);
+       setAttribute(Qt::WA_TranslucentBackground);
+    setWindowFlag(Qt::FramelessWindowHint);
 
     player = std::shared_ptr<MediaPlayer>(new MediaPlayer());
 
     player->setVideoSurfaceSize(1, 1);
     player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); });
-    player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\"}");
-    player->SetRotateMode(ROTATE_MODE_0);
+    player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
+    player->SetRotateMode(ROTATE_MODE_90);
     player->SetScaleMode(SM_FIT);
 
     //player->SetSpeed(0.5);

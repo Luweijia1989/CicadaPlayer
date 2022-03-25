@@ -467,6 +467,7 @@ void GiftEffectRender::draw()
 
     vt->UniformMatrix4fv(projection, 1, GL_FALSE, (GLfloat *) mUProjection);
     vt->Uniform2f(uflip, mFlipCoords[0], mFlipCoords[1]);
+	vt->Uniform1i(uColorRangeFix, gpu_decoded ? 16 : 0);
     vt->VertexAttribPointer(position, 2, GL_FLOAT, GL_FALSE, 0, mDrawRegion);
     vt->VertexAttribPointer(RGBTexCoord, 2, GL_FLOAT, GL_FALSE, 0, mTextureCoords);
     vt->VertexAttribPointer(alphaTexCoord, 2, GL_FLOAT, GL_FALSE, 0, mAlphaTextureCoords);
@@ -521,6 +522,7 @@ void GiftEffectRender::initPrgm()
     		varying vec2 alphaTexCoordVarying;
     
     		uniform sampler2D SamplerImage;
+			uniform int colorRangeFix;
     
     		void main()
     		{
@@ -528,9 +530,10 @@ void GiftEffectRender::initPrgm()
     			vec3 rgb_alpha;
 
     			rgb_rgb = texture2D(SamplerImage, RGBTexCoordVarying).rgb;
-    			rgb_alpha = texture2D(SamplerImage, alphaTexCoordVarying).rgb;
+    			rgb_alpha = texture2D(SamplerImage, alphaTexCoordVarying);
     
-    			gl_FragColor = vec4(rgb_rgb, rgb_alpha.r - 16.0/255.0);
+    			gl_FragColor = vec4(rgb_rgb - colorRangeFix/255.0, rgb_alpha.r - 16.0/255.0);
+
     		}
     		)";
 
@@ -571,6 +574,7 @@ void GiftEffectRender::initPrgm()
     SamplerImage = vt->GetUniformLocation(prgm, "SamplerImage");
     projection = vt->GetUniformLocation(prgm, "u_projection");
     uflip = vt->GetUniformLocation(prgm, "u_flipMatrix");
+	uColorRangeFix = vt->GetUniformLocation(prgm, "colorRangeFix");
 
     vt->UseProgram(prgm);
     vt->EnableVertexAttribArray(position);

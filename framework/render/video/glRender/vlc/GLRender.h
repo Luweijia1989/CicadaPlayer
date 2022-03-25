@@ -113,6 +113,7 @@ private:
     void updateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth, int viewHeight);
 
     GLBase *glBase = nullptr;
+	bool gpu_decoded = false;
     OpenGLTextureConverter *textureConvter = nullptr;
     GiftEffectRender *giftEffectRender = nullptr;
 

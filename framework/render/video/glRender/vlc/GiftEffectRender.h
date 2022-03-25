@@ -133,6 +133,11 @@ public:
         frameIndex = index;
     }
 
+	void setGpuDecoded(bool b)
+    {
+		gpu_decoded = b;
+	}
+
     void bindFbo();
     void releaseFbo();
 
@@ -193,6 +198,9 @@ private:
     GLuint RGBTexCoord;
     GLuint alphaTexCoord;
     GLuint SamplerImage;
+	GLuint uColorRangeFix;
+
+	bool gpu_decoded = false;
 
     std::unique_ptr<VapAnimateConfig> mVapConfig;
     std::unique_ptr<MixRenderer> mMixRender;

@@ -82,8 +82,6 @@ list(APPEND SOURCE_FILES
         ../base/media/AVAFPacket.cpp
         ../base/media/AVAFPacket.h
 		../base/media/avcompat.h
-		../base/media/VideoFormat.h
-		../base/media/VideoFormat.cpp
 
 		${VLCFILE}
 

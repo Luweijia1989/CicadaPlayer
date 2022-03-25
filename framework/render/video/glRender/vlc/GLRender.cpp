@@ -386,6 +386,7 @@ int GLRender::initShaderProgram()
     }
     if (desc->plane_count == 0) {
         textureConvter = new D3D9TextureConverter(fmt.extra_info);
+		gpu_decoded = true;
     } else
         textureConvter = new GLSoftwareTextureConverter();
 
@@ -746,6 +747,7 @@ int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode 
         giftEffectRender->setViewSize(viewWidth, viewHeight);
         giftEffectRender->setTransformInfo(rotate, scale, flip);
 		giftEffectRender->setFrameIndex(frameIndex);
+		giftEffectRender->setGpuDecoded(gpu_decoded);
 
         FBOBindHelper helper(giftEffectRender);
         displayGLFrameInternal(source, viewWidth, viewHeight, true);
