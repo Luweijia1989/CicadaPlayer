@@ -103,13 +103,13 @@ private:
 
     void GetTextureCropParamsForStereo(unsigned i_nbTextures, const float *stereoCoefs, const float *stereoOffsets, float *left, float *top,
                                        float *right, float *bottom);
-    void DrawWithShaders();
+    void DrawWithShaders(bool flipV);
     int SetupCoords(const float *left, const float *top, const float *right, const float *bottom);
     int BuildRectangle(unsigned nbPlanes, GLfloat **vertexCoord, GLfloat **textureCoord, unsigned *nbVertices, GLushort **indices,
                        unsigned *nbIndices, const float *left, const float *top, const float *right, const float *bottom);
 
     int prepareGLFrame(AVFrame *frame);
-    int displayGLFrameInternal(const video_format_t *source, int viewWidth, int viewHeight);
+    int displayGLFrameInternal(const video_format_t *source, int viewWidth, int viewHeight, bool flipV);
     void updateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth, int viewHeight);
 
     GLBase *glBase = nullptr;

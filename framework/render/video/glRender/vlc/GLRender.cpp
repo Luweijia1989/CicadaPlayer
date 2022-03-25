@@ -676,7 +676,7 @@ int GLRender::SetupCoords(const float *left, const float *top, const float *righ
     return VLC_SUCCESS;
 }
 
-void GLRender::DrawWithShaders()
+void GLRender::DrawWithShaders(bool flipV)
 {
     textureConvter->pf_prepare_shader(tex_width, tex_height, 1.0f);
 
@@ -703,7 +703,7 @@ void GLRender::DrawWithShaders()
     vt.UniformMatrix4fv(prgm.uloc.YRotMatrix, 1, GL_FALSE, prgm.var.YRotMatrix);
     vt.UniformMatrix4fv(prgm.uloc.XRotMatrix, 1, GL_FALSE, prgm.var.XRotMatrix);
     vt.UniformMatrix4fv(prgm.uloc.ZoomMatrix, 1, GL_FALSE, prgm.var.ZoomMatrix);
-    vt.Uniform2f(prgm.uloc.AspectRatio, prgm.var.AspectRatio[0], prgm.var.AspectRatio[1]);
+    vt.Uniform2f(prgm.uloc.AspectRatio, prgm.var.AspectRatio[0], flipV ? prgm.var.AspectRatio[1] * -1.0 : prgm.var.AspectRatio[1]);
 
     vt.DrawElements(GL_TRIANGLES, nb_indices, GL_UNSIGNED_SHORT, 0);
 }
@@ -748,16 +748,16 @@ int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode 
 		giftEffectRender->setFrameIndex(frameIndex);
 
         FBOBindHelper helper(giftEffectRender);
-        displayGLFrameInternal(source, viewWidth, viewHeight);
+        displayGLFrameInternal(source, viewWidth, viewHeight, true);
     } else {
         updateOutParam(rotate, scale, flip, viewWidth, viewHeight);
         vt.Viewport(0, 0, viewWidth, viewHeight);
-        displayGLFrameInternal(source, viewWidth, viewHeight);
+        displayGLFrameInternal(source, viewWidth, viewHeight, false);
     }
     return 0;
 }
 
-int GLRender::displayGLFrameInternal(const video_format_t *source, int viewWidth, int viewHeight)
+int GLRender::displayGLFrameInternal(const video_format_t *source, int viewWidth, int viewHeight, bool flipV)
 {
     GL_ASSERT_NOERROR();
 
@@ -805,7 +805,7 @@ int GLRender::displayGLFrameInternal(const video_format_t *source, int viewWidth
         last_source.i_visible_width = source->i_visible_width;
         last_source.i_visible_height = source->i_visible_height;
     }
-    DrawWithShaders();
+    DrawWithShaders(flipV);
 
     return VLC_SUCCESS;
 }
