@@ -8,22 +8,22 @@
 
 OpenGLWidget::OpenGLWidget()
 {
- //   setAttribute(Qt::WA_TranslucentBackground);
-	//setWindowFlag(Qt::FramelessWindowHint);
+    //   setAttribute(Qt::WA_TranslucentBackground);
+    //setWindowFlag(Qt::FramelessWindowHint);
 
     player = std::shared_ptr<MediaPlayer>(new MediaPlayer());
 
     player->setVideoSurfaceSize(1, 1);
     player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); });
-    player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"E:/test.jpg\"}");
+    player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\"}");
     player->SetRotateMode(ROTATE_MODE_0);
     player->SetScaleMode(SM_FIT);
 
-	//player->SetSpeed(0.5);
+    //player->SetSpeed(0.5);
     player->SetDefaultBandWidth(1000 * 1000);
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("C:\\Users\\posat\\Desktop\\test.mp4");
+    player->SetDataSource("C:\\Users\\posat\\Desktop\\vap1.mp4");
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);
@@ -39,7 +39,7 @@ OpenGLWidget::OpenGLWidget()
 OpenGLWidget::~OpenGLWidget()
 {
     player->setRenderCallback(nullptr);
-//    player->clearGLResource();
+    //player->clearGLResource();
 }
 
 void OpenGLWidget::initializeGL()
@@ -48,11 +48,11 @@ void OpenGLWidget::initializeGL()
     connect(
             context(), &QOpenGLContext::aboutToBeDestroyed, this,
             [=] {
-			auto cc = context()->currentContext();
+                auto cc = context()->currentContext();
                 auto sp = wp.lock();
                 if (!sp) {
                     sp->foreignGLContextDestroyed();
-					return;
+                    return;
                 }
                 sp->clearGLResource();
             },

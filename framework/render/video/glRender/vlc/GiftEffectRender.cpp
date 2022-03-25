@@ -83,7 +83,6 @@ MixRenderer::MixRenderer(opengl_vtable_t *vt) : vt(vt)
 				float isFill = step(0.5, float(u_isFill));
 				vec4 srcRgbaCal = isFill * vec4(u_Color.r, u_Color.g, u_Color.b, srcRgba.a) + (1.0 - isFill) * srcRgba;
 				gl_FragColor = vec4(srcRgbaCal.r, srcRgbaCal.g, srcRgbaCal.b, srcRgba.a * rgb_rgb.r);
-gl_FragColor = vec4(1,0, 0, 1);
 			}
 	)";
 

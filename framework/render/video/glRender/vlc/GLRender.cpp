@@ -299,7 +299,6 @@ bool GLRender::initGL()
     vt.Disable(GL_BLEND);
     vt.Disable(GL_DEPTH_TEST);
     vt.DepthMask(GL_FALSE);
-    vt.Enable(GL_CULL_FACE);
     vt.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     vt.Clear(GL_COLOR_BUFFER_BIT);
 
