@@ -205,6 +205,8 @@ typedef struct {
 	PFNGLBINDVERTEXARRAYPROC BindVertexArray;
 	PFNGLDELETEVERTEXARRAYSPROC DeleteVertexArrays;
 
+	PFNGLBLENDFUNCSEPARATEPROC BlendFuncSeparate;
+
     /* Framebuffers commands */
     PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC GetFramebufferAttachmentParameteriv;
 	PFNGLGENFRAMEBUFFERSPROC GenFramebuffers;

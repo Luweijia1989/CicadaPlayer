@@ -127,7 +127,7 @@ int VADxva::createVideoService()
 }
 void VADxva::destroyVideoService()
 {
-    if (device) {
+    if (device && devmng) {
         HRESULT hr = devmng->CloseDeviceHandle(device);
         if (FAILED(hr)) std::clog << "Failed to release device handle 0x%p. (hr=0x%lX)" << device << hr;
     }

@@ -94,6 +94,8 @@ GLRender::GLRender(video_format_t *format) : fmt(*format)
 
 GLRender::~GLRender()
 {
+	assert(glBase->makeCurrent());
+
     if (giftEffectRender) delete giftEffectRender;
 
     if (textureConvter) {
@@ -108,6 +110,8 @@ GLRender::~GLRender()
     vt.DeleteBuffers(1, &index_buffer_object);
 
     destroyShaderProgram();
+
+	glBase->releaseCurrent();
 
     delete glBase;
 }
@@ -202,6 +206,8 @@ bool GLRender::initGL()
     GET_PROC_ADDR(GenVertexArrays, PFNGLGENVERTEXARRAYSPROC);
     GET_PROC_ADDR(BindVertexArray, PFNGLBINDVERTEXARRAYPROC);
     GET_PROC_ADDR(DeleteVertexArrays, PFNGLDELETEVERTEXARRAYSPROC);
+
+	GET_PROC_ADDR(BlendFuncSeparate, PFNGLBLENDFUNCSEPARATEPROC);
 
     GET_PROC_ADDR(GenFramebuffers, PFNGLGENFRAMEBUFFERSPROC);
     GET_PROC_ADDR(DeleteFramebuffers, PFNGLDELETEFRAMEBUFFERSPROC);
@@ -740,6 +746,7 @@ int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode 
     if (giftEffectRender) {
         giftEffectRender->setViewSize(viewWidth, viewHeight);
         giftEffectRender->setTransformInfo(rotate, scale, flip);
+		giftEffectRender->setFrameIndex(frameIndex);
 
         FBOBindHelper helper(giftEffectRender);
         displayGLFrameInternal(source, viewWidth, viewHeight);

@@ -49,6 +49,11 @@ public:
         wglMakeCurrent(hGLDC, nullptr);
 	}
 
+	int makeCurrent() override
+    {
+		return wglMakeCurrent(hGLDC, hGLRC);
+	}
+
 private:
     HDC hGLDC;
     HGLRC hGLRC;

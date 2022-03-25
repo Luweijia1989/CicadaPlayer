@@ -434,8 +434,5 @@ void XXQGLRender::setVapInfo(const std::string &info)
 
 void XXQGLRender::clearGLResource()
 {
-    /*auto ctx = glloader_current_gl_ctx();
-    if (!ctx) return;*/
-
     mRenders.erase(this);
 }

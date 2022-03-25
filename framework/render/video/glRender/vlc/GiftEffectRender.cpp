@@ -1,4 +1,413 @@
-#include "GiftEffectRender.h"
+ï»¿#include "GiftEffectRender.h"
+#include <utils/CicadaUtils.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <unknwn.h>
+#include <gdiplus.h>
+#endif// Win32
+
+
+static void createTexCoordsArray(int width, int height, Rect pointRect, GLfloat *ret)
+{
+    ret[0] = (float) pointRect.left / (float) width;
+    ret[1] = (float) pointRect.top / (float) height;
+
+    ret[2] = (float) pointRect.right / (float) width;
+    ret[3] = (float) pointRect.top / (float) height;
+
+    ret[4] = (float) pointRect.left / (float) width;
+    ret[5] = (float) pointRect.bottom / (float) height;
+
+    ret[6] = (float) pointRect.right / (float) width;
+    ret[7] = (float) pointRect.bottom / (float) height;
+};
+
+static void rotate90(GLfloat *array)
+{
+    // 0->2 1->0 3->1 2->3
+    float tx = array[0];
+    float ty = array[1];
+
+    // 1->0
+    array[0] = array[2];
+    array[1] = array[3];
+
+    // 3->1
+    array[2] = array[6];
+    array[3] = array[7];
+
+    // 2->3
+    array[6] = array[4];
+    array[7] = array[5];
+
+    // 0->2
+    array[4] = tx;
+    array[5] = ty;
+}
+
+MixRenderer::MixRenderer(opengl_vtable_t *vt) : vt(vt)
+{
+    m_mixVertexShader = R"(
+			attribute vec2 a_Position;
+			attribute vec2 a_TextureSrcCoordinates;
+			attribute vec2 a_TextureMaskCoordinates;
+			varying vec2 v_TextureSrcCoordinates;
+			varying vec2 v_TextureMaskCoordinates;
+			uniform mat4 u_MixMatrix;
+			void main()
+			{
+				v_TextureSrcCoordinates = a_TextureSrcCoordinates;
+				v_TextureMaskCoordinates = a_TextureMaskCoordinates;
+				gl_Position = u_MixMatrix * vec4(a_Position, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);
+			}
+	)";
+
+    m_mixFragmentShader = R"(
+			uniform sampler2D u_TextureMaskUnitImage;
+			uniform sampler2D u_TextureSrcUnit;
+			uniform int u_isFill;
+			uniform vec4 u_Color;
+			varying vec2 v_TextureSrcCoordinates;
+			varying vec2 v_TextureMaskCoordinates;
+			uniform mat3 colorConversionMatrix;
+			void main()
+			{
+				vec3 rgb_rgb;
+				vec4 srcRgba = texture2D(u_TextureSrcUnit, v_TextureSrcCoordinates);
+				rgb_rgb = texture2D(u_TextureMaskUnitImage, v_TextureMaskCoordinates).rgb;
+
+				float isFill = step(0.5, float(u_isFill));
+				vec4 srcRgbaCal = isFill * vec4(u_Color.r, u_Color.g, u_Color.b, srcRgba.a) + (1.0 - isFill) * srcRgba;
+				gl_FragColor = vec4(srcRgbaCal.r, srcRgbaCal.g, srcRgbaCal.b, srcRgba.a * rgb_rgb.r);
+gl_FragColor = vec4(1,0, 0, 1);
+			}
+	)";
+
+    compileMixShader();
+}
+
+MixRenderer::~MixRenderer()
+{
+    clearMixSrc();
+
+    vt->DeleteProgram(m_MixshaderProgram);
+}
+
+void MixRenderer::compileMixShader()
+{
+    m_MixshaderProgram = vt->CreateProgram();
+    int mInitRet = compileShader(&mVertShader, m_mixVertexShader.c_str(), GL_VERTEX_SHADER);
+
+    if (mInitRet != 0) {
+        return;
+    }
+
+    mInitRet = compileShader(&mFragmentShader, m_mixFragmentShader.c_str(), GL_FRAGMENT_SHADER);
+
+    if (mInitRet != 0) {
+        return;
+    }
+
+    vt->AttachShader(m_MixshaderProgram, mVertShader);
+    vt->AttachShader(m_MixshaderProgram, mFragmentShader);
+    vt->LinkProgram(m_MixshaderProgram);
+    GLint status;
+    vt->GetProgramiv(m_MixshaderProgram, GL_LINK_STATUS, &status);
+
+    if (status != GL_TRUE) {
+        int length = 0;
+        GLchar glchar[256] = {0};
+        vt->GetProgramInfoLog(m_MixshaderProgram, 256, &length, glchar);
+        return;
+    }
+
+    vt->DeleteShader(mVertShader);
+    vt->DeleteShader(mFragmentShader);
+
+    vt->UseProgram(m_MixshaderProgram);
+    uTextureSrcUnitLocation = vt->GetUniformLocation(m_MixshaderProgram, "u_TextureSrcUnit");
+    uTextureMaskUnitLocationImage = vt->GetUniformLocation(m_MixshaderProgram, "u_TextureMaskUnitImage");
+    uMixMatrix = vt->GetUniformLocation(m_MixshaderProgram, "u_MixMatrix");
+    uIsFillLocation = vt->GetUniformLocation(m_MixshaderProgram, "u_isFill");
+    uColorLocation = vt->GetUniformLocation(m_MixshaderProgram, "u_Color");
+
+    aPositionLocation = vt->GetAttribLocation(m_MixshaderProgram, "a_Position");
+    aTextureSrcCoordinatesLocation = vt->GetAttribLocation(m_MixshaderProgram, "a_TextureSrcCoordinates");
+    aTextureMaskCoordinatesLocation = vt->GetAttribLocation(m_MixshaderProgram, "a_TextureMaskCoordinates");
+
+    vt->EnableVertexAttribArray(aPositionLocation);
+    vt->EnableVertexAttribArray(aTextureSrcCoordinatesLocation);
+    vt->EnableVertexAttribArray(aTextureMaskCoordinatesLocation);
+
+    mReady = true;
+}
+
+void MixRenderer::renderMix(int index, const MixParam &param)
+{
+    if (m_allFrames.find(index) == m_allFrames.end()) return;
+
+    const FrameSet &set = m_allFrames[index];
+    for (auto iter = set.m_frames.begin(); iter != set.m_frames.end(); iter++) {
+        const VAPFrame &frame = iter->second;
+        renderMixPrivate(frame, m_srcMap[frame.srcId], param);
+    }
+}
+
+void MixRenderer::renderMixPrivate(const VAPFrame &frame, const MixSrc &src, const MixParam &param)
+{
+    auto createVertexArray = [](Rect pointRect, GLfloat *ret, const MixParam &p) {
+        if (p.rotate == IVideoRender::Rotate::Rotate_None) {
+            float left = pointRect.left * p.scaleW;
+            float top = pointRect.top * p.scaleH;
+            float right = pointRect.right * p.scaleW;
+            float bottom = pointRect.bottom * p.scaleH;
+
+            ret[0] = left + p.offsetX;
+            ret[1] = top + p.offsetY;
+            ret[2] = right + p.offsetX;
+            ret[3] = top + p.offsetY;
+            ret[4] = left + p.offsetX;
+            ret[5] = bottom + p.offsetY;
+            ret[6] = right + p.offsetX;
+            ret[7] = bottom + p.offsetY;
+        } else if (p.rotate == IVideoRender::Rotate::Rotate_90) {
+            float left = pointRect.top * p.scaleW;
+            float top = (p.ow - pointRect.right) * p.scaleH;
+            float right = pointRect.bottom * p.scaleW;
+            float bottom = (p.ow - pointRect.left) * p.scaleH;
+
+            ret[0] = left + p.offsetX;
+            ret[1] = bottom + p.offsetY;
+            ret[2] = left + p.offsetX;
+            ret[3] = top + p.offsetY;
+            ret[4] = right + p.offsetX;
+            ret[5] = bottom + p.offsetY;
+            ret[6] = right + p.offsetX;
+            ret[7] = top + p.offsetY;
+        } else if (p.rotate == IVideoRender::Rotate::Rotate_180) {
+            float left = (p.ow - pointRect.right) * p.scaleW;
+            float top = (p.oh - pointRect.bottom) * p.scaleH;
+            float right = (p.ow - pointRect.left) * p.scaleW;
+            float bottom = (p.oh - pointRect.top) * p.scaleH;
+
+            ret[0] = right + p.offsetX;
+            ret[1] = bottom + p.offsetY;
+            ret[2] = left + p.offsetX;
+            ret[3] = bottom + p.offsetY;
+            ret[4] = right + p.offsetX;
+            ret[5] = top + p.offsetY;
+            ret[6] = left + p.offsetX;
+            ret[7] = top + p.offsetY;
+        } else if (p.rotate == IVideoRender::Rotate::Rotate_270) {
+            float left = (p.oh - pointRect.bottom) * p.scaleW;
+            float top = pointRect.left * p.scaleH;
+            float right = (p.oh - pointRect.top) * p.scaleW;
+            float bottom = pointRect.right * p.scaleH;
+
+            ret[0] = right + p.offsetX;
+            ret[1] = top + p.offsetY;
+            ret[2] = right + p.offsetX;
+            ret[3] = bottom + p.offsetY;
+            ret[4] = left + p.offsetX;
+            ret[5] = top + p.offsetY;
+            ret[6] = left + p.offsetX;
+            ret[7] = bottom + p.offsetY;
+        }
+    };
+
+    if (src.srcTexture == 0) return;
+
+    vt->UseProgram(m_MixshaderProgram);
+
+    vt->UniformMatrix4fv(uMixMatrix, 1, GL_FALSE, (GLfloat *) param.matrix);
+
+    createVertexArray(frame.frame, m_mixVertexArray, param);
+    vt->VertexAttribPointer(aPositionLocation, 2, GL_FLOAT, GL_FALSE, 0, m_mixVertexArray);
+
+    genSrcCoordsArray(m_mixSrcArray, frame.frame.width(), frame.frame.height(), src.w, src.h, src.fitType);
+    vt->VertexAttribPointer(aTextureSrcCoordinatesLocation, 2, GL_FLOAT, GL_FALSE, 0, m_mixSrcArray);
+
+    createTexCoordsArray(param.videoW, param.videoH, frame.mFrame, m_maskArray);
+    if (frame.mt == 90) rotate90(m_maskArray);
+
+    vt->VertexAttribPointer(aTextureMaskCoordinatesLocation, 2, GL_FLOAT, GL_FALSE, 0, m_maskArray);
+
+    vt->ActiveTexture(GL_TEXTURE0);
+    vt->BindTexture(GL_TEXTURE_2D, param.videoTexture);
+    vt->Uniform1i(uTextureMaskUnitLocationImage, 0);
+
+    vt->ActiveTexture(GL_TEXTURE1);
+    vt->BindTexture(GL_TEXTURE_2D, src.srcTexture);
+    vt->Uniform1i(uTextureSrcUnitLocation, 1);
+
+    if (src.srcType == MixSrc::TXT) {
+        vt->Uniform1i(uIsFillLocation, 1);
+        vt->Uniform4f(uColorLocation, src.color[0], src.color[1], src.color[2], src.color[3]);
+    } else {
+        vt->Uniform1i(uIsFillLocation, 0);
+        vt->Uniform4f(uColorLocation, 0.f, 0.f, 0.f, 0.f);
+    }
+
+    vt->Enable(GL_BLEND);
+    vt->BlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    vt->DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    vt->Disable(GL_BLEND);
+}
+
+void MixRenderer::setVapxInfo(const CicadaJSONItem &json)
+{
+    clearMixSrc();
+    CicadaJSONArray arr = json.getItem("src");
+    for (int i = 0; i < arr.getSize(); i++) {
+        CicadaJSONItem obj = arr.getItem(i);
+        m_srcMap.insert({obj.getString("srcId"), MixSrc(obj)});
+    }
+
+    m_allFrames.clear();
+    CicadaJSONArray frameArr = json.getItem("frame");
+    for (int i = 0; i < frameArr.getSize(); i++) {
+        FrameSet s(frameArr.getItem(i));
+        m_allFrames.insert({s.index, s});
+    }
+
+    prepareMixResource();
+}
+
+void MixRenderer::setMixResource(const std::string &rcStr)
+{
+    m_mixResource.clear();
+
+    CicadaJSONItem json(rcStr);
+    m_mixResource = json.getStringMap();
+}
+
+void MixRenderer::genSrcCoordsArray(GLfloat *array, int fw, int fh, int sw, int sh, MixSrc::FitType fitType)
+{
+    if (fitType == MixSrc::CENTER_FULL) {
+        if (fw <= sw && fh <= sh) {
+            int gw = (sw - fw) / 2;
+            int gh = (sh - fh) / 2;
+            createTexCoordsArray(sw, sh, Rect(gw, gh, fw + gw, fh + gh), array);
+        } else {// centerCrop
+            float fScale = fw * 1.0f / fh;
+            float sScale = sw * 1.0f / sh;
+            Rect srcRect;
+            if (fScale > sScale) {
+                int w = sw;
+                int x = 0;
+                int h = (sw / fScale);
+                int y = (sh - h) / 2;
+
+                srcRect = Rect(x, y, w + x, h + y);
+            } else {
+                int h = sh;
+                int y = 0;
+                int w = (sh * fScale);
+                int x = (sw - w) / 2;
+                srcRect = Rect(x, y, w + x, h + y);
+            }
+            createTexCoordsArray(sw, sh, srcRect, array);
+        }
+    } else {
+        createTexCoordsArray(fw, fh, Rect(0, 0, fw, fh), array);
+    }
+}
+
+void MixRenderer::prepareMixResource()
+{
+    for (auto iter = m_srcMap.begin(); iter != m_srcMap.end(); iter++) {
+        MixSrc &mixSrc = iter->second;
+        if (m_mixResource.find(mixSrc.srcTag) == m_mixResource.end()) continue;
+
+        auto resourceStr = m_mixResource[mixSrc.srcTag];
+        if (mixSrc.srcType == MixSrc::IMG) {
+            if (resourceStr.length() != 0) {
+                vt->GenTextures(1, &mixSrc.srcTexture);
+                int w, h, c;
+                auto bytes = stbi_load(resourceStr.c_str(), &w, &h, &c, 4);//rgba
+                vt->BindTexture(GL_TEXTURE_2D, mixSrc.srcTexture);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                vt->PixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                vt->TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+                stbi_image_free(bytes);
+            }
+        } else if (mixSrc.srcType == MixSrc::TXT) {
+#ifdef WIN32
+            Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+            ULONG_PTR gdiplusToken;
+            Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+            {
+                std::unique_ptr<uint8_t> bits(new uint8_t[mixSrc.w * mixSrc.h * 4]);
+                auto *bitmap = new Gdiplus::Bitmap(mixSrc.w, mixSrc.h, 4 * mixSrc.w, PixelFormat32bppARGB, bits.get());
+                auto *graphics = new Gdiplus::Graphics(bitmap);
+
+                graphics->Clear(Gdiplus::Color::Transparent);
+
+                int fs = 65;
+                int style = mixSrc.style == MixSrc::BOLD ? Gdiplus::FontStyleBold : Gdiplus::FontStyleRegular;
+                std::wstring text = CicadaUtils::StringToWideString(resourceStr);
+                Gdiplus::FontFamily fm(L"Microsoft YaHei");
+
+                Gdiplus::StringFormat strformat(Gdiplus::StringFormat::GenericTypographic());
+                strformat.SetAlignment(Gdiplus::StringAlignmentCenter);    //Ë®Æ½ï¿½ï¿½ï¿½ï¿½
+                strformat.SetLineAlignment(Gdiplus::StringAlignmentCenter);//ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½
+                graphics->SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+                graphics->SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+                while (true) {
+                    Gdiplus::RectF boundingBox;
+                    Gdiplus::Font font(&fm, --fs, style, Gdiplus::UnitPixel);
+                    graphics->MeasureString(text.c_str(), (int) text.size() + 1, &font, Gdiplus::PointF(0.0f, 0.0f), &strformat,
+                                            &boundingBox);
+                    if (boundingBox.Width <= (float) mixSrc.w && boundingBox.Height <= (float) mixSrc.h) break;
+
+                    if (fs <= 1) break;
+                }
+
+                auto brush = new Gdiplus::SolidBrush(
+                        Gdiplus::Color(mixSrc.color[3] * 255, mixSrc.color[0] * 255, mixSrc.color[1] * 255, mixSrc.color[2] * 255));
+                auto pfont = new Gdiplus::Font(&fm, fs, style, Gdiplus::UnitPixel);
+                graphics->DrawString(text.c_str(), -1, pfont, Gdiplus::RectF(0, 0, mixSrc.w, mixSrc.h), &strformat, brush);
+
+                vt->GenTextures(1, &mixSrc.srcTexture);
+                vt->BindTexture(GL_TEXTURE_2D, mixSrc.srcTexture);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                vt->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                vt->PixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                vt->TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mixSrc.w, mixSrc.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, bits.get());
+
+                delete pfont;
+                delete bitmap;
+                delete graphics;
+                delete brush;
+            }
+
+            Gdiplus::GdiplusShutdown(gdiplusToken);
+#endif
+        }
+    }
+}
+
+void MixRenderer::clearMixSrc()
+{
+    for (auto iter = m_srcMap.begin(); iter != m_srcMap.end(); iter++) {
+        MixSrc &mixSrc = iter->second;
+        if (mixSrc.srcTexture != 0) {
+            vt->DeleteTextures(1, &mixSrc.srcTexture);
+        }
+    }
+    m_srcMap.clear();
+}
+
 
 GiftEffectRender::GiftEffectRender(opengl_vtable_t *vt, video_format_t *fmt, const std::string &vapInfo, IVideoRender::MaskMode mode,
                                    const std::string &data)
@@ -50,7 +459,7 @@ void GiftEffectRender::draw()
 
     vt->Viewport(0, 0, viewWidth, viewHeight);
 
-    vt->BindBuffer(GL_ARRAY_BUFFER, 0);//ÔÚ²»Ê¹ÓÃvboµÄÇé¿öÏÂ£¬ÕâÀïÐèÒªÖ´ÐÐÕâ¾ä»°£¬·ñÔò»æÖÆ²»³öÀ´¡£
+    vt->BindBuffer(GL_ARRAY_BUFFER, 0);//åœ¨ä¸ä½¿ç”¨vboçš„æƒ…å†µä¸‹ï¼Œè¿™é‡Œéœ€è¦æ‰§è¡Œè¿™å¥è¯ï¼Œå¦åˆ™ç»˜åˆ¶ä¸å‡ºæ¥ã€‚
 
     vt->ActiveTexture(GL_TEXTURE0);
     vt->BindTexture(GL_TEXTURE_2D, videoFrameTexture);
@@ -65,8 +474,23 @@ void GiftEffectRender::draw()
 
     vt->DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-
     vt->UseProgram(0);
+
+    if (mVapConfig && mVapConfig->isMix) {
+        MixRenderer::MixParam param{off_x,
+                                    off_y,
+                                    mScaleWidth,
+                                    mScaleHeight,
+                                    mVapConfig->videoWidth,
+                                    mVapConfig->videoHeight,
+                                    mVapConfig->width,
+                                    mVapConfig->height,
+                                    (GLfloat **) mUProjection,
+                                    videoFrameTexture,
+                                    mRotate};
+
+        mMixRender->renderMix(frameIndex % mVapConfig->totalFrames, param);
+    }
 }
 
 void GiftEffectRender::initPrgm()
@@ -226,9 +650,9 @@ void GiftEffectRender::updateMaskInfo()
                                       alphaArray.getItem(1).getInt() + alphaArray.getItem(3).getInt());
 
     updateTextureCoords();
-    //mMixRender = std::make_unique<MixRenderer>(mPixelFormat);
-    //mMixRender->setMixResource(mMaskVapData);
-    //mMixRender->setVapxInfo(json);
+    mMixRender = std::make_unique<MixRenderer>(vt);
+    mMixRender->setMixResource(mMaskVapData);
+    mMixRender->setVapxInfo(json);
 }
 
 void GiftEffectRender::updateTextureCoords()
