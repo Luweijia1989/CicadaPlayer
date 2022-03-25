@@ -62,7 +62,7 @@ MixRenderer::MixRenderer(opengl_vtable_t *vt) : vt(vt)
 			{
 				v_TextureSrcCoordinates = a_TextureSrcCoordinates;
 				v_TextureMaskCoordinates = a_TextureMaskCoordinates;
-				gl_Position = u_MixMatrix * vec4(a_Position, 0.0, 1.0) * vec4(1.0, -1.0, 1.0, 1.0);
+				gl_Position = u_MixMatrix * vec4(a_Position, 0.0, 1.0) * vec4(1, -1, 1, 1);
 			}
 	)";
 
@@ -82,7 +82,7 @@ MixRenderer::MixRenderer(opengl_vtable_t *vt) : vt(vt)
 
 				float isFill = step(0.5, float(u_isFill));
 				vec4 srcRgbaCal = isFill * vec4(u_Color.r, u_Color.g, u_Color.b, srcRgba.a) + (1.0 - isFill) * srcRgba;
-				gl_FragColor = vec4(srcRgbaCal.r, srcRgbaCal.g, srcRgbaCal.b, srcRgba.a * rgb_rgb.r);
+				gl_FragColor = vec4(srcRgbaCal.r, srcRgbaCal.g, srcRgbaCal.b, srcRgba.a * (rgb_rgb.r - 16.0/255.0));
 			}
 	)";
 
@@ -509,7 +509,7 @@ void GiftEffectRender::initPrgm()
  
 			void main()
 			{
-				gl_Position = u_projection * vec4(position, 0.0, 1.0) * vec4(u_flipMatrix, 1.0, 1.0);
+				gl_Position = u_projection * vec4(position, 0.0, 1.0) * vec4(u_flipMatrix, 1.0, 1.0) * vec4(1, -1, 1, 1);
 				RGBTexCoordVarying = RGBTexCoord;
 				alphaTexCoordVarying = alphaTexCoord;
 			}
@@ -530,7 +530,7 @@ void GiftEffectRender::initPrgm()
     			rgb_rgb = texture2D(SamplerImage, RGBTexCoordVarying).rgb;
     			rgb_alpha = texture2D(SamplerImage, alphaTexCoordVarying).rgb;
     
-    			gl_FragColor = vec4(rgb_rgb,rgb_alpha.r);
+    			gl_FragColor = vec4(rgb_rgb, rgb_alpha.r - 16.0/255.0);
     		}
     		)";
 

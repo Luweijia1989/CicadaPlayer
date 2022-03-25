@@ -348,27 +348,12 @@ void XXQGLRender::renderVideo()
         mVideoRotate = getRotate(mRenderFrame->getInfo().video.rotate);
     }
 
-    Rotate finalRotate = Rotate_None;
-    int tmpRotate = (mRotate + mVideoRotate) % 360;
-
-    if (tmpRotate == 0) {
-        finalRotate = Rotate_None;
-    } else if (tmpRotate == 90) {
-        finalRotate = Rotate_90;
-    } else if (tmpRotate == 180) {
-        finalRotate = Rotate_180;
-    } else if (tmpRotate == 270) {
-        finalRotate = Rotate_270;
-    }
-
     int ret = -1;
-    if (mScreenCleared && mRenderFrame == nullptr) {
-        //do not draw last frame when need clear screen.
-        if (mVideoSurfaceSizeChanged) {
-            mGLRender->clearScreen(mBackgroundColor);
-            mVideoSurfaceSizeChanged = false;
-        }
-    } else {
+    if (mVideoSurfaceSizeChanged && mRenderFrame) {
+        mGLRender->clearScreen(mBackgroundColor);
+        mVideoSurfaceSizeChanged = false;
+    }
+    if (mRenderFrame) {
         mScreenCleared = false;
         auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
         auto info = mRenderFrame->getInfo().video;
@@ -388,7 +373,6 @@ void XXQGLRender::renderVideo()
 
     if (mClearScreenOn) {
         mGLRender->clearScreen(mBackgroundColor);
-        mScreenCleared = true;
         mClearScreenOn = false;
     }
 

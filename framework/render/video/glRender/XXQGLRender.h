@@ -115,7 +115,7 @@ protected:
 
     int mVideoSurfaceWidth = 0;
     int mVideoSurfaceHeight = 0;
-	bool mVideoSurfaceSizeChanged = false;
+	bool mVideoSurfaceSizeChanged = true;
 	std::mutex mRenderCBackMutex;
 	std::function<void(void* vo_opaque)> mRenderCallback = nullptr;
 	std::unique_ptr<IAFFrame> mRenderFrame = nullptr;
