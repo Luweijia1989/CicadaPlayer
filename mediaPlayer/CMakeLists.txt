@@ -260,3 +260,19 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     target_link_libraries(media_player PUBLIC X11)
 endif()
 
+
+function(install_dependency target)
+add_custom_command(TARGET media_player POST_BUILD
+		COMMAND "${CMAKE_COMMAND}" -E copy
+			"C:/Users/posat/Documents/CicadaPlayer/build32/cmdline/mediaPlayer.out/Debug/${target}.pdb"
+			"C:/Users/posat/Documents/CicadaPlayer/build32/qt/Debug/${target}.pdb"
+		VERBATIM)
+add_custom_command(TARGET media_player POST_BUILD
+		COMMAND "${CMAKE_COMMAND}" -E copy
+			"C:/Users/posat/Documents/CicadaPlayer/build32/cmdline/mediaPlayer.out/Debug/${target}.dll"
+			"C:/Users/posat/Documents/CicadaPlayer/build32/qt/Debug/${target}.dll"
+		VERBATIM)
+endfunction()
+
+install_dependency("media_player") 
+endif()
