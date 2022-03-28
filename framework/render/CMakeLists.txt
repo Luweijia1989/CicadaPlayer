@@ -103,9 +103,6 @@ if (WIN32)
     list(APPEND SRC_FILES
                 video/glRender/XXQGLRender.cpp
                 video/glRender/XXQGLRender.h
-				video/glRender/IProgramContext.h
-				video/glRender/XXQprogramContext.cpp
-				video/glRender/XXQprogramContext.h 
 				video/glRender/VAP.h
 				video/glRender/stb_image.h
         )

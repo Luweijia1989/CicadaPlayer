@@ -4,7 +4,6 @@
 #define LOG_TAG "XXQGLRender"
 
 #include "XXQGLRender.h"
-#include "XXQProgramContext.h"
 #include "vlc/GLRender.h"
 #include <base/media/AVAFPacket.h>
 #include <cassert>
@@ -309,16 +308,9 @@ void XXQGLRender::surfaceChanged()
 #endif
 }
 
-// 在qt渲染线程调用
+// 鍦╭t娓叉煋绾跨▼璋冪敤
 void XXQGLRender::renderVideo()
 {
-    //   auto ctx = glloader_current_gl_ctx();
-    //   if (!ctx) return;
-    //   auto cc = wglGetCurrentDC();
-    //   auto hwnd = WindowFromDC(cc);
-    //   AF_LOGD("renderActually .");
-
-
     int64_t renderStartTime = af_getsteady_ms();
 
     {
@@ -330,43 +322,34 @@ void XXQGLRender::renderVideo()
         }
     }
 
-    if (mRenderFrame != nullptr) {
-        mProgramFormat = mRenderFrame->getInfo().video.format;
-        mGLRender = getRender(mProgramFormat, mRenderFrame.get());
-    }
+    if (!mRenderFrame) return;
+
+    mProgramFormat = mRenderFrame->getInfo().video.format;
+    mGLRender = getRender(mProgramFormat, mRenderFrame.get());
 
     if (mGLRender == nullptr) {
         mProgramFormat = -1;
         return;
     }
 
-    int64_t framePts = INT64_MIN;
-
-    if (mRenderFrame != nullptr) {
-        framePts = mRenderFrame->getInfo().pts;
-        mVideoInfo = mRenderFrame->getInfo();
-        mVideoRotate = getRotate(mRenderFrame->getInfo().video.rotate);
-    }
-
-    int ret = -1;
-    if (mVideoSurfaceSizeChanged && mRenderFrame) {
+    if (mVideoSurfaceSizeChanged) {
         mGLRender->clearScreen(mBackgroundColor);
         mVideoSurfaceSizeChanged = false;
     }
-    if (mRenderFrame) {
-        mScreenCleared = false;
-        auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
-        auto info = mRenderFrame->getInfo().video;
 
-        mMaskInfoMutex.lock();
-        ret = mGLRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, mRenderFrame->getInfo().video.frameIndex, mRotate, mScale,
+    auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
+    auto info = mRenderFrame->getInfo().video;
+
+    mMaskInfoMutex.lock();
+    int ret = mGLRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, mRenderFrame->getInfo().video.frameIndex, mRotate, mScale,
                                         mFlip, (video_format_t *) info.vlc_fmt, mVideoSurfaceWidth, mVideoSurfaceHeight);
-        mMaskInfoMutex.unlock();
-    }
+    mMaskInfoMutex.unlock();
+
 
     if (ret == 0) {
         //if frame not change, don`t need present surface
         if (mListener) {
+            mVideoInfo = mRenderFrame->getInfo();
             mListener->onFrameInfoUpdate(mVideoInfo, true);
         }
     }

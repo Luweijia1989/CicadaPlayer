@@ -102,7 +102,6 @@ private:
 
 protected:
 
-    std::atomic<Rotate> mVideoRotate{Rotate_None};
     std::atomic<Rotate> mRotate{Rotate_None};
     std::atomic<Flip> mFlip{Flip_None};
     std::atomic<Scale> mScale{Scale_AspectFit};
@@ -147,7 +146,6 @@ private:
     int mProgramFormat = -1;
 
     bool mClearScreenOn = false;
-    bool mScreenCleared = false;
     IAFFrame::AFFrameInfo mVideoInfo{};
 
     std::atomic_bool bFlushAsync{false};
