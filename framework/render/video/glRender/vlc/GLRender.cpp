@@ -94,7 +94,7 @@ GLRender::GLRender(video_format_t *format) : fmt(*format)
 
 GLRender::~GLRender()
 {
-	assert(glBase->makeCurrent());
+    assert(glBase->makeCurrent());
 
     if (giftEffectRender) delete giftEffectRender;
 
@@ -102,16 +102,18 @@ GLRender::~GLRender()
         const size_t main_tex_count = textureConvter->tex_count;
         const bool main_del_texs = !textureConvter->handle_texs_gen;
 
-        vt.DeleteBuffers(main_tex_count, texture_buffer_object);
+        if (vt.DeleteBuffers) vt.DeleteBuffers(main_tex_count, texture_buffer_object);
 
-        if (main_del_texs) vt.DeleteTextures(main_tex_count, texture);
+        if (main_del_texs && vt.DeleteTextures) vt.DeleteTextures(main_tex_count, texture);
     }
-    vt.DeleteBuffers(1, &vertex_buffer_object);
-    vt.DeleteBuffers(1, &index_buffer_object);
+    if (vt.DeleteBuffers) {
+        vt.DeleteBuffers(1, &vertex_buffer_object);
+        vt.DeleteBuffers(1, &index_buffer_object);
+    }
 
     destroyShaderProgram();
 
-	glBase->releaseCurrent();
+    glBase->releaseCurrent();
 
     delete glBase;
 }
@@ -207,7 +209,7 @@ bool GLRender::initGL()
     GET_PROC_ADDR(BindVertexArray, PFNGLBINDVERTEXARRAYPROC);
     GET_PROC_ADDR(DeleteVertexArrays, PFNGLDELETEVERTEXARRAYSPROC);
 
-	GET_PROC_ADDR(BlendFuncSeparate, PFNGLBLENDFUNCSEPARATEPROC);
+    GET_PROC_ADDR(BlendFuncSeparate, PFNGLBLENDFUNCSEPARATEPROC);
 
     GET_PROC_ADDR(GenFramebuffers, PFNGLGENFRAMEBUFFERSPROC);
     GET_PROC_ADDR(DeleteFramebuffers, PFNGLDELETEFRAMEBUFFERSPROC);
@@ -386,7 +388,7 @@ int GLRender::initShaderProgram()
     }
     if (desc->plane_count == 0) {
         textureConvter = new D3D9TextureConverter(fmt.extra_info);
-		gpu_decoded = true;
+        gpu_decoded = true;
     } else
         textureConvter = new GLSoftwareTextureConverter();
 
@@ -746,8 +748,8 @@ int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode 
     if (giftEffectRender) {
         giftEffectRender->setViewSize(viewWidth, viewHeight);
         giftEffectRender->setTransformInfo(rotate, scale, flip);
-		giftEffectRender->setFrameIndex(frameIndex);
-		giftEffectRender->setGpuDecoded(gpu_decoded);
+        giftEffectRender->setFrameIndex(frameIndex);
+        giftEffectRender->setGpuDecoded(gpu_decoded);
 
         FBOBindHelper helper(giftEffectRender);
         displayGLFrameInternal(source, viewWidth, viewHeight, true);

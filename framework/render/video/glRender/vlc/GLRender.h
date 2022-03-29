@@ -117,7 +117,7 @@ private:
     OpenGLTextureConverter *textureConvter = nullptr;
     GiftEffectRender *giftEffectRender = nullptr;
 
-    opengl_vtable_t vt;
+    opengl_vtable_t vt = {0};
     video_format_t fmt = {0};
     const char *extensions;
 
