@@ -47,6 +47,18 @@ public:
 		Mask_Down,
 	};
 
+	struct RenderInfo {
+		std::unique_ptr<GLRender> render = nullptr;
+		std::weak_ptr<IAFFrame> videoFrame;
+		std::function<void(void* vo_opaque)> cb = nullptr;
+		int surfaceWidth = 0;
+		int surfaceHeight = 0;
+		bool surfaceSizeChanged = 0;
+		bool clearScreen = false;
+
+		void reset();
+	};
+
     static Rotate getRotate(int value)
     {
         switch (value) {
@@ -224,7 +236,8 @@ protected:
     videoRenderingFrameCB mRenderingCb{nullptr};
     void *mRenderingCbUserData{nullptr};
 
-	static std::map<void *, std::map<int, std::unique_ptr<GLRender>>> mRenders;
+	static std::mutex renderMutex;
+	static std::map<void *, RenderInfo> mRenders;
 };
 
 

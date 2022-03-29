@@ -48,7 +48,11 @@ int XXQGLRender::init()
 int XXQGLRender::clearScreen()
 {
     AF_LOGD("-----> clearScreen");
-    mClearScreenOn = true;
+    std::unique_lock<std::mutex> locker(renderMutex);
+    for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
+        RenderInfo &info = iter->second;
+        info.clearScreen = true;
+    }
     return 0;
 }
 
@@ -167,10 +171,20 @@ int XXQGLRender::onVsyncInner(int64_t tick)
                 }
             }
         }
-    }
 
-    std::unique_lock<mutex> lock(mRenderCBackMutex);
-    if (mRenderCallback) mRenderCallback(this);
+        if (!mInputQueue.empty()) {
+            mRenderFrame = move(mInputQueue.front());
+            mInputQueue.pop();
+        }
+
+        std::unique_lock<mutex> lock(renderMutex);
+        for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
+            RenderInfo &renderInfo = iter->second;
+            renderInfo.videoFrame = mRenderFrame;
+
+            if (renderInfo.cb) renderInfo.cb(this);
+        }
+    }
 
     mRenderCount++;
 
@@ -266,25 +280,6 @@ void *XXQGLRender::getSurface(bool cached)
     return nullptr;
 }
 
-GLRender *XXQGLRender::getRender(int frameFormat, IAFFrame *frame)
-{
-    if (mRenders.count(this) > 0) {
-        std::map<int, std::unique_ptr<GLRender>> &program = mRenders[this];
-        if (program.count(frameFormat) > 0) {
-            GLRender *render = program[frameFormat].get();
-            return render;
-        }
-    }
-
-    std::unique_ptr<GLRender> render = std::make_unique<GLRender>((video_format_t *) frame->getInfo().video.vlc_fmt);
-    if (!render->initGL()) return nullptr;
-
-    std::map<int, std::unique_ptr<GLRender>> &program = mRenders[this];
-    program[frameFormat] = std::move(render);
-    return program[frameFormat].get();
-}
-
-
 void XXQGLRender::setSpeed(float speed)
 {
     mRenderClock.setSpeed(speed);
@@ -308,55 +303,68 @@ void XXQGLRender::surfaceChanged()
 #endif
 }
 
-// 在qt渲染线程调用
+// renderVideo setVideoSurfaceSize clearGLSource foreignGLContextDestroyed should call in same thread
 void XXQGLRender::renderVideo()
 {
+    RenderInfo *info = nullptr;
+    {
+        std::unique_lock<std::mutex> renderLocker(renderMutex);
+        info = &mRenders[this];
+    }
+
     int64_t renderStartTime = af_getsteady_ms();
 
+    std::shared_ptr<IAFFrame> toRender = nullptr;
     {
         std::unique_lock<std::mutex> locker(mFrameMutex);
 
-        if (!mInputQueue.empty()) {
-            mRenderFrame = move(mInputQueue.front());
-            mInputQueue.pop();
+        if (info->videoFrame.lock()) {
+            toRender = info->videoFrame.lock();
         }
     }
 
-    if (!mRenderFrame) return;
-
-    mProgramFormat = mRenderFrame->getInfo().video.format;
-    mGLRender = getRender(mProgramFormat, mRenderFrame.get());
-
-    if (mGLRender == nullptr) {
-        mProgramFormat = -1;
+    if (!toRender) {
         return;
     }
 
-    if (mVideoSurfaceSizeChanged) {
-        mGLRender->clearScreen(mBackgroundColor);
-        mVideoSurfaceSizeChanged = false;
+    GLRender *glRender = nullptr;
+    if (!info->render) {
+        std::unique_ptr<GLRender> render = std::make_unique<GLRender>((video_format_t *) toRender->getInfo().video.vlc_fmt);
+        if (render->initGL()) info->render = move(render);
     }
 
-    auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
-    auto info = mRenderFrame->getInfo().video;
+    glRender = info->render.get();
+
+    if (glRender == nullptr) return;
+
+    if (info->surfaceSizeChanged) {
+        glRender->clearScreen(mBackgroundColor);
+        info->surfaceSizeChanged = false;
+    }
+
+    auto frame = ((AVAFFrame *) toRender.get())->ToAVFrame();
+    auto videoInfo = toRender->getInfo().video;
 
     mMaskInfoMutex.lock();
-    int ret = mGLRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, mRenderFrame->getInfo().video.frameIndex, mRotate, mScale,
-                                        mFlip, (video_format_t *) info.vlc_fmt, mVideoSurfaceWidth, mVideoSurfaceHeight);
+    int ret = glRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, toRender->getInfo().video.frameIndex, mRotate, mScale,
+                                       mFlip, (video_format_t *) videoInfo.vlc_fmt, info->surfaceWidth, info->surfaceHeight);
     mMaskInfoMutex.unlock();
 
 
     if (ret == 0) {
         //if frame not change, don`t need present surface
         if (mListener) {
-            mVideoInfo = mRenderFrame->getInfo();
+            mVideoInfo = toRender->getInfo();
             mListener->onFrameInfoUpdate(mVideoInfo, true);
         }
     }
 
-    if (mClearScreenOn) {
-        mGLRender->clearScreen(mBackgroundColor);
-        mClearScreenOn = false;
+    {
+        std::unique_lock<std::mutex> renderLocker(renderMutex);
+        if (info->clearScreen) {
+            glRender->clearScreen(mBackgroundColor);
+            info->clearScreen = false;
+        }
     }
 
     int64_t end = af_getsteady_ms();
@@ -371,19 +379,33 @@ void XXQGLRender::renderVideo()
 void XXQGLRender::setVideoSurfaceSize(int width, int height)
 {
     AF_LOGD("enter setVideoSurfaceSize, width = %d, height = %d.", width, height);
-    if (mVideoSurfaceWidth == width && mVideoSurfaceHeight == height) return;
 
-    mVideoSurfaceWidth = width;
-    mVideoSurfaceHeight = height;
-    mVideoSurfaceSizeChanged = true;
+    std::unique_lock<mutex> lock(renderMutex);
+
+    RenderInfo &renderInfo = mRenders[this];
+    if (renderInfo.surfaceWidth == width && renderInfo.surfaceHeight == height) return;
+
+    renderInfo.surfaceWidth = width;
+    renderInfo.surfaceHeight = height;
+    renderInfo.surfaceSizeChanged = true;
 }
 
 void XXQGLRender::setRenderCallback(std::function<void(void *vo_opaque)> cb)
 {
     AF_LOGD("enter setRenderCallback.");
 
-    std::unique_lock<mutex> lock(mRenderCBackMutex);
-    mRenderCallback = cb;
+    std::unique_lock<mutex> lock(renderMutex);
+
+    RenderInfo &renderInfo = mRenders[this];
+    renderInfo.cb = cb;
+}
+
+void XXQGLRender::clearGLResource()
+{
+    std::unique_lock<mutex> lock(renderMutex);
+
+    RenderInfo &renderInfo = mRenders[this];
+    renderInfo.reset();
 }
 
 void XXQGLRender::setMaskMode(MaskMode mode, const std::string &data)
@@ -397,9 +419,4 @@ void XXQGLRender::setVapInfo(const std::string &info)
 {
     std::unique_lock<std::mutex> locker(mMaskInfoMutex);
     mMaskVapInfo = info;
-}
-
-void XXQGLRender::clearGLResource()
-{
-    mRenders.erase(this);
 }

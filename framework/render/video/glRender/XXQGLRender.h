@@ -96,8 +96,6 @@ private:
 
     void calculateFPS(int64_t tick);
 
-    GLRender *getRender(int frameFormat, IAFFrame *frame = nullptr);
-
     int onVsyncInner(int64_t tick);
 
 protected:
@@ -112,17 +110,11 @@ protected:
 	std::string mMaskVapData{};
 	std::string mMaskVapInfo{};
 
-    int mVideoSurfaceWidth = 0;
-    int mVideoSurfaceHeight = 0;
-	bool mVideoSurfaceSizeChanged = true;
-	std::mutex mRenderCBackMutex;
-	std::function<void(void* vo_opaque)> mRenderCallback = nullptr;
-	std::unique_ptr<IAFFrame> mRenderFrame = nullptr;
-
 private:
     std::mutex mInitMutex;
     std::mutex mFrameMutex;
     std::queue<std::unique_ptr<IAFFrame>> mInputQueue;
+	std::shared_ptr<IAFFrame> mRenderFrame = nullptr;
 //    std::unique_ptr<IAFFrame> mLastRenderFrame = nullptr;
     std::mutex mViewMutex;
     void *mDisplayView = nullptr;
@@ -142,10 +134,6 @@ private:
     int64_t mVSyncPeriod;
     af_scalable_clock mRenderClock;
 
-    GLRender *mGLRender = nullptr;
-    int mProgramFormat = -1;
-
-    bool mClearScreenOn = false;
     IAFFrame::AFFrameInfo mVideoInfo{};
 
     std::atomic_bool bFlushAsync{false};
