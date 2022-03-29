@@ -3570,9 +3570,6 @@ bool SuperMediaPlayer::CreateVideoRender(uint64_t flags)
     // lock mAppStatusMutex before mCreateMutex
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
 
-	if (mSet->videoSurfaceWidth == -1 && mSet->videoSurfaceHeight == -1)
-		return false;
-
     mAVDeviceManager->createVideoRender(flags);
     if (!mAVDeviceManager->getVideoRender()) {
         return false;
@@ -3594,9 +3591,12 @@ bool SuperMediaPlayer::CreateVideoRender(uint64_t flags)
 
 	mAVDeviceManager->getVideoRender()->setMaskMode(mSet->maskMode, mSet->maskData);
 	mAVDeviceManager->getVideoRender()->setVapInfo(mDataSource->getVapData());
-	mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(mSet->videoSurfaceWidth, mSet->videoSurfaceHeight);
-	if (mSet->renderCallback)
-		mAVDeviceManager->getVideoRender()->setRenderCallback(mSet->renderCallback);
+	for (auto iter = mSet->renderInfos.begin(); iter != mSet->renderInfos.end(); iter++) {
+		const Cicada::player_type_set::RenderInfo &info = iter->second;
+		mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(info.videoSurfaceWidth, info.videoSurfaceHeight, iter->first);
+		if (info.renderCallback)
+			mAVDeviceManager->getVideoRender()->setRenderCallback(info.renderCallback, iter->first);
+	}
 
     return true;
 }
@@ -4006,35 +4006,35 @@ float SuperMediaPlayer::getCurrentDownloadSpeed()
     return mUtil->getCurrentDownloadSpeed();
 }
 
-void SuperMediaPlayer::renderVideo()
+void SuperMediaPlayer::renderVideo(void *vo)
 {
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
 
 	if (mAVDeviceManager->isVideoRenderValid()) {
-        mAVDeviceManager->getVideoRender()->renderVideo();
+        mAVDeviceManager->getVideoRender()->renderVideo(vo);
     }
 }
 
-void SuperMediaPlayer::setVideoSurfaceSize(int width, int height)
+void SuperMediaPlayer::setVideoSurfaceSize(int width, int height, void *vo)
 {
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
 
     if (mAVDeviceManager->isVideoRenderValid()) {
-        mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(width, height);
+        mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(width, height, vo);
     } else {
-		mSet->videoSurfaceWidth = width;
-		mSet->videoSurfaceHeight = height;
+		mSet->renderInfos[vo].videoSurfaceWidth = width;
+		mSet->renderInfos[vo].videoSurfaceHeight = height;
 	}
 }
 
-void SuperMediaPlayer::setRenderCallback(std::function<void(void * vo_opaque)> cb)
+void SuperMediaPlayer::setRenderCallback(std::function<void(void * vo_opaque)> cb, void *vo)
 {
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
 
     if (mAVDeviceManager->isVideoRenderValid()) {
-        mAVDeviceManager->getVideoRender()->setRenderCallback(cb);
+        mAVDeviceManager->getVideoRender()->setRenderCallback(cb, vo);
     } else
-		mSet->renderCallback = cb;
+		mSet->renderInfos[vo].renderCallback = cb;
 }
 
 void SuperMediaPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string& data)
@@ -4049,12 +4049,12 @@ void SuperMediaPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::strin
 	}
 }		
 
-void SuperMediaPlayer::clearGLResource()
+void SuperMediaPlayer::clearGLResource(void *vo)
 {
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
 
     if (mAVDeviceManager->isVideoRenderValid()) {
-        mAVDeviceManager->getVideoRender()->clearGLResource();
+        mAVDeviceManager->getVideoRender()->clearGLResource(vo);
     }
 }
 

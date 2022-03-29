@@ -3,7 +3,6 @@
 
 #include <QOpenGLFunctions>
 #include <QOpenGLWidget>
-#include "MediaPlayer.h"
 
 class QOpenGLVertexArrayObject;
 class QOpenGLBuffer;
@@ -12,11 +11,13 @@ class QOpenGLShaderProgram;
 class QOpenGLFramebufferObject;
 class QOpenGLTexture;
 
-using namespace Cicada;
+namespace Cicada {
+    class MediaPlayer;
+}
 class OpenGLWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
-    OpenGLWidget();
-	~OpenGLWidget();
+    OpenGLWidget(const std::shared_ptr<Cicada::MediaPlayer> &p);
+    ~OpenGLWidget();
 
 protected:
     virtual void initializeGL();
@@ -24,7 +25,7 @@ protected:
     virtual void paintGL();
 
 private:
-	std::shared_ptr<MediaPlayer> player;
+    std::shared_ptr<Cicada::MediaPlayer> player;
 };
 
 #endif// OPENGLWIDGET_H

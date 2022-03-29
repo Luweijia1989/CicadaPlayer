@@ -1,44 +1,27 @@
 #include "glwidget.h"
+#include "MediaPlayer.h"
 #include <QOpenGLBuffer>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
+#include <qtimer.h>
 
-OpenGLWidget::OpenGLWidget()
+using namespace Cicada;
+OpenGLWidget::OpenGLWidget(const std::shared_ptr<MediaPlayer> &p) : player(p)
 {
-    //   setAttribute(Qt::WA_TranslucentBackground);
-    //setWindowFlag(Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
+    setWindowFlag(Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_DeleteOnClose);
+    player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
 
-    player = std::shared_ptr<MediaPlayer>(new MediaPlayer());
-
-    player->setVideoSurfaceSize(1, 1);
-    player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); });
-    //player->setMaskMode(IVideoRender::Mask_Right, u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
-    player->SetRotateMode(ROTATE_MODE_0);
-    player->SetScaleMode(SM_FIT);
-
-    //player->SetSpeed(0.5);
-    player->SetDefaultBandWidth(1000 * 1000);
-    //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
-    //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("C:\\Users\\posat\\Desktop\\7p.mp4");
-    player->SetAutoPlay(true);
-    player->SetLoop(true);
-    player->SetIPResolveType(IpResolveWhatEver);
-    player->SetFastStart(true);
-    MediaPlayerConfig config = *(player->GetConfig());
-    config.mMaxBackwardBufferDuration = 20000;
-    config.liveStartIndex = -3;
-    player->SetConfig(&config);
-    player->Prepare();
-    player->SelectTrack(-1);
+	//QTimer::singleShot(300, [=]() {deleteLater();});
 }
 
 OpenGLWidget::~OpenGLWidget()
 {
-    player->setRenderCallback(nullptr);
+    player->setRenderCallback(nullptr, this);
     //player->clearGLResource();
 }
 
@@ -51,20 +34,20 @@ void OpenGLWidget::initializeGL()
                 auto cc = context()->currentContext();
                 auto sp = wp.lock();
                 if (!sp) {
-                    sp->foreignGLContextDestroyed();
+                    sp->foreignGLContextDestroyed(this);
                     return;
                 }
-                sp->clearGLResource();
+                sp->clearGLResource(this);
             },
             Qt::DirectConnection);
 }
 
 void OpenGLWidget::resizeGL(int w, int h)
 {
-    player->setVideoSurfaceSize(w * devicePixelRatio(), h * devicePixelRatio());
+    player->setVideoSurfaceSize(w * devicePixelRatio(), h * devicePixelRatio(), this);
 }
 
 void OpenGLWidget::paintGL()
 {
-    player->renderVideo();
+    player->renderVideo(this);
 }

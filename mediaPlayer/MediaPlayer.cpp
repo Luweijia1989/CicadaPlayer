@@ -1199,22 +1199,22 @@ namespace Cicada {
         return CicadaGetPlayerName(handle);
     }
 
-	void MediaPlayer::renderVideo()
+	void MediaPlayer::renderVideo(void *vo)
 	{
 		GET_PLAYER_HANDLE;
-		CicadaRenderVideo(handle);
+		CicadaRenderVideo(handle, vo);
 	}
 
-	void MediaPlayer::setVideoSurfaceSize(int width, int height)
+	void MediaPlayer::setVideoSurfaceSize(int width, int height, void *vo)
 	{
 		GET_PLAYER_HANDLE;
-		CicadaSetVideoSurfaceSize(handle, width, height);
+		CicadaSetVideoSurfaceSize(handle, width, height, vo);
 	}
 
-	void MediaPlayer::setRenderCallback(std::function<void(void* vo_opaque)> cb)
+	void MediaPlayer::setRenderCallback(std::function<void(void* vo_opaque)> cb, void *vo)
 	{
 		GET_PLAYER_HANDLE;
-		CicadaSetRenderCallback(handle, cb);
+		CicadaSetRenderCallback(handle, cb, vo);
 	}
 
 	void MediaPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string& data /* = nullptr */)
@@ -1223,14 +1223,14 @@ namespace Cicada {
 		CicadaSetMaskMode(handle, mode, data);
 	}
 
-	void MediaPlayer::clearGLResource()
+	void MediaPlayer::clearGLResource(void *vo)
 	{
 		GET_PLAYER_HANDLE;
-		CicadaClearGLResource(handle);
+		CicadaClearGLResource(handle, vo);
 	}
 
-	void MediaPlayer::foreignGLContextDestroyed()
+	void MediaPlayer::foreignGLContextDestroyed(void *vo)
 	{
-		IVideoRender::foreignGLContextDestroyed();
+		IVideoRender::foreignGLContextDestroyed(vo);
 	}
 }

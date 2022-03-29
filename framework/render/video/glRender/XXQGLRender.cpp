@@ -304,12 +304,12 @@ void XXQGLRender::surfaceChanged()
 }
 
 // renderVideo setVideoSurfaceSize clearGLSource foreignGLContextDestroyed should call in same thread
-void XXQGLRender::renderVideo()
+void XXQGLRender::renderVideo(void *vo)
 {
     RenderInfo *info = nullptr;
     {
         std::unique_lock<std::mutex> renderLocker(renderMutex);
-        info = &mRenders[this];
+        info = &mRenders[vo];
     }
 
     int64_t renderStartTime = af_getsteady_ms();
@@ -376,13 +376,13 @@ void XXQGLRender::renderVideo()
     AF_LOGD(" cost time : render = %d ms", (af_getsteady_ms() - renderStartTime));
 }
 
-void XXQGLRender::setVideoSurfaceSize(int width, int height)
+void XXQGLRender::setVideoSurfaceSize(int width, int height, void *vo)
 {
     AF_LOGD("enter setVideoSurfaceSize, width = %d, height = %d.", width, height);
 
     std::unique_lock<mutex> lock(renderMutex);
 
-    RenderInfo &renderInfo = mRenders[this];
+    RenderInfo &renderInfo = mRenders[vo];
     if (renderInfo.surfaceWidth == width && renderInfo.surfaceHeight == height) return;
 
     renderInfo.surfaceWidth = width;
@@ -390,21 +390,21 @@ void XXQGLRender::setVideoSurfaceSize(int width, int height)
     renderInfo.surfaceSizeChanged = true;
 }
 
-void XXQGLRender::setRenderCallback(std::function<void(void *vo_opaque)> cb)
+void XXQGLRender::setRenderCallback(std::function<void(void *vo_opaque)> cb, void *vo)
 {
     AF_LOGD("enter setRenderCallback.");
 
     std::unique_lock<mutex> lock(renderMutex);
 
-    RenderInfo &renderInfo = mRenders[this];
+    RenderInfo &renderInfo = mRenders[vo];
     renderInfo.cb = cb;
 }
 
-void XXQGLRender::clearGLResource()
+void XXQGLRender::clearGLResource(void *vo)
 {
     std::unique_lock<mutex> lock(renderMutex);
 
-    RenderInfo &renderInfo = mRenders[this];
+    RenderInfo &renderInfo = mRenders[vo];
     renderInfo.reset();
 }
 

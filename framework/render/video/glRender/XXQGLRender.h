@@ -66,12 +66,12 @@ public:
         return 0;
     };
 
-	void renderVideo() override;
-	void setVideoSurfaceSize(int width, int height) override;
-	void setRenderCallback(std::function<void(void * vo_opaque)> cb) override;
+	void renderVideo(void *vo) override;
+	void setVideoSurfaceSize(int width, int height, void *vo) override;
+	void setRenderCallback(std::function<void(void * vo_opaque)> cb, void *vo) override;
 	void setMaskMode(MaskMode mode, const std::string& data) override;
 	void setVapInfo(const std::string& info) override;
-	void clearGLResource() override;
+	void clearGLResource(void *vo) override;
 
 private:
     int onVSync(int64_t tick) override;

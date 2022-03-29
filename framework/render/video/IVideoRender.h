@@ -220,13 +220,13 @@ public:
         mRenderingCbUserData = userData;
     }
 
-	virtual void renderVideo() {}
-	virtual void setVideoSurfaceSize(int width, int height) {}
-	virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb) {}
+	virtual void renderVideo(void *vo) {}
+	virtual void setVideoSurfaceSize(int width, int height, void *vo) {}
+	virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb, void *vo) {}
 	virtual void setMaskMode(MaskMode mode, const std::string& data) {}
 	virtual void setVapInfo(const std::string& info) {}
-	virtual void clearGLResource() {}
-	static void foreignGLContextDestroyed();
+	virtual void clearGLResource(void *vo) {}
+	static void foreignGLContextDestroyed(void *vo);
 
 protected:
     IVideoRenderFilter *mFilter{};

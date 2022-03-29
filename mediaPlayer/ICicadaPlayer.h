@@ -267,11 +267,11 @@ namespace Cicada {
 
         virtual float getCurrentDownloadSpeed() = 0;
 
-		virtual void renderVideo() = 0;
-		virtual void setVideoSurfaceSize(int width, int height) = 0;
-		virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb) = 0;
+		virtual void renderVideo(void *vo) = 0;
+		virtual void setVideoSurfaceSize(int width, int height, void *vo) = 0;
+		virtual void setRenderCallback(std::function<void(void* vo_opaque)> cb, void *vo) = 0;
 		virtual void setMaskMode(IVideoRender::MaskMode mode, const std::string& data) = 0;
-		virtual void clearGLResource() = 0;
+		virtual void clearGLResource(void *vo) = 0;
 
     protected:
         playerMediaFrameCb mMediaFrameCb = nullptr;

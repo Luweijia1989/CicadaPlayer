@@ -224,11 +224,11 @@ namespace Cicada {
 
         float getCurrentDownloadSpeed() override;
 
-		void renderVideo() override;
-		void setVideoSurfaceSize(int width, int height) override;
-		void setRenderCallback(std::function<void(void* vo_opaque)> cb) override;
+		void renderVideo(void *vo) override;
+		void setVideoSurfaceSize(int width, int height, void *vo) override;
+		void setRenderCallback(std::function<void(void* vo_opaque)> cb, void *vo) override;
 		void setMaskMode(IVideoRender::MaskMode mode, const std::string& data) override;
-		void clearGLResource() override;
+		void clearGLResource(void *vo) override;
 
     private:
         void NotifyPosition(int64_t position);

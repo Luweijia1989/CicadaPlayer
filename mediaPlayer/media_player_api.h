@@ -297,10 +297,10 @@ void CicadaSetDrmRequestCallback(playerHandle *player, const std::function<Cicad
 
 std::string CicadaGetPlayerName(playerHandle *player);
 
-void CicadaRenderVideo(playerHandle *player);
-void CicadaSetVideoSurfaceSize(playerHandle *player, int width, int height);
-void CicadaSetRenderCallback(playerHandle *player, std::function<void(void* vo_opaque)> cb);
+void CicadaRenderVideo(playerHandle *player, void *vo);
+void CicadaSetVideoSurfaceSize(playerHandle *player, int width, int height, void *vo);
+void CicadaSetRenderCallback(playerHandle *player, std::function<void(void* vo_opaque)> cb, void *vo);
 void CicadaSetMaskMode(playerHandle *player, IVideoRender::MaskMode mode, const std::string& data);
-void CicadaClearGLResource(playerHandle *player);
+void CicadaClearGLResource(playerHandle *player, void *vo);
 
 #endif // CICADA_PLAYER_H_

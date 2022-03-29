@@ -355,12 +355,12 @@ namespace Cicada {
 
         string GetPlayerSessionId();
 
-		void renderVideo();
-		void setVideoSurfaceSize(int width, int height);
-		void setRenderCallback(std::function<void(void* vo_opaque)> cb);
+		void renderVideo(void *vo);
+		void setVideoSurfaceSize(int width, int height, void *vo);
+		void setRenderCallback(std::function<void(void* vo_opaque)> cb, void *vo);
 		void setMaskMode(IVideoRender::MaskMode mode, const std::string& data = std::string());
-		void clearGLResource();
-		static void foreignGLContextDestroyed();
+		void clearGLResource(void *vo);
+		static void foreignGLContextDestroyed(void *vo);
 
     private:
         static void preparedCallback(void *userData);

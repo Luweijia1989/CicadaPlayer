@@ -729,25 +729,25 @@ std::string CicadaGetPlayerName(playerHandle *pHandle)
     return "";
 }
 
-void CicadaRenderVideo(playerHandle *pHandle)
+void CicadaRenderVideo(playerHandle *pHandle, void *vo)
 {
 	GET_PLAYER;
 	if (player)
-		player->renderVideo();
+		player->renderVideo(vo);
 }
 
-void CicadaSetVideoSurfaceSize(playerHandle *pHandle, int width, int height)
+void CicadaSetVideoSurfaceSize(playerHandle *pHandle, int width, int height, void *vo)
 {
     GET_PLAYER;
     if (player)
-		player->setVideoSurfaceSize(width, height);
+		player->setVideoSurfaceSize(width, height, vo);
 }
 
-void CicadaSetRenderCallback(playerHandle *pHandle, std::function<void(void* vo_opaque)> cb)
+void CicadaSetRenderCallback(playerHandle *pHandle, std::function<void(void* vo_opaque)> cb, void *vo)
 {
     GET_PLAYER;
     if (player)
-		player->setRenderCallback(cb);
+		player->setRenderCallback(cb, vo);
 }
 
 void CicadaSetMaskMode(playerHandle *pHandle, IVideoRender::MaskMode mode, const std::string& data)
@@ -757,9 +757,9 @@ void CicadaSetMaskMode(playerHandle *pHandle, IVideoRender::MaskMode mode, const
 		player->setMaskMode(mode, data);
 }
 
-void CicadaClearGLResource(playerHandle *pHandle)
+void CicadaClearGLResource(playerHandle *pHandle, void *vo)
 {
 	GET_PLAYER;
 	if (player)
-		player->clearGLResource();
+		player->clearGLResource(vo);
 }

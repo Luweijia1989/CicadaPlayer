@@ -23,6 +23,12 @@ namespace Cicada {
 
         void reset();
 
+		struct RenderInfo {
+			int videoSurfaceWidth;
+			int videoSurfaceHeight;
+			std::function<void(void * vo_opaque)> renderCallback = nullptr;
+		};
+
     public:
         int64_t startBufferDuration = 0;
         int64_t highLevelBufferDuration = 0;
@@ -67,11 +73,9 @@ namespace Cicada {
         string sessionId{};
         int netWorkRetryCount{0};
 
-		int videoSurfaceWidth = 0;
-		int videoSurfaceHeight = 0;
-		std::function<void(void * vo_opaque)> renderCallback = nullptr;
 		IVideoRender::MaskMode maskMode = IVideoRender::Mask_None;
 		std::string maskData;
+		std::map<void *, RenderInfo> renderInfos;
     };
 }
 

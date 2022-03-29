@@ -10,8 +10,10 @@ void IVideoRender::RenderInfo::reset()
     videoFrame.reset();
 }
 
-void IVideoRender::foreignGLContextDestroyed()
+void IVideoRender::foreignGLContextDestroyed(void *vo)
 {
     std::unique_lock<std::mutex> lock(renderMutex);
-    mRenders.clear();
+
+	RenderInfo &info = mRenders[vo];
+    info.reset();
 }
