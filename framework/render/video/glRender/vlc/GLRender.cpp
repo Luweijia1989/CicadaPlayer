@@ -94,7 +94,7 @@ GLRender::GLRender(video_format_t *format) : fmt(*format)
 
 GLRender::~GLRender()
 {
-    assert(glBase->makeCurrent());
+	assert(glBase->checkCurrent());
 
     if (giftEffectRender) delete giftEffectRender;
 
@@ -112,8 +112,6 @@ GLRender::~GLRender()
     }
 
     destroyShaderProgram();
-
-    glBase->releaseCurrent();
 
     delete glBase;
 }

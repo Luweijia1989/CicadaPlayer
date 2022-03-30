@@ -172,18 +172,13 @@ int XXQGLRender::onVsyncInner(int64_t tick)
             }
         }
 
-        if (!mInputQueue.empty()) {
-            mRenderFrame = move(mInputQueue.front());
-            mInputQueue.pop();
-        }
-
         std::unique_lock<mutex> lock(renderMutex);
         for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
             RenderInfo &renderInfo = iter->second;
-            renderInfo.videoFrame = mRenderFrame;
-
             if (renderInfo.cb) renderInfo.cb(this);
         }
+
+        updateRenderFrame = true;
     }
 
     mRenderCount++;
@@ -314,22 +309,23 @@ void XXQGLRender::renderVideo(void *vo)
 
     int64_t renderStartTime = af_getsteady_ms();
 
-    std::shared_ptr<IAFFrame> toRender = nullptr;
     {
         std::unique_lock<std::mutex> locker(mFrameMutex);
 
-        if (info->videoFrame.lock()) {
-            toRender = info->videoFrame.lock();
+        if (updateRenderFrame && !mInputQueue.empty()) {
+            mRenderFrame = move(mInputQueue.front());
+            mInputQueue.pop();
+            updateRenderFrame = false;
         }
     }
 
-    if (!toRender) {
+    if (!mRenderFrame) {
         return;
     }
 
     GLRender *glRender = nullptr;
     if (!info->render) {
-        std::unique_ptr<GLRender> render = std::make_unique<GLRender>((video_format_t *) toRender->getInfo().video.vlc_fmt);
+        std::unique_ptr<GLRender> render = std::make_unique<GLRender>((video_format_t *) mRenderFrame->getInfo().video.vlc_fmt);
         if (render->initGL()) info->render = move(render);
     }
 
@@ -342,11 +338,11 @@ void XXQGLRender::renderVideo(void *vo)
         info->surfaceSizeChanged = false;
     }
 
-    auto frame = ((AVAFFrame *) toRender.get())->ToAVFrame();
-    auto videoInfo = toRender->getInfo().video;
+    auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
+    auto videoInfo = mRenderFrame->getInfo().video;
 
     mMaskInfoMutex.lock();
-    int ret = glRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, toRender->getInfo().video.frameIndex, mRotate, mScale,
+    int ret = glRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, mRenderFrame->getInfo().video.frameIndex, mRotate, mScale,
                                        mFlip, (video_format_t *) videoInfo.vlc_fmt, info->surfaceWidth, info->surfaceHeight);
     mMaskInfoMutex.unlock();
 
@@ -354,7 +350,7 @@ void XXQGLRender::renderVideo(void *vo)
     if (ret == 0) {
         //if frame not change, don`t need present surface
         if (mListener) {
-            mVideoInfo = toRender->getInfo();
+            mVideoInfo = mRenderFrame->getInfo();
             mListener->onFrameInfoUpdate(mVideoInfo, true);
         }
     }

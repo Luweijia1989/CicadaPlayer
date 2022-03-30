@@ -14,40 +14,9 @@ public:
 
     int m;
 };
-
-//OpenGLWidget *gl = nullptr;
-//int main(int argc, char *argv[])
-//{
-//	std::shared_ptr<A> aaa = std::make_shared<A>(2);
-//	std::weak_ptr<A> aa = aaa;
-//	auto ff = aa.lock();
-//	aaa = std::make_shared<A>(3);
-//
-//    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-//    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-//    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
-//    QApplication a(argc, argv);
-// //   QTimer t;
-// //   QObject::connect(&t, &QTimer::timeout, []() {
-// //       if (gl) {
-//	//		gl->deleteLater();
-//	//		//Sleep(1000);
-// //       }
-//
-// //       gl = new OpenGLWidget;
-// //       gl->resize(640, 480);
-// //       gl->show();
-// //   });
-//	//t.start(200);
-//	//t.setSingleShot(true);
-//
-//	OpenGLWidget gl;
-//	gl.resize(640, 480);
-//	gl.show();
-//
-//    return a.exec();
-//}
-
+#define DEMO_QUICKWIDGET
+#ifdef DEMO_QUICKWIDGET
+OpenGLWidget *gl = nullptr;
 
 int main(int argc, char *argv[])
 {
@@ -59,9 +28,9 @@ int main(int argc, char *argv[])
 
     auto player = std::shared_ptr<MediaPlayer>(new MediaPlayer());
 
-    player->setMaskMode(
+    /*player->setMaskMode(
             IVideoRender::Mask_Right,
-            u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
+            u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");*/
     player->SetRotateMode(ROTATE_MODE_0);
     player->SetScaleMode(SM_FIT);
 
@@ -69,7 +38,7 @@ int main(int argc, char *argv[])
     player->SetDefaultBandWidth(1000 * 1000);
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("C:\\Users\\posat\\Desktop\\vap1.mp4");
+    player->SetDataSource("C:\\Users\\posat\\Desktop\\7p.mp4");
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);
@@ -96,26 +65,26 @@ int main(int argc, char *argv[])
     //        w->resize(640, 480);
     //        w->show();
     //    }
-    //    {
-    //        OpenGLWidget *w = new OpenGLWidget(player);
-    //        w->resize(640, 480);
-    //        w->show();
-    //    }
-    //    {
-    //        OpenGLWidget *w = new OpenGLWidget(player);
-    //        w->resize(640, 480);
-    //        w->show();
-    //    }
-    //    {
-    //        OpenGLWidget *w = new OpenGLWidget(player);
-    //        w->resize(640, 480);
-    //        w->show();
-    //    }
-    //    {
-    //        OpenGLWidget *w = new OpenGLWidget(player);
-    //        w->resize(640, 480);
-    //        w->show();
-    //    }
+        //{
+        //    OpenGLWidget *w = new OpenGLWidget(player);
+        //    w->resize(640, 480);
+        //    w->show();
+        //}
+        //{
+        //    OpenGLWidget *w = new OpenGLWidget(player);
+        //    w->resize(640, 480);
+        //    w->show();
+        //}
+        //{
+        //    OpenGLWidget *w = new OpenGLWidget(player);
+        //    w->resize(640, 480);
+        //    w->show();
+        //}
+        //{
+        //    OpenGLWidget *w = new OpenGLWidget(player);
+        //    w->resize(640, 480);
+        //    w->show();
+        //}
     //});
     //t.start(300);
 
@@ -125,3 +94,52 @@ int main(int argc, char *argv[])
 
     return a.exec();
 }
+
+#else
+
+#include "qmlrender.h"
+#include "squircle.h"
+#include <QQmlApplicationEngine>
+#include <qquickview.h>
+QQuickView *view = nullptr;
+int main(int argc, char *argv[])
+{
+    //   QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    //   QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    ////QApplication::setQuitOnLastWindowClosed(false);
+    //   QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+    //   QApplication a(argc, argv);
+
+    //qmlRegisterType<Squircle>("OpenGLUnderQML", 1, 0, "Squircle");
+    //qmlRegisterType<QMLPlayer>("MDKPlayer", 1, 0, "MDKPlayer");
+    //   QQmlApplicationEngine engine;
+    //   engine.load(QUrl(QStringLiteral("qrc:/qmdkqmlplay.qml")));
+    //   if (engine.rootObjects().isEmpty())
+    //       return -1;
+
+    //   return a.exec();
+
+	//qputenv("QSG_RENDER_LOOP", "basic");
+    QGuiApplication app(argc, argv);
+
+
+    qmlRegisterType<QMLPlayer>("MDKPlayer", 1, 0, "MDKPlayer");
+    qmlRegisterType<Squircle>("OpenGLUnderQML", 1, 0, "Squircle");
+
+    //QTimer t;
+    //QObject::connect(&t, &QTimer::timeout, [=]() {
+		if (view)
+			view->deleteLater();
+
+        view = new QQuickView;
+        view->setResizeMode(QQuickView::SizeRootObjectToView);
+        view->setSource(QUrl("qrc:/qmdkqmlplay.qml"));
+        view->show();
+ //   });
+
+	//t.start(500);
+
+    return app.exec();
+}
+
+#endif

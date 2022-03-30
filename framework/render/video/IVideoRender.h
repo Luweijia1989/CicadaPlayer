@@ -49,7 +49,6 @@ public:
 
 	struct RenderInfo {
 		std::unique_ptr<GLRender> render = nullptr;
-		std::weak_ptr<IAFFrame> videoFrame;
 		std::function<void(void* vo_opaque)> cb = nullptr;
 		int surfaceWidth = 0;
 		int surfaceHeight = 0;

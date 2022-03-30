@@ -7,7 +7,6 @@ std::mutex IVideoRender::renderMutex;
 void IVideoRender::RenderInfo::reset()
 {
     render.reset();
-    videoFrame.reset();
 }
 
 void IVideoRender::foreignGLContextDestroyed(void *vo)

@@ -25,6 +25,11 @@ public:
         return nullptr;
     }
 
+	virtual bool checkCurrent()
+    {
+		return true;
+	}
+
     enum {
         VLC_GL_EXT_DEFAULT,
         VLC_GL_EXT_EGL,

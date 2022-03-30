@@ -11,12 +11,12 @@
 using namespace Cicada;
 OpenGLWidget::OpenGLWidget(const std::shared_ptr<MediaPlayer> &p) : player(p)
 {
-    setAttribute(Qt::WA_TranslucentBackground);
-    setWindowFlag(Qt::FramelessWindowHint);
+    /*setAttribute(Qt::WA_TranslucentBackground);
+    setWindowFlag(Qt::FramelessWindowHint);*/
     setAttribute(Qt::WA_DeleteOnClose);
     player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
-
-	//QTimer::singleShot(300, [=]() {deleteLater();});
+/*
+	QTimer::singleShot(300, [=]() {deleteLater();});*/
 }
 
 OpenGLWidget::~OpenGLWidget()

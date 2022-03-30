@@ -113,6 +113,7 @@ protected:
 private:
     std::mutex mInitMutex;
     std::mutex mFrameMutex;
+	bool updateRenderFrame = false;
     std::queue<std::unique_ptr<IAFFrame>> mInputQueue;
 	std::shared_ptr<IAFFrame> mRenderFrame = nullptr;
 //    std::unique_ptr<IAFFrame> mLastRenderFrame = nullptr;

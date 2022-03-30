@@ -44,15 +44,13 @@ public:
         return wglGetProcAddress(name);
     }
 
-	void releaseCurrent() override
-	{
-        wglMakeCurrent(hGLDC, nullptr);
-	}
-
-	int makeCurrent() override
+    bool checkCurrent() override
     {
-		return wglMakeCurrent(hGLDC, hGLRC);
-	}
+        auto cur = wglGetCurrentContext();
+        if (!cur) return wglMakeCurrent(hGLDC, hGLRC);
+
+        return true;
+    }
 
 private:
     HDC hGLDC;
