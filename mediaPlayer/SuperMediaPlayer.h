@@ -374,22 +374,6 @@ namespace Cicada {
 
             void onEOS() override
             {}
-
-            bool onInterrupt(bool interrupt) override
-            {
-                if (interrupt) {
-                    if (mPlayer.mPlayStatus == PLAYER_PLAYING) {
-                        mPlayer.Pause();
-                        mPlayer.mPausedByAudioInterrupted = true;
-                    }
-                } else {
-                    if (mPlayer.mPlayStatus == PLAYER_PAUSED && mPlayer.mPausedByAudioInterrupted) {
-                        mPlayer.Start();
-                    }
-                }
-
-                return true;
-            }
             void onFrameInfoUpdate(IAFFrame::AFFrameInfo &info, bool rendered) override;
 
         private:
@@ -553,7 +537,6 @@ namespace Cicada {
         void *mVideoRenderingCbUserData{nullptr};
 
         bool mIsDummy{false};
-        bool mPausedByAudioInterrupted{false};
         readCB mBSReadCb = nullptr;
         seekCB mBSSeekCb = nullptr;
         void *mBSCbArg = nullptr;
