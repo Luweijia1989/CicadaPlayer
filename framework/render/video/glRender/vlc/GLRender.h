@@ -91,6 +91,7 @@ public:
                        int viewWidth, int viewHeight);
 
 private:
+	void resetGLState();
     void ResizeFormatToGLMaxTexSize(unsigned int max_tex_size);
     void getViewpointMatrixes();
 

@@ -53,15 +53,14 @@ MixRenderer::MixRenderer(opengl_vtable_t *vt) : vt(vt)
 {
     m_mixVertexShader = R"(
 			attribute vec2 a_Position;
-			attribute vec2 a_TextureSrcCoordinates;
-			attribute vec2 a_TextureMaskCoordinates;
+			attribute vec4 a_TextureSrcCoordinates;
 			varying vec2 v_TextureSrcCoordinates;
 			varying vec2 v_TextureMaskCoordinates;
 			uniform mat4 u_MixMatrix;
 			void main()
 			{
-				v_TextureSrcCoordinates = a_TextureSrcCoordinates;
-				v_TextureMaskCoordinates = a_TextureMaskCoordinates;
+				v_TextureSrcCoordinates = a_TextureSrcCoordinates.xy;
+				v_TextureMaskCoordinates = a_TextureSrcCoordinates.zw;
 				gl_Position = u_MixMatrix * vec4(a_Position, 0.0, 1.0) * vec4(1, -1, 1, 1);
 			}
 	)";
@@ -71,9 +70,11 @@ MixRenderer::MixRenderer(opengl_vtable_t *vt) : vt(vt)
 			uniform sampler2D u_TextureSrcUnit;
 			uniform int u_isFill;
 			uniform vec4 u_Color;
+
 			varying vec2 v_TextureSrcCoordinates;
 			varying vec2 v_TextureMaskCoordinates;
 			uniform mat3 colorConversionMatrix;
+
 			void main()
 			{
 				vec3 rgb_rgb;
@@ -127,7 +128,6 @@ void MixRenderer::compileMixShader()
     vt->DeleteShader(mVertShader);
     vt->DeleteShader(mFragmentShader);
 
-    vt->UseProgram(m_MixshaderProgram);
     uTextureSrcUnitLocation = vt->GetUniformLocation(m_MixshaderProgram, "u_TextureSrcUnit");
     uTextureMaskUnitLocationImage = vt->GetUniformLocation(m_MixshaderProgram, "u_TextureMaskUnitImage");
     uMixMatrix = vt->GetUniformLocation(m_MixshaderProgram, "u_MixMatrix");
@@ -136,11 +136,14 @@ void MixRenderer::compileMixShader()
 
     aPositionLocation = vt->GetAttribLocation(m_MixshaderProgram, "a_Position");
     aTextureSrcCoordinatesLocation = vt->GetAttribLocation(m_MixshaderProgram, "a_TextureSrcCoordinates");
-    aTextureMaskCoordinatesLocation = vt->GetAttribLocation(m_MixshaderProgram, "a_TextureMaskCoordinates");
 
     vt->EnableVertexAttribArray(aPositionLocation);
     vt->EnableVertexAttribArray(aTextureSrcCoordinatesLocation);
-    vt->EnableVertexAttribArray(aTextureMaskCoordinatesLocation);
+
+    vt->UseProgram(m_MixshaderProgram);
+    vt->Uniform1i(uTextureMaskUnitLocationImage, 0);
+    vt->Uniform1i(uTextureSrcUnitLocation, 1);
+    vt->UseProgram(0);
 
     mReady = true;
 }
@@ -224,24 +227,30 @@ void MixRenderer::renderMixPrivate(const VAPFrame &frame, const MixSrc &src, con
 
     vt->UniformMatrix4fv(uMixMatrix, 1, GL_FALSE, (GLfloat *) param.matrix);
 
-    createVertexArray(frame.frame, m_mixVertexArray, param);
-    vt->VertexAttribPointer(aPositionLocation, 2, GL_FLOAT, GL_FALSE, 0, m_mixVertexArray);
+    GLfloat vertexArray[8] = {0.0};
+    createVertexArray(frame.frame, vertexArray, param);
+    vt->VertexAttribPointer(aPositionLocation, 2, GL_FLOAT, GL_FALSE, 0, vertexArray);
 
-    genSrcCoordsArray(m_mixSrcArray, frame.frame.width(), frame.frame.height(), src.w, src.h, src.fitType);
-    vt->VertexAttribPointer(aTextureSrcCoordinatesLocation, 2, GL_FLOAT, GL_FALSE, 0, m_mixSrcArray);
+    GLfloat mixSrcArray[8] = {0.0};
+    GLfloat mixMaskArray[8] = {0.0};
+    genSrcCoordsArray(mixSrcArray, frame.frame.width(), frame.frame.height(), src.w, src.h, src.fitType);
 
-    createTexCoordsArray(param.videoW, param.videoH, frame.mFrame, m_maskArray);
-    if (frame.mt == 90) rotate90(m_maskArray);
+    createTexCoordsArray(param.videoW, param.videoH, frame.mFrame, mixMaskArray);
+    if (frame.mt == 90) rotate90(mixMaskArray);
 
-    vt->VertexAttribPointer(aTextureMaskCoordinatesLocation, 2, GL_FLOAT, GL_FALSE, 0, m_maskArray);
+    GLfloat textureCords[16] = {0.0};
+    for (size_t i = 0; i < 4; i++) {
+        memcpy(textureCords + i * 4, mixSrcArray + i * 2, sizeof(GLfloat) * 2);
+        memcpy(textureCords + i * 4 + 2, mixMaskArray + i * 2, sizeof(GLfloat) * 2);
+    }
+
+    vt->VertexAttribPointer(aTextureSrcCoordinatesLocation, 4, GL_FLOAT, GL_FALSE, 0, textureCords);
 
     vt->ActiveTexture(GL_TEXTURE0);
     vt->BindTexture(GL_TEXTURE_2D, param.videoTexture);
-    vt->Uniform1i(uTextureMaskUnitLocationImage, 0);
 
     vt->ActiveTexture(GL_TEXTURE1);
     vt->BindTexture(GL_TEXTURE_2D, src.srcTexture);
-    vt->Uniform1i(uTextureSrcUnitLocation, 1);
 
     if (src.srcType == MixSrc::TXT) {
         vt->Uniform1i(uIsFillLocation, 1);
@@ -467,7 +476,7 @@ void GiftEffectRender::draw()
 
     vt->UniformMatrix4fv(projection, 1, GL_FALSE, (GLfloat *) mUProjection);
     vt->Uniform2f(uflip, mFlipCoords[0], mFlipCoords[1]);
-	vt->Uniform1i(uColorRangeFix, gpu_decoded ? 16 : 0);
+    vt->Uniform1i(uColorRangeFix, gpu_decoded ? 16 : 0);
     vt->VertexAttribPointer(position, 2, GL_FLOAT, GL_FALSE, 0, mDrawRegion);
     vt->VertexAttribPointer(RGBTexCoord, 2, GL_FLOAT, GL_FALSE, 0, mTextureCoords);
     vt->VertexAttribPointer(alphaTexCoord, 2, GL_FLOAT, GL_FALSE, 0, mAlphaTextureCoords);
@@ -574,7 +583,7 @@ void GiftEffectRender::initPrgm()
     SamplerImage = vt->GetUniformLocation(prgm, "SamplerImage");
     projection = vt->GetUniformLocation(prgm, "u_projection");
     uflip = vt->GetUniformLocation(prgm, "u_flipMatrix");
-	uColorRangeFix = vt->GetUniformLocation(prgm, "colorRangeFix");
+    uColorRangeFix = vt->GetUniformLocation(prgm, "colorRangeFix");
 
     vt->UseProgram(prgm);
     vt->EnableVertexAttribArray(position);

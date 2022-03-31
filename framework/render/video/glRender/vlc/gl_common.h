@@ -56,6 +56,7 @@ typedef void(APIENTRY *PFNGLFLUSHPROC)(void);
 typedef void(APIENTRY *PFNGLGENTEXTURESPROC)(GLsizei n, GLuint *textures);
 typedef GLenum(APIENTRY *PFNGLGETERRORPROC)(void);
 typedef void(APIENTRY *PFNGLGETINTEGERVPROC)(GLenum pname, GLint *data);
+typedef void(APIENTRY *PFNGLGETBOOLEANVPROC)(GLenum pname, GLboolean *data);
 typedef const GLubyte *(APIENTRY *PFNGLGETSTRINGPROC)(GLenum name);
 typedef void(APIENTRY *PFNGLGETTEXLEVELPARAMETERIVPROC)(GLenum target, GLint level, GLenum pname, GLint *params);
 typedef void(APIENTRY *PFNGLPIXELSTOREIPROC)(GLenum pname, GLint param);
@@ -141,6 +142,7 @@ typedef struct {
     PFNGLGENTEXTURESPROC GenTextures;
     PFNGLGETERRORPROC GetError;
     PFNGLGETINTEGERVPROC GetIntegerv;
+	PFNGLGETBOOLEANVPROC GetBooleanv;
     PFNGLGETSTRINGPROC GetString;
     PFNGLPIXELSTOREIPROC PixelStorei;
     PFNGLTEXIMAGE2DPROC TexImage2D;

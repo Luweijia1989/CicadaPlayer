@@ -374,8 +374,6 @@ void XXQGLRender::renderVideo(void *vo)
 
 void XXQGLRender::setVideoSurfaceSize(int width, int height, void *vo)
 {
-    AF_LOGD("enter setVideoSurfaceSize, width = %d, height = %d.", width, height);
-
     std::unique_lock<mutex> lock(renderMutex);
 
     RenderInfo &renderInfo = mRenders[vo];

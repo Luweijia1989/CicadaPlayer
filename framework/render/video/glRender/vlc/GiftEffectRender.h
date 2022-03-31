@@ -81,11 +81,6 @@ private:
     // Attribute locations
     GLuint aPositionLocation;
     GLuint aTextureSrcCoordinatesLocation;
-    GLuint aTextureMaskCoordinatesLocation;
-
-    GLfloat m_mixVertexArray[8];
-    GLfloat m_mixSrcArray[8];
-    GLfloat m_maskArray[8];
 
     std::map<std::string, MixSrc> m_srcMap;
     std::map<std::string, std::string> m_mixResource;
@@ -133,10 +128,10 @@ public:
         frameIndex = index;
     }
 
-	void setGpuDecoded(bool b)
+    void setGpuDecoded(bool b)
     {
-		gpu_decoded = b;
-	}
+        gpu_decoded = b;
+    }
 
     void bindFbo();
     void releaseFbo();
@@ -198,9 +193,9 @@ private:
     GLuint RGBTexCoord;
     GLuint alphaTexCoord;
     GLuint SamplerImage;
-	GLuint uColorRangeFix;
+    GLuint uColorRangeFix;
 
-	bool gpu_decoded = false;
+    bool gpu_decoded = false;
 
     std::unique_ptr<VapAnimateConfig> mVapConfig;
     std::unique_ptr<MixRenderer> mMixRender;

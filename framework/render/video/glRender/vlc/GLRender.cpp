@@ -94,7 +94,7 @@ GLRender::GLRender(video_format_t *format) : fmt(*format)
 
 GLRender::~GLRender()
 {
-	assert(glBase->checkCurrent());
+    assert(glBase->checkCurrent());
 
     if (giftEffectRender) delete giftEffectRender;
 
@@ -155,6 +155,7 @@ bool GLRender::initGL()
     GET_PROC_ADDR_CORE(GenTextures);
     GET_PROC_ADDR_CORE(GetError);
     GET_PROC_ADDR_CORE(GetIntegerv);
+    GET_PROC_ADDR_CORE(GetBooleanv);
     GET_PROC_ADDR_CORE(GetString);
     GET_PROC_ADDR_CORE(PixelStorei);
     GET_PROC_ADDR_CORE(TexImage2D);
@@ -724,11 +725,39 @@ void GLRender::GetTextureCropParamsForStereo(unsigned i_nbTextures, const float 
     }
 }
 
+void GLRender::resetGLState()
+{
+    vt.BindBuffer(GL_ARRAY_BUFFER, 0);
+    vt.BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    vt.BindVertexArray(0);
+
+    vt.ActiveTexture(GL_TEXTURE0);
+    vt.BindTexture(GL_TEXTURE_2D, 0);
+
+    vt.Disable(GL_DEPTH_TEST);
+    vt.Disable(GL_STENCIL_TEST);
+    vt.Disable(GL_SCISSOR_TEST);
+
+    vt.ClearColor(0, 0, 0, 0);
+
+    vt.DepthMask(true);
+
+    vt.Disable(GL_BLEND);
+    vt.BlendFunc(GL_ONE, GL_ZERO);
+
+    vt.UseProgram(0);
+}
+
 int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode mode, const std::string &data, AVFrame *frame,
                              int frameIndex, IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip,
                              const video_format_t *source, int viewWidth, int viewHeight)
 {
-    if (prepareGLFrame(frame) != VLC_SUCCESS) return VLC_EGENERIC;
+    resetGLState();
+    if (prepareGLFrame(frame) != VLC_SUCCESS) {
+        resetGLState();
+        return VLC_EGENERIC;
+    }
 
     if (vapInfo.length() == 0 && mode == IVideoRender::Mask_None) {
         if (giftEffectRender) {
@@ -756,6 +785,8 @@ int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode 
         vt.Viewport(0, 0, viewWidth, viewHeight);
         displayGLFrameInternal(source, viewWidth, viewHeight, false);
     }
+
+    resetGLState();
     return 0;
 }
 

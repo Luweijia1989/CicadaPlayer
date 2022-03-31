@@ -1,4 +1,5 @@
 #include "qmlrender.h"
+#include <qquickwindow.h>
 
 class VideoRendererInternal : public QQuickFramebufferObject::Renderer {
 public:
@@ -24,7 +25,9 @@ public:
     {
         auto p = player.lock();
         if (p) p->setVideoSurfaceSize(size.width(), size.height(), this);
-        return new QOpenGLFramebufferObject(size);
+		QOpenGLFramebufferObjectFormat format;
+		format.setInternalTextureFormat(GL_RGBA);
+        return new QOpenGLFramebufferObject(size, format);
     }
 
     std::weak_ptr<MediaPlayer> player;
@@ -37,6 +40,9 @@ QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), inte
     internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
 
     internal_player->SetDataSource("C:\\Users\\posat\\Desktop\\7p.mp4");
+	/*internal_player->setMaskMode(
+            IVideoRender::Mask_Right,
+            u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");*/
     internal_player->SetAutoPlay(true);
     internal_player->SetLoop(true);
     internal_player->Prepare();

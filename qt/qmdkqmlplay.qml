@@ -50,17 +50,27 @@
 
 //! [1]
 import QtQuick 2.0
-import OpenGLUnderQML 1.0
+import QtQuick.Window 2.2
 import MDKPlayer 1.0
 
 Item {
 
+	visible: true
     width: 320
     height: 480
 
-    MDKPlayer {
+    //MDKPlayer {
+	//	anchors.fill: parent
+    //}
+
+	Rectangle {
 		anchors.fill: parent
-    }
+		color: "black"
+	}
+
+	MDKPlayer {
+		anchors.fill: parent
+	}
 
 }
 //! [2]
