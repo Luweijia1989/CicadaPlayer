@@ -199,12 +199,7 @@ target_link_libraries(media_player PRIVATE
         framework_filter
         framework_utils
         framework_drm
-        avfilter
-        avformat
-        avcodec
-        swresample
-        swscale
-        avutil
+        ffmpeg
         ${FRAMEWORK_LIBS})
 if (NOT MSVC)
 	target_link_libraries(media_player PRIVATE

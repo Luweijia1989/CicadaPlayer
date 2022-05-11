@@ -67,12 +67,7 @@ target_link_libraries(cicadaPlayer PRIVATE
         framework_filter
         framework_utils
         framework_drm
-        avfilter
-        avformat
-        avcodec
-        swresample
-        swscale
-        avutil
+        ffmpeg
         ${FRAMEWORK_LIBS})
 if (NOT MSVC)
 	target_link_libraries(cicadaPlayer PRIVATE
