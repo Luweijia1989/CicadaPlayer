@@ -98,6 +98,8 @@ private:
 
     int onVsyncInner(int64_t tick);
 
+	void clearVOCacheFrame();
+
 protected:
 
     std::atomic<Rotate> mRotate{Rotate_None};
@@ -137,7 +139,6 @@ private:
     IAFFrame::AFFrameInfo mVideoInfo{};
 
     std::atomic_bool bFlushAsync{false};
-	std::atomic_bool bClearScreen{false};
 
 #ifdef __ANDROID__
     std::mutex mRenderCallbackMutex{};

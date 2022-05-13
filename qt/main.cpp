@@ -14,7 +14,7 @@ public:
 
     int m;
 };
-#define DEMO_QUICKWIDGET
+//#define DEMO_QUICKWIDGET
 #ifdef DEMO_QUICKWIDGET
 OpenGLWidget *gl = nullptr;
 
@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     player->SetRotateMode(ROTATE_MODE_0);
     player->SetScaleMode(SM_FIT);
 
-    //player->SetSpeed(0.5);
+    player->SetSpeed(0.5);
     player->SetDefaultBandWidth(1000 * 1000);
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
@@ -100,11 +100,12 @@ int main(int argc, char *argv[])
 #include "qmlrender.h"
 #include <QQmlApplicationEngine>
 #include <qquickview.h>
+#include <QQuickWidget>
 QQuickView *view = nullptr;
 int main(int argc, char *argv[])
 {
     qputenv("QSG_RENDER_LOOP", "basic");
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
 
     qmlRegisterType<QMLPlayer>("MDKPlayer", 1, 0, "MDKPlayer");
 
@@ -119,10 +120,19 @@ int main(int argc, char *argv[])
     //});
     //t.start(500);
 
-    QQuickView v;
+	QQuickWidget m_renderWidget;
+	//m_renderWidget->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowTransparentForInput | Qt::WindowStaysOnTopHint | Qt::ToolTip);
+    m_renderWidget.setAttribute(Qt::WA_TranslucentBackground);    //…Ë÷√±≥æ∞Õ∏√˜
+    m_renderWidget.setAttribute(Qt::WA_ShowWithoutActivating);
+    m_renderWidget.setClearColor(Qt::transparent);
+	m_renderWidget.setResizeMode(QQuickWidget::SizeRootObjectToView);
+
+    m_renderWidget.setSource(QUrl("qrc:/qmdkqmlplay.qml"));
+	m_renderWidget.show();
+    /*QQuickView v;
     v.setResizeMode(QQuickView::SizeRootObjectToView);
     v.setSource(QUrl("qrc:/qmdkqmlplay.qml"));
-    v.show();
+    v.show();*/
 
     return app.exec();
 }

@@ -40,10 +40,10 @@ QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), inte
     setMirrorVertically(true);
     internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
 
-    internal_player->SetDataSource("https://tvideo.bxapp.cn/ad1ba4b647cc47a59518e53598cb4db4.mp4");
-	//internal_player->setMaskMode(
- //           IVideoRender::Mask_Right,
- //           u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
+    internal_player->SetDataSource("C://Users//posat//Desktop//test2.mp4");
+	internal_player->setMaskMode(
+            IVideoRender::Mask_Right,
+            u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
     internal_player->SetAutoPlay(true);
     internal_player->SetLoop(false);
     internal_player->Prepare();
@@ -70,4 +70,9 @@ void QMLPlayer::test()
     internal_player->SetAutoPlay(true);
     internal_player->SetLoop(false);
     internal_player->Prepare();
+}
+
+void QMLPlayer::stop()
+{
+	internal_player->Stop();
 }

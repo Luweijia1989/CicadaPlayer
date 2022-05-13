@@ -17,6 +17,7 @@ public:
     QQuickFramebufferObject::Renderer *createRenderer() const;
 
 	Q_INVOKABLE void test();
+	Q_INVOKABLE void stop();
 
 private:
     QString m_source;

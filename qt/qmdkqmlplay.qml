@@ -60,11 +60,11 @@ Item {
     width: 320
     height: 480
 	
-
-	Rectangle {
-		anchors.fill: parent
-		color: "black"
+	AnimatedImage {
+		source: "file:///C:/Users/posat/Documents/xxq-recon/mp4player/zhuanquan.gif"
 	}
+
+
 	MDKPlayer {
 		id: player
 		anchors.fill: parent
@@ -73,7 +73,7 @@ Item {
 	Button {
 		onClicked: {
 			console.log('aaaaaa')
-			player.test()
+			player.stop()
 		}
 	}
 

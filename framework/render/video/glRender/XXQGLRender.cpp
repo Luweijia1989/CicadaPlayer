@@ -140,7 +140,8 @@ int XXQGLRender::onVsyncInner(int64_t tick)
                 dropFrame();
             }
             bFlushAsync = false;
-			bClearScreen = true;
+
+            clearVOCacheFrame();
         }
 
         if (!mInputQueue.empty()) {
@@ -209,7 +210,9 @@ int XXQGLRender::VSyncOnInit()
 }
 
 void XXQGLRender::VSyncOnDestroy()
-{}
+{
+    clearVOCacheFrame();
+}
 
 void XXQGLRender::captureScreen()
 {
@@ -322,18 +325,11 @@ void XXQGLRender::renderVideo(void *vo)
                 }
             }
         }
-
-		for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
-            RenderInfo &i = iter->second;
-			i.clearLastRenderFrame = bClearScreen;
-        }
-		if (bClearScreen)
-			bClearScreen = false;
     }
 
-    std::shared_ptr<IAFFrame> mRenderFrame = std::move(info->frame);
+    std::shared_ptr<IAFFrame> mRenderFrame = info->frame;
     if (!mRenderFrame) {
-        if (info->clearLastRenderFrame && info->render) info->render->clearScreen(mBackgroundColor);
+        if (info->render) info->render->clearScreen(mBackgroundColor);
         return;
     }
 
@@ -353,10 +349,7 @@ void XXQGLRender::renderVideo(void *vo)
 
     if (glRender == nullptr) return;
 
-    if (info->surfaceSizeChanged) {
-        glRender->clearScreen(mBackgroundColor);
-        info->surfaceSizeChanged = false;
-    }
+	glRender->clearScreen(mBackgroundColor);
 
     auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
     auto videoInfo = mRenderFrame->getInfo().video;
@@ -433,4 +426,13 @@ void XXQGLRender::setVapInfo(const std::string &info)
 {
     std::unique_lock<std::mutex> locker(mMaskInfoMutex);
     mMaskVapInfo = info;
+}
+
+void XXQGLRender::clearVOCacheFrame()
+{
+    std::unique_lock<mutex> lock(renderMutex);
+    for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
+        RenderInfo &renderInfo = iter->second;
+        renderInfo.frame = nullptr;
+    }
 }

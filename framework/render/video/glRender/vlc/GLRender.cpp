@@ -747,8 +747,6 @@ void GLRender::resetGLState()
     vt.Disable(GL_STENCIL_TEST);
     vt.Disable(GL_SCISSOR_TEST);
 
-    vt.ClearColor(0, 0, 0, 0);
-
     vt.DepthMask(true);
 
     vt.Disable(GL_BLEND);

@@ -55,7 +55,6 @@ public:
 		int surfaceHeight = 0;
 		bool surfaceSizeChanged = 0;
 		bool clearScreen = false;
-		bool clearLastRenderFrame = false;
 
 		void reset();
 	};
