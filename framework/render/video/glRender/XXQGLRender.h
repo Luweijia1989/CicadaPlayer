@@ -115,7 +115,6 @@ private:
     std::mutex mFrameMutex;
 	bool updateRenderFrame = false;
     std::queue<std::unique_ptr<IAFFrame>> mInputQueue;
-	std::shared_ptr<IAFFrame> mRenderFrame = nullptr;
 //    std::unique_ptr<IAFFrame> mLastRenderFrame = nullptr;
     std::mutex mViewMutex;
     void *mDisplayView = nullptr;
@@ -138,6 +137,7 @@ private:
     IAFFrame::AFFrameInfo mVideoInfo{};
 
     std::atomic_bool bFlushAsync{false};
+	std::atomic_bool bClearScreen{false};
 
 #ifdef __ANDROID__
     std::mutex mRenderCallbackMutex{};

@@ -16,6 +16,8 @@ public:
 
     QQuickFramebufferObject::Renderer *createRenderer() const;
 
+	Q_INVOKABLE void test();
+
 private:
     QString m_source;
     std::shared_ptr<MediaPlayer> internal_player;

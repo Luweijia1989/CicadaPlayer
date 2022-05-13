@@ -168,6 +168,7 @@ typedef enum video_chroma_location_t {
  */
 struct video_format_t {
     void *extra_info;
+	void *decoder_p;
     vlc_fourcc_t i_chroma; /**< picture chroma */
 
     unsigned int i_width;          /**< picture width */

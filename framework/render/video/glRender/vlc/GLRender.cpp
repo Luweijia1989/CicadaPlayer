@@ -116,6 +116,14 @@ GLRender::~GLRender()
     delete glBase;
 }
 
+bool GLRender::videoFormatChanged(video_format_t *format)
+{
+    if (!format) return true;
+
+    return fmt.i_width != format->i_width || fmt.i_visible_width != format->i_visible_width || fmt.i_height != format->i_height ||
+           fmt.i_visible_height != format->i_visible_height || fmt.i_chroma != format->i_chroma || fmt.decoder_p != format->decoder_p;
+}
+
 bool GLRender::initGL()
 {
 #if defined(USE_OPENGL_ES2) || defined(HAVE_GL_CORE_SYMBOLS)

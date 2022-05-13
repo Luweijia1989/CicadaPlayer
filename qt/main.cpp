@@ -14,7 +14,7 @@ public:
 
     int m;
 };
-//#define DEMO_QUICKWIDGET
+#define DEMO_QUICKWIDGET
 #ifdef DEMO_QUICKWIDGET
 OpenGLWidget *gl = nullptr;
 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     player->SetDefaultBandWidth(1000 * 1000);
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("C:\\Users\\posat\\Desktop\\7p.mp4");
+    player->SetDataSource("https://tvideo.bxapp.cn/ad1ba4b647cc47a59518e53598cb4db4.mp4");
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);

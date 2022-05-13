@@ -140,6 +140,7 @@ int XXQGLRender::onVsyncInner(int64_t tick)
                 dropFrame();
             }
             bFlushAsync = false;
+			bClearScreen = true;
         }
 
         if (!mInputQueue.empty()) {
@@ -301,32 +302,51 @@ void XXQGLRender::surfaceChanged()
 // renderVideo setVideoSurfaceSize clearGLSource foreignGLContextDestroyed should call in same thread
 void XXQGLRender::renderVideo(void *vo)
 {
+    GLRender *glRender = nullptr;
     RenderInfo *info = nullptr;
-    {
-        std::unique_lock<std::mutex> renderLocker(renderMutex);
-        info = &mRenders[vo];
-    }
 
     int64_t renderStartTime = af_getsteady_ms();
 
     {
         std::unique_lock<std::mutex> locker(mFrameMutex);
-
+        std::unique_lock<std::mutex> renderLocker(renderMutex);
+        info = &mRenders[vo];
         if (updateRenderFrame && !mInputQueue.empty()) {
-            mRenderFrame = move(mInputQueue.front());
+            std::shared_ptr<IAFFrame> frame = move(mInputQueue.front());
             mInputQueue.pop();
             updateRenderFrame = false;
+            {
+                for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
+                    RenderInfo &i = iter->second;
+                    i.frame = frame;
+                }
+            }
         }
+
+		for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
+            RenderInfo &i = iter->second;
+			i.clearLastRenderFrame = bClearScreen;
+        }
+		if (bClearScreen)
+			bClearScreen = false;
     }
 
+    std::shared_ptr<IAFFrame> mRenderFrame = std::move(info->frame);
     if (!mRenderFrame) {
+        if (info->clearLastRenderFrame && info->render) info->render->clearScreen(mBackgroundColor);
         return;
     }
 
-    GLRender *glRender = nullptr;
     if (!info->render) {
         std::unique_ptr<GLRender> render = std::make_unique<GLRender>((video_format_t *) mRenderFrame->getInfo().video.vlc_fmt);
         if (render->initGL()) info->render = move(render);
+    } else {
+        if (info->render->videoFormatChanged((video_format_t *) mRenderFrame->getInfo().video.vlc_fmt)) {
+            info->render.reset();
+
+            std::unique_ptr<GLRender> render = std::make_unique<GLRender>((video_format_t *) mRenderFrame->getInfo().video.vlc_fmt);
+            if (render->initGL()) info->render = move(render);
+        }
     }
 
     glRender = info->render.get();

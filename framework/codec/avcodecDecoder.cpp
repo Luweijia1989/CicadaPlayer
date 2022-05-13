@@ -204,6 +204,8 @@ namespace Cicada {
 
         video_format_Init(&mPDecoder->videoForamt, 0);
 
+		mPDecoder->videoForamt.decoder_p = this;
+
         bool software_decoding = pix_fmt == sw_pix_fmt;
         if (software_decoding) { /* software decoding */
             avcodec_align_dimensions2(ctx, &width, &height, aligns);

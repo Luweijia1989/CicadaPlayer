@@ -84,6 +84,7 @@ public:
     GLRender(video_format_t *format);
     ~GLRender();
 
+    bool videoFormatChanged(video_format_t *format);
     bool initGL();
     void clearScreen(uint32_t color);
     int displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode mode, const std::string &data, AVFrame *frame, int frameIndex,
@@ -91,7 +92,7 @@ public:
                        int viewWidth, int viewHeight);
 
 private:
-	void resetGLState();
+    void resetGLState();
     void ResizeFormatToGLMaxTexSize(unsigned int max_tex_size);
     void getViewpointMatrixes();
 
@@ -114,7 +115,7 @@ private:
     void updateOutParam(IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, int viewWidth, int viewHeight);
 
     GLBase *glBase = nullptr;
-	bool gpu_decoded = false;
+    bool gpu_decoded = false;
     OpenGLTextureConverter *textureConvter = nullptr;
     GiftEffectRender *giftEffectRender = nullptr;
 
