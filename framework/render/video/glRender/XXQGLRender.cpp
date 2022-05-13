@@ -120,6 +120,15 @@ int XXQGLRender::onVSync(int64_t tick)
     return ret;
 }
 
+void XXQGLRender::invokePaint()
+{
+	std::unique_lock<mutex> lock(renderMutex);
+	for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
+		RenderInfo &renderInfo = iter->second;
+		if (renderInfo.cb) renderInfo.cb(this);
+	}
+}
+
 int XXQGLRender::onVsyncInner(int64_t tick)
 {
     if (mHz == 0) {
@@ -142,6 +151,7 @@ int XXQGLRender::onVsyncInner(int64_t tick)
             bFlushAsync = false;
 
             clearVOCacheFrame();
+			invokePaint();
         }
 
         if (!mInputQueue.empty()) {
@@ -172,15 +182,10 @@ int XXQGLRender::onVsyncInner(int64_t tick)
                     return 0;
                 }
             }
-        }
 
-        std::unique_lock<mutex> lock(renderMutex);
-        for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
-            RenderInfo &renderInfo = iter->second;
-            if (renderInfo.cb) renderInfo.cb(this);
+			invokePaint();
+			updateRenderFrame = true;
         }
-
-        updateRenderFrame = true;
     }
 
     mRenderCount++;

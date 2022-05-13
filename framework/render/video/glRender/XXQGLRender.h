@@ -98,6 +98,7 @@ private:
 
     int onVsyncInner(int64_t tick);
 
+	void invokePaint();
 	void clearVOCacheFrame();
 
 protected:
