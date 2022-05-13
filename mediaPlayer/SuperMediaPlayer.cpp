@@ -4011,7 +4011,7 @@ void SuperMediaPlayer::renderVideo(void *vo)
 {
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
 
-	if (mAVDeviceManager->isVideoRenderValid()) {
+	if (mAVDeviceManager->getVideoRender()) {
         mAVDeviceManager->getVideoRender()->renderVideo(vo);
     }
 }

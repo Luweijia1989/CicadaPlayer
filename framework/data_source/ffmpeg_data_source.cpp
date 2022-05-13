@@ -149,9 +149,6 @@ namespace Cicada {
 	void ffmpegDataSource::parseVapInfo()
 	{
 		IDataSource::setVapData(std::string());
-		std::string tail("mp4");
-		if (mUri.compare(mUri.size() - tail.size(), tail.size(), tail) != 0)
-			return;
 
 		ISOBMFF::BinaryFileStream stream(mUri);
         uint64_t length = 0;
@@ -172,8 +169,13 @@ namespace Cicada {
 				vap.assign((char *)vapData.data(), vapData.size());
 				IDataSource::setVapData(vap);
 				break;
-			} else
-				stream.Seek(length - offset, ISOBMFF::BinaryStream::SeekDirection::Current);
+			} else {
+                try {
+					stream.Seek(length - offset, ISOBMFF::BinaryStream::SeekDirection::Current);
+                } catch (const std::exception &) {
+					break;
+                }
+			}
 		}
 	}
 }
