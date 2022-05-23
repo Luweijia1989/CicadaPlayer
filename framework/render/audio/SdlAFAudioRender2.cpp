@@ -56,8 +56,12 @@ bool SdlAFAudioRender2::device_require_format(const IAFFrame::audioInfo &info)
     return false;
 }
 
-int SdlAFAudioRender2::open_device(const char * device)
+int SdlAFAudioRender2::open_device(uint32_t device)
 {
+	const char *name = nullptr;
+	if (device != UINT32_MAX)
+		name = SDL_GetAudioDeviceName(device, 0);
+
 	// init sdl audio device
     if (mDevID == 0) {
         SDL_AudioSpec inputSpec{0};
@@ -73,7 +77,7 @@ int SdlAFAudioRender2::open_device(const char * device)
         inputSpec.samples = mInputInfo.nb_samples;
         inputSpec.userdata = this;
         inputSpec.callback = nullptr;
-        mDevID = SDL_OpenAudioDevice(device, false, &inputSpec, &mSpec, 0);
+        mDevID = SDL_OpenAudioDevice(name, false, &inputSpec, &mSpec, 0);
         if (mDevID == 0) {
             AF_LOGE("SdlAFAudioRender could not openAudio! Error: %s\n", SDL_GetError());
             return OPEN_AUDIO_DEVICE_FAILED;
@@ -83,6 +87,7 @@ int SdlAFAudioRender2::open_device(const char * device)
         mOutputInfo.sample_rate = mSpec.freq;
     }
 
+	deviceIndex = device;
 	return 0;
 }
 
@@ -99,17 +104,13 @@ int SdlAFAudioRender2::init_device()
         mSdlAudioInited = true;
     }
 
-    return open_device(nullptr);
+    return open_device(UINT32_MAX);
 }
 
 void SdlAFAudioRender2::device_change_device(uint32_t deviceId)
 {
-	if (deviceId >= SDL_GetNumAudioDevices(0) && deviceId != UINT32_MAX)
+	if (deviceIndex == deviceId || (deviceId >= SDL_GetNumAudioDevices(0) && deviceId != UINT32_MAX))
 		return;
-
-	const char *name = nullptr;
-	if (deviceId != UINT32_MAX)
-		name = SDL_GetAudioDeviceName(deviceId, 0);
 
 	std::lock_guard<std::mutex> lock(mutex);
 
@@ -118,7 +119,7 @@ void SdlAFAudioRender2::device_change_device(uint32_t deviceId)
         mDevID = 0;
     }
 
-	open_device(name);
+	open_device(deviceId);
 
 	start_device();
 }
