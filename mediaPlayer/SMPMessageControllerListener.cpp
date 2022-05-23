@@ -489,6 +489,11 @@ void SMPMessageControllerListener::ProcessMuteMsg()
     mPlayer.mAVDeviceManager->setMute(mPlayer.mSet->bMute);
 }
 
+void SMPMessageControllerListener::ProcessSwitchAudioOutputDevice()
+{
+	mPlayer.mAVDeviceManager->setAudioOutputDevice(mPlayer.mSet->deviceId);
+}
+
 void SMPMessageControllerListener::ProcessSwitchStreamMsg(int index)
 {
     if (mPlayer.mDemuxerService == nullptr) {

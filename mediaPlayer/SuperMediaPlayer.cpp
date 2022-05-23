@@ -213,6 +213,15 @@ void SuperMediaPlayer::Mute(bool bMute)
     this->putMsg(MSG_MUTE, dummyMsg);
 }
 
+void SuperMediaPlayer::setAudioOutputDevice(uint32_t deviceId)
+{
+	if (deviceId == mSet->deviceId)
+		return;
+
+	mSet->deviceId = deviceId;
+	this->putMsg(MSG_CHANGE_AUDIO_DEVICE, dummyMsg);
+}
+
 void SuperMediaPlayer::EnterBackGround(bool back)
 {
     // lock mAppStatusMutex before mCreateMutex

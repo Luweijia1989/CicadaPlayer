@@ -30,6 +30,7 @@ namespace Cicada {
         int loopChecker() override;
         void device_preClose() override;
         uint64_t device_get_ability() override;
+		void device_change_device(uint32_t deviceId) override;
 
     private:
         bool mSdlAudioInited = false;

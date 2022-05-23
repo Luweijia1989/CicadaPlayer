@@ -79,6 +79,10 @@ int SdlAFAudioRender2::init_device()
     return 0;
 }
 
+void SdlAFAudioRender2::device_change_device(uint32_t deviceId)
+{
+}
+
 int SdlAFAudioRender2::pause_device()
 {
     if (mDevID != 0) {

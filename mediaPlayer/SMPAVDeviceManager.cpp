@@ -302,6 +302,13 @@ void SMPAVDeviceManager::setMute(bool mute)
     }
     mMute = mute;
 }
+
+void SMPAVDeviceManager::setAudioOutputDevice(uint32_t deviceId)
+{
+	if (mAudioRender)
+		mAudioRender->setAudioOutputDevice(deviceId);
+}
+
 void SMPAVDeviceManager::setAudioRenderingCb(renderingFrameCB cb, void *userData)
 {
     if (mAudioRender) {

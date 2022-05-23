@@ -114,6 +114,8 @@ namespace Cicada{
 
         virtual void mute(bool bMute) = 0;
 
+		virtual void setAudioOutputDevice(uint32_t deviceId) = 0;
+
         /**
          * set the volume of this audio playback. NOT change the system param,
          * this can not be supported when in pass-through mode

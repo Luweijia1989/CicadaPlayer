@@ -85,6 +85,8 @@ namespace Cicada {
 
         void setMute(bool mute);
 
+		void setAudioOutputDevice(uint32_t deviceId);
+
         uint64_t getAudioRenderQueDuration();
 
         int renderAudioFrame(std::unique_ptr<IAFFrame> &frame, int timeOut);

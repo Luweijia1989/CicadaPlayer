@@ -19,6 +19,7 @@ namespace Cicada {
         MSG_PAUSE,
         MSG_SEEKTO,
         MSG_MUTE,
+		MSG_CHANGE_AUDIO_DEVICE,
         MSG_CHANGE_VIDEO_STREAM,
         MSG_CHANGE_AUDIO_STREAM,
         MSG_CHANGE_SUBTITLE_STREAM,
@@ -163,6 +164,8 @@ namespace Cicada {
         virtual void ProcessSelectExtSubtitleMsg(int index, bool select) = 0;
 
         virtual void ProcessSetSpeed(float speed) = 0;
+
+		virtual void ProcessSwitchAudioOutputDevice() = 0;
 
 
     };

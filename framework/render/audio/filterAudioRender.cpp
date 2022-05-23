@@ -186,6 +186,11 @@ namespace Cicada {
         device_mute(bMute);
     }
 
+	void filterAudioRender::setAudioOutputDevice(uint32_t deviceId)
+    {
+		device_change_device(deviceId);
+	}
+
     int filterAudioRender::setVolume(float volume)
     {
         mVolume = volume;

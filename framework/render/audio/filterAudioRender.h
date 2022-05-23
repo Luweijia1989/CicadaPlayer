@@ -32,6 +32,8 @@ namespace Cicada {
 
         void mute(bool bMute) override;
 
+		void setAudioOutputDevice(uint32_t deviceId) override;
+
         int setVolume(float volume) override;
 
         int setSpeed(float speed) override;
@@ -52,6 +54,9 @@ namespace Cicada {
         virtual int start_device() = 0;
 
         virtual void flush_device() = 0;
+
+		virtual void device_change_device(uint32_t deviceId)
+        {}
 
         virtual void device_setVolume(float gain) = 0;
 

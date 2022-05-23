@@ -22,6 +22,7 @@ namespace Cicada {
             case MSG_CHANGE_AUDIO_STREAM:
             case MSG_CHANGE_SUBTITLE_STREAM:
             case MSG_MUTE:
+            case MSG_CHANGE_AUDIO_DEVICE:
             case MSG_SET_DISPLAY_MODE:
             case MSG_SET_ROTATE_MODE:
             case MSG_SET_MIRROR_MODE:
@@ -251,6 +252,10 @@ namespace Cicada {
             case MSG_MUTE:
                 mProcessor.ProcessMuteMsg();
                 break;
+
+			case MSG_CHANGE_AUDIO_DEVICE:
+				mProcessor.ProcessSwitchAudioOutputDevice();
+				break;
 
             case MSG_CHANGE_VIDEO_STREAM:
                 //    assert(mWillChangedVideoStreamIndex < 0);

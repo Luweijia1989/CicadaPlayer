@@ -182,6 +182,8 @@ namespace Cicada {
 
         void Mute(bool bMute) override;
 
+		void setAudioOutputDevice(uint32_t deviceId);
+
         void EnterBackGround(bool back) override;
 
         StreamType SwitchStream(int streamIndex) override;

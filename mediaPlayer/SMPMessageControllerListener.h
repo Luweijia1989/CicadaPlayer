@@ -21,6 +21,7 @@ namespace Cicada {
         void ProcessSeekToMsg(int64_t seekPos, bool bAccurate) final;
         void ProcessMuteMsg() final;
         void ProcessVideoHoldMsg(bool hold) final;
+		void ProcessSwitchAudioOutputDevice() final;
 
     private:
         bool OnPlayerMsgIsPadding(PlayMsgType msg, MsgParam msgContent) final;
