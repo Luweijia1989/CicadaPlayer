@@ -415,6 +415,18 @@ namespace Cicada {
         return CicadaIsMute(handle);
     }
 
+	void MediaPlayer::SetAudioOutputDevice(uint32_t deviceId)
+    {
+		GET_PLAYER_HANDLE
+		CicadaSetAudioOutputDevice(handle, deviceId);
+	}
+
+	std::map<uint32_t, std::string> MediaPlayer::audioOutputDevices()
+    {
+		GET_PLAYER_HANDLE
+		return CicadaAudioOutputDevices(handle);
+	}
+
     void MediaPlayer::SetConfig(const MediaPlayerConfig *config)
     {
         //TODO:SetConfig

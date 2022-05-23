@@ -172,6 +172,9 @@ void CicadaSetMute(playerHandle *player, bool bMute);
  */
 bool CicadaIsMute(playerHandle *player);
 
+void CicadaSetAudioOutputDevice(playerHandle *player, uint32_t deviceId);
+std::map<uint32_t, std::string> CicadaAudioOutputDevices(playerHandle *player);
+
 /*
 * set network timeout,defalut is 15000
 */

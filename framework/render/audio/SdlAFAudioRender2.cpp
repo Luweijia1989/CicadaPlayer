@@ -12,6 +12,22 @@
 
 using namespace Cicada;
 
+std::map<uint32_t, std::string> IAudioRender::audioOutputDevices()
+{
+	std::map<uint32_t, std::string> ret;
+
+	SDL_InitSubSystem(SDL_INIT_AUDIO);
+
+	auto count = SDL_GetNumAudioDevices(0);
+	for (auto i = 0; i < count; i++) {
+        ret.insert({i, SDL_GetAudioDeviceName(i, 0)});
+	}
+
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+
+	return ret;
+}
+
 SdlAFAudioRender2::SdlAFAudioRender2()
 {}
 
@@ -38,20 +54,9 @@ bool SdlAFAudioRender2::device_require_format(const IAFFrame::audioInfo &info)
     return false;
 }
 
-int SdlAFAudioRender2::init_device()
+int SdlAFAudioRender2::open_device(const char * device)
 {
-    needFilter = true;
-    // init sdl audio subsystem
-    if (!mSdlAudioInited) {
-        int initRet = SDL_Init(SDL_INIT_AUDIO);
-        if (initRet < 0) {
-            AF_LOGE("SdlAFAudioRender could not initialize! Error: %s\n", SDL_GetError());
-            return initRet;
-        }
-        mSdlAudioInited = true;
-    }
-
-    // init sdl audio device
+	// init sdl audio device
     if (mDevID == 0) {
         SDL_AudioSpec inputSpec{0};
         int format = mInputInfo.format;
@@ -66,7 +71,7 @@ int SdlAFAudioRender2::init_device()
         inputSpec.samples = mInputInfo.nb_samples;
         inputSpec.userdata = this;
         inputSpec.callback = nullptr;
-        mDevID = SDL_OpenAudioDevice(NULL, false, &inputSpec, &mSpec, 0);
+        mDevID = SDL_OpenAudioDevice(device, false, &inputSpec, &mSpec, 0);
         if (mDevID == 0) {
             AF_LOGE("SdlAFAudioRender could not openAudio! Error: %s\n", SDL_GetError());
             return OPEN_AUDIO_DEVICE_FAILED;
@@ -76,11 +81,42 @@ int SdlAFAudioRender2::init_device()
         mOutputInfo.sample_rate = mSpec.freq;
     }
 
-    return 0;
+	return 0;
+}
+
+int SdlAFAudioRender2::init_device()
+{
+    needFilter = true;
+    // init sdl audio subsystem
+    if (!mSdlAudioInited) {
+        int initRet = SDL_Init(SDL_INIT_AUDIO);
+        if (initRet < 0) {
+            AF_LOGE("SdlAFAudioRender could not initialize! Error: %s\n", SDL_GetError());
+            return initRet;
+        }
+        mSdlAudioInited = true;
+    }
+
+    return open_device(nullptr);
 }
 
 void SdlAFAudioRender2::device_change_device(uint32_t deviceId)
 {
+	if (deviceId >= SDL_GetNumAudioDevices(0))
+		return;
+
+	auto name = SDL_GetAudioDeviceName(deviceId, 0);
+
+	std::lock_guard<std::mutex> lock(mutex);
+
+	if (mDevID > 0) {
+        SDL_CloseAudioDevice(mDevID);
+        mDevID = 0;
+    }
+
+	open_device(name);
+
+	start_device();
 }
 
 int SdlAFAudioRender2::pause_device()
@@ -123,6 +159,8 @@ int64_t SdlAFAudioRender2::device_get_position()
 
 int SdlAFAudioRender2::device_write(unique_ptr<IAFFrame> &frame)
 {
+	std::lock_guard<std::mutex> lock(mutex);
+
     if (device_get_que_duration() > 50 * 1000) {
         return -EAGAIN;
     }

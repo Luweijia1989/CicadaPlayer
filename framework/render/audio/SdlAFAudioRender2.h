@@ -31,8 +31,10 @@ namespace Cicada {
         void device_preClose() override;
         uint64_t device_get_ability() override;
 		void device_change_device(uint32_t deviceId) override;
+		int open_device(const char *device);
 
     private:
+		std::mutex mutex;
         bool mSdlAudioInited = false;
         SDL_AudioDeviceID mDevID{0};
         uint64_t mPlayedDuration = 0;

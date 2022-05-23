@@ -350,6 +350,22 @@ bool CicadaIsMute(playerHandle *pHandle)
     return false;
 }
 
+void CicadaSetAudioOutputDevice(playerHandle *pHandle, uint32_t deviceId)
+{
+	GET_PLAYER;
+	if (player)
+		player->setAudioOutputDevice(deviceId);
+}
+
+std::map<uint32_t, std::string> CicadaAudioOutputDevices(playerHandle *pHandle)
+{
+	GET_PLAYER;
+	if (player)
+		return player->audioOutputDevices();
+
+	return std::map<uint32_t, std::string>();
+}
+
 void CicadaSetTimeout(playerHandle *pHandle, int timeout)
 {
     GET_PLAYER;

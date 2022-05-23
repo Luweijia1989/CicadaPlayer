@@ -182,7 +182,8 @@ namespace Cicada {
 
         void Mute(bool bMute) override;
 
-		void setAudioOutputDevice(uint32_t deviceId);
+		void setAudioOutputDevice(uint32_t deviceId) override;
+		std::map<uint32_t, std::string> audioOutputDevices() override;
 
         void EnterBackGround(bool back) override;
 

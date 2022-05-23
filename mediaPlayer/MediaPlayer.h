@@ -205,6 +205,9 @@ namespace Cicada {
          */
         bool IsMuted();
 
+		void SetAudioOutputDevice(uint32_t deviceId);
+		std::map<uint32_t, std::string> audioOutputDevices();
+
         /**
          * set player config
          */

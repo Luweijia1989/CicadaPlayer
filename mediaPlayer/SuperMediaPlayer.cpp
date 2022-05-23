@@ -222,6 +222,11 @@ void SuperMediaPlayer::setAudioOutputDevice(uint32_t deviceId)
 	this->putMsg(MSG_CHANGE_AUDIO_DEVICE, dummyMsg);
 }
 
+std::map<uint32_t, std::string> SuperMediaPlayer::audioOutputDevices()
+{
+	return IAudioRender::audioOutputDevices();
+}
+
 void SuperMediaPlayer::EnterBackGround(bool back)
 {
     // lock mAppStatusMutex before mCreateMutex

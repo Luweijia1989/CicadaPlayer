@@ -8,6 +8,7 @@
 
 #include <base/media/IAFPacket.h>
 #include <utils/AFMediaType.h>
+#include <map>
 
 namespace Cicada{
 
@@ -182,6 +183,8 @@ namespace Cicada{
             mRenderingCbUserData = userData;
         }
         virtual void prePause() = 0;
+
+		static std::map<uint32_t, std::string> audioOutputDevices();
 
     protected:
         IAudioRender *mExtFilter{};

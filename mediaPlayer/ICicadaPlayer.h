@@ -112,6 +112,7 @@ namespace Cicada {
         virtual bool IsMute() const = 0;
 
 		virtual void setAudioOutputDevice(uint32_t deviceId) = 0;
+		virtual std::map<uint32_t, std::string> audioOutputDevices() = 0;
 
         /*
          * 设置音量
