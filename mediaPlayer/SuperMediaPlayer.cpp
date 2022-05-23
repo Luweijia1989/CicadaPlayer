@@ -215,9 +215,6 @@ void SuperMediaPlayer::Mute(bool bMute)
 
 void SuperMediaPlayer::setAudioOutputDevice(uint32_t deviceId)
 {
-	if (deviceId == mSet->deviceId)
-		return;
-
 	mSet->deviceId = deviceId;
 	this->putMsg(MSG_CHANGE_AUDIO_DEVICE, dummyMsg);
 }
@@ -3386,6 +3383,7 @@ int SuperMediaPlayer::setUpAudioRender(const IAFFrame::audioInfo &info)
     mAVDeviceManager->setSpeed(mSet->rate);
     mAVDeviceManager->setMute(mSet->bMute);
     mAVDeviceManager->setVolume(mSet->mVolume);
+	mAVDeviceManager->setAudioOutputDevice(mSet->deviceId);
 
     if (!mSecretPlayBack) {
         mAVDeviceManager->setAudioRenderingCb(mAudioRenderingCb, mAudioRenderingCbUserData);

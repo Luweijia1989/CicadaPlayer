@@ -22,6 +22,8 @@ std::map<uint32_t, std::string> IAudioRender::audioOutputDevices()
 	for (auto i = 0; i < count; i++) {
         ret.insert({i, SDL_GetAudioDeviceName(i, 0)});
 	}
+	
+	ret.insert({UINT32_MAX, u8"默认"});
 
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 
@@ -102,10 +104,12 @@ int SdlAFAudioRender2::init_device()
 
 void SdlAFAudioRender2::device_change_device(uint32_t deviceId)
 {
-	if (deviceId >= SDL_GetNumAudioDevices(0))
+	if (deviceId >= SDL_GetNumAudioDevices(0) && deviceId != UINT32_MAX)
 		return;
 
-	auto name = SDL_GetAudioDeviceName(deviceId, 0);
+	const char *name = nullptr;
+	if (deviceId != UINT32_MAX)
+		name = SDL_GetAudioDeviceName(deviceId, 0);
 
 	std::lock_guard<std::mutex> lock(mutex);
 
