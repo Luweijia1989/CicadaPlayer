@@ -23,7 +23,7 @@ std::map<uint32_t, std::string> IAudioRender::audioOutputDevices()
         ret.insert({i, SDL_GetAudioDeviceName(i, 0)});
 	}
 	
-	ret.insert({UINT32_MAX, u8"默认"});
+	ret.insert({UINT32_MAX, "default"});
 
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 
