@@ -25,7 +25,7 @@ std::map<uint32_t, std::string> IAudioRender::audioOutputDevices()
 	
 	ret.insert({UINT32_MAX, "default"});
 
-	SDL_QuitSubSystem(SDL_INIT_AUDIO);
+	SDL_QuitSubSystem(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
 	return ret;
 }
@@ -39,7 +39,7 @@ SdlAFAudioRender2::~SdlAFAudioRender2()
         SDL_CloseAudioDevice(mDevID);
         mDevID = 0;
     }
-    SDL_QuitSubSystem(SDL_INIT_AUDIO);
+    SDL_QuitSubSystem(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
     if (mPcmBuffer) {
         free(mPcmBuffer);
