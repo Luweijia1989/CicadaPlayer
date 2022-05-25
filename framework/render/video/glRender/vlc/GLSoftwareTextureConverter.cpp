@@ -245,6 +245,7 @@ void GLSoftwareTextureConverter::pbo_picture_destroy(PBOPicture *pic)
     } else
         pic->DeleteBuffers(pic->i_planes, pic->buffers);
 
+	aligned_free(pic->data[0]);
     free(pic);
 }
 
