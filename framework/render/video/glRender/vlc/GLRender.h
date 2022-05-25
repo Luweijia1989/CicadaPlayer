@@ -126,7 +126,7 @@ private:
     GLsizei tex_width[PICTURE_PLANE_MAX] = {0};
     GLsizei tex_height[PICTURE_PLANE_MAX] = {0};
 
-    GLuint texture[PICTURE_PLANE_MAX];
+    GLuint texture[PICTURE_PLANE_MAX] = {0};
 
     /* One YUV program and one RGBA program (for subpics) */
     GLProgram prgm = {0}; /* Main program */

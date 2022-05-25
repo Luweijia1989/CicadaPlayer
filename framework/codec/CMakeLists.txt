@@ -70,16 +70,10 @@ if (TARGET_PLATFORM STREQUAL "windows")
 		target_sources(videodec PRIVATE
 			${VLCFILE}
 		)      
-#		target_sources(videodec PRIVATE
-#            Windows/directx/DirectXHelper.cpp
-#            Windows/directx/DirectXHelper.h
-#			Windows/directx/dxcompat.h
-#			Windows/directx/SurfaceInterop.h
-#			Windows/directx/SurfaceInteropD3D9.h
-#			Windows/directx/SurfaceInteropD3D9.cpp
-#			Windows/directx/SurfaceInteropD3D9GL.cpp
-          
-#            )
+		target_sources(videodec PRIVATE
+			utils_windows.h
+			utils_windows.cpp
+		)
 else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-inconsistent-missing-override")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fstack-protector-all")

@@ -140,6 +140,9 @@ namespace Cicada {
             const AVPixFmtDescriptor *dsc = av_pix_fmt_desc_get(hwfmt);
             AF_LOGD("trying format %s", dsc ? dsc->name : "unknown");
 
+			if (hwfmt == AV_PIX_FMT_DXVA2_VLD && !avcodecDecoder::DXNVInteropAvailable)
+				continue;
+
             auto va = VideoAcceleration::createVA(p_context, hwfmt);
             if (!va) continue;
 
@@ -164,6 +167,8 @@ namespace Cicada {
     }
 
     avcodecDecoder avcodecDecoder::se(0);
+	bool avcodecDecoder::DXNVInteropAvailable = false;
+	bool avcodecDecoder::DXNVInteropAvailableChecked = false;
 
     void avcodecDecoder::close_va_decoder()
     {
@@ -460,6 +465,11 @@ namespace Cicada {
 
     avcodecDecoder::avcodecDecoder() : ActiveDecoder()
     {
+		if (!DXNVInteropAvailableChecked) {
+			DXNVInteropAvailable = checkDxInteropAvailable();
+			DXNVInteropAvailableChecked = true;
+		}
+
         mName = "VD.avcodec";
         mPDecoder = new decoder_handle_v();
         memset(mPDecoder, 0, sizeof(decoder_handle_v));

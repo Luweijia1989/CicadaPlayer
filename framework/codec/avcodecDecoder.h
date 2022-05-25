@@ -11,6 +11,7 @@
 #include <codec/IDecoder.h>
 #include "base/media/AVAFPacket.h"
 #include "codecPrototype.h"
+#include "utils_windows.h"
 extern "C" {
 #include <vlc_es.h>
 #include <chroma.h>
@@ -97,6 +98,8 @@ namespace Cicada{
         {}
     public:
         decoder_handle_v *mPDecoder = nullptr;
+		static bool DXNVInteropAvailable;
+		static bool DXNVInteropAvailableChecked;
     };
 }
 
