@@ -673,7 +673,7 @@ GLuint OpenGLTextureConverter::pf_fragment_shader_init(GLenum tex_target, vlc_fo
     }
 #endif
 
-    ADD(" gl_FragColor = result * FillColor;\n"
+    ADD(" gl_FragColor = vec4((result * FillColor).xyz, 1.0);\n"
         "}");
 
 #undef ADD
