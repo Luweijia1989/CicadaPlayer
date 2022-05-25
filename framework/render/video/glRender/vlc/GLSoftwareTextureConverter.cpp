@@ -240,12 +240,8 @@ int GLSoftwareTextureConverter::upload_plane(unsigned tex_idx, GLsizei width, GL
 
 void GLSoftwareTextureConverter::pbo_picture_destroy(PBOPicture *pic)
 {
-    if (pic->gl) {
-
-    } else
-        pic->DeleteBuffers(pic->i_planes, pic->buffers);
-
-	aligned_free(pic->data[0]);
+    if (pic->i_planes && pic->buffers) pic->DeleteBuffers(pic->i_planes, pic->buffers);
+    if (pic->data[0]) aligned_free(pic->data[0]);
     free(pic);
 }
 
@@ -260,18 +256,21 @@ PBOPicture *GLSoftwareTextureConverter::pbo_picture_create(GLSoftwareTextureConv
         const video_format_t::plane_t &p = fmt.plane[i];
 
         if (p.i_pitch < 0 || p.i_lines <= 0 || (size_t) p.i_pitch > (SIZE_MAX - i_bytes) / p.i_lines) {
+            free(pic);
             return NULL;
         }
         i_bytes += p.i_pitch * p.i_lines;
     }
 
     if (i_bytes >= PICTURE_SW_SIZE_MAX) {
+        free(pic);
         return NULL;
     }
 
     i_bytes = (i_bytes + 63) & ~63; /* must be a multiple of 64 */
     uint8_t *p_data = (uint8_t *) aligned_alloc(64, i_bytes);
     if (i_bytes > 0 && p_data == NULL) {
+        free(pic);
         return NULL;
     }
 
@@ -325,6 +324,8 @@ int GLSoftwareTextureConverter::pbo_pics_alloc()
 
     return 0;
 error:
-    for (size_t i = 0; i < PBO_DISPLAY_COUNT && pbo_cache->pbo.display_pics[i]; ++i) pbo_picture_destroy(pbo_cache->pbo.display_pics[i]);
+    for (size_t i = 0; i < PBO_DISPLAY_COUNT; ++i) {
+        if (pbo_cache->pbo.display_pics[i]) pbo_picture_destroy(pbo_cache->pbo.display_pics[i]);
+    }
     return -1;
 }
