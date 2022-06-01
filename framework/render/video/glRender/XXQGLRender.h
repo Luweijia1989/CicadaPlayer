@@ -140,6 +140,8 @@ private:
     IAFFrame::AFFrameInfo mVideoInfo{};
 
     std::atomic_bool bFlushAsync{false};
+	std::mutex mFlushMutex;
+	std::condition_variable mFlushConditionVariable;
 
 #ifdef __ANDROID__
     std::mutex mRenderCallbackMutex{};

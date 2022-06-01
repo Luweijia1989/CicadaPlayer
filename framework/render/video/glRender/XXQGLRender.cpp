@@ -61,7 +61,9 @@ int XXQGLRender::renderFrame(std::unique_ptr<IAFFrame> &frame)
     //    AF_LOGD("-----> renderFrame");
 
     if (frame == nullptr) {
+		std::unique_lock<std::mutex> lck(mFlushMutex);
         bFlushAsync = true;
+		mFlushConditionVariable.wait(lck);
         return 0;
     }
 
@@ -144,14 +146,19 @@ int XXQGLRender::onVsyncInner(int64_t tick)
     {
         std::unique_lock<std::mutex> locker(mFrameMutex);
 
-        if (bFlushAsync) {
-            while (!mInputQueue.empty()) {
-                dropFrame();
-            }
-            bFlushAsync = false;
+		{
+			std::unique_lock<std::mutex> lck(mFlushMutex);
+			if (bFlushAsync) {
+				while (!mInputQueue.empty()) {
+					dropFrame();
+				}
 
-            clearVOCacheFrame();
-			invokePaint();
+				clearVOCacheFrame();
+				invokePaint();
+
+				bFlushAsync = false;
+				mFlushConditionVariable.notify_all();
+			}
         }
 
         if (!mInputQueue.empty()) {
