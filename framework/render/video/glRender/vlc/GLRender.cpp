@@ -99,6 +99,8 @@ GLRender::~GLRender()
     if (giftEffectRender) delete giftEffectRender;
 
     if (textureConvter) {
+		textureConvter->release();
+
         const size_t main_tex_count = textureConvter->tex_count;
         const bool main_del_texs = !textureConvter->handle_texs_gen;
 

@@ -33,6 +33,8 @@ public:
 
     int pf_update(GLuint *textures, const GLsizei *tex_width, const GLsizei *tex_height, AVFrame *pic);
 
+	void release();
+
 private:
     d3d_convert converter = {0};
 };

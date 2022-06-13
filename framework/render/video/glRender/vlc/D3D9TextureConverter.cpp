@@ -8,15 +8,6 @@ D3D9TextureConverter::D3D9TextureConverter(void *d3d9ex)
 }
 D3D9TextureConverter::~D3D9TextureConverter()
 {
-    if (converter.gl_handle_d3d) {
-        if (converter.gl_render) {
-            converter.vt.DXUnlockObjectsNV(converter.gl_handle_d3d, 1, &converter.gl_render);
-            converter.vt.DXUnregisterObjectNV(converter.gl_handle_d3d, converter.gl_render);
-        }
-
-        converter.vt.DXCloseDeviceNV(converter.gl_handle_d3d);
-    }
-
     if (converter.dx_render) IDirect3DSurface9_Release(converter.dx_render);
 
     if (converter.d3d_dev) converter.d3d_dev->Release();
@@ -130,4 +121,16 @@ int D3D9TextureConverter::pf_update(GLuint *textures, const GLsizei *tex_width, 
     }
 
     return VLC_SUCCESS;
+}
+
+void D3D9TextureConverter::release()
+{
+    if (converter.gl_handle_d3d) {
+        if (converter.gl_render) {
+            converter.vt.DXUnlockObjectsNV(converter.gl_handle_d3d, 1, &converter.gl_render);
+            converter.vt.DXUnregisterObjectNV(converter.gl_handle_d3d, converter.gl_render);
+        }
+
+        converter.vt.DXCloseDeviceNV(converter.gl_handle_d3d);
+    }
 }

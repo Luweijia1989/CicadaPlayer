@@ -85,6 +85,7 @@ public:
      */
     virtual int pf_update(GLuint *textures, const GLsizei *tex_width, const GLsizei *tex_height, AVFrame *pic) = 0;
 
+	virtual void release() {}
 
     bool isAvailable()
     {
