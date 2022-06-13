@@ -147,6 +147,7 @@ private:
     void updateAlphaTextureCoords();
     void updateFlipCoords();
     void updateTransform();
+	void createAttributes();
 
 private:
     opengl_vtable_t *vt = nullptr;
@@ -175,15 +176,15 @@ private:
     GLuint videoFrameFbo;
     GLuint videoFrameTexture;
 
+	GLuint vao, vbo;
+
     GLuint prgm;
 
     bool mProjectionChanged = true;
     GLfloat mUProjection[4][4];
     bool mRegionChanged = true;
-    GLfloat mDrawRegion[8] = {0.0f};
     bool mTextureCoordsChanged = true;
-    GLfloat mTextureCoords[8] = {0.0f};
-    GLfloat mAlphaTextureCoords[8] = {0.0f};
+    GLfloat mAttributeData[8] = {0.0f};
     bool mFlipChanged = true;
     GLfloat mFlipCoords[2] = {0.0f};
 

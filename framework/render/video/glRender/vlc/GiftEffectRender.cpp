@@ -502,6 +502,33 @@ void GiftEffectRender::draw()
     }
 }
 
+void GiftEffectRender::createAttributes()
+{
+	vt->GenVertexArrays(1, &vao);
+	vt->GenBuffers(1, &vbo);
+	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+	vt->BindVertexArray(vao);
+
+	vt->BindBuffer(GL_ARRAY_BUFFER, vbo);
+	vt->BufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 8 * 3, NULL, GL_DYNAMIC_DRAW);
+
+	GLint lo = vt->GetAttribLocation(prgm, "position");
+	vt->VertexAttribPointer(lo, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	vt->EnableVertexAttribArray(lo);
+
+	GLint ro = vt->GetAttribLocation(prgm, "RGBTexCoord");
+	vt->VertexAttribPointer(ro, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(2 * sizeof(float)));
+	vt->EnableVertexAttribArray(ro);
+
+	GLint ao = vt->GetAttribLocation(prgm, "alphaTexCoord");
+	vt->VertexAttribPointer(ao, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(4 * sizeof(float)));
+	vt->EnableVertexAttribArray(ao);
+
+	vt->BindBuffer(GL_ARRAY_BUFFER, 0); 
+
+	vt->BindVertexArray(0); 
+}
+
 void GiftEffectRender::initPrgm()
 {
     auto m_vertexShader = vt->CreateShader(GL_VERTEX_SHADER);
@@ -577,19 +604,12 @@ void GiftEffectRender::initPrgm()
     vt->DeleteShader(m_vertexShader);
     vt->DeleteShader(m_fragmentShader);
 
-    position = vt->GetAttribLocation(prgm, "position");
-    RGBTexCoord = vt->GetAttribLocation(prgm, "RGBTexCoord");
-    alphaTexCoord = vt->GetAttribLocation(prgm, "alphaTexCoord");
     SamplerImage = vt->GetUniformLocation(prgm, "SamplerImage");
     projection = vt->GetUniformLocation(prgm, "u_projection");
     uflip = vt->GetUniformLocation(prgm, "u_flipMatrix");
     uColorRangeFix = vt->GetUniformLocation(prgm, "colorRangeFix");
 
-    vt->UseProgram(prgm);
-    vt->EnableVertexAttribArray(position);
-    vt->EnableVertexAttribArray(RGBTexCoord);
-    vt->EnableVertexAttribArray(alphaTexCoord);
-    vt->UseProgram(0);
+    createAttributes();
 }
 
 void GiftEffectRender::updateMaskInfo()
@@ -779,42 +799,68 @@ void GiftEffectRender::updateDrawRegion()
         }
     }
 
+	int stride = 6;
+	int index = 0;
     if (mRotate == IVideoRender::Rotate::Rotate_None) {
-        mDrawRegion[0] = (GLfloat)(off_x);
-        mDrawRegion[1] = (GLfloat)(off_y);
-        mDrawRegion[2] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[3] = (GLfloat)(off_y);
-        mDrawRegion[4] = (GLfloat)(off_x);
-        mDrawRegion[5] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[6] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[7] = (GLfloat)(off_y + draw_height);
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
+
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
+
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
+
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
     } else if (mRotate == IVideoRender::Rotate::Rotate_90) {
-        mDrawRegion[0] = (GLfloat)(off_x);
-        mDrawRegion[1] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[2] = (GLfloat)(off_x);
-        mDrawRegion[3] = (GLfloat)(off_y);
-        mDrawRegion[4] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[5] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[6] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[7] = (GLfloat)(off_y);
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
+
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
     } else if (mRotate == IVideoRender::Rotate::Rotate_180) {
-        mDrawRegion[0] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[1] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[2] = (GLfloat)(off_x);
-        mDrawRegion[3] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[4] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[5] = (GLfloat)(off_y);
-        mDrawRegion[6] = (GLfloat)(off_x);
-        mDrawRegion[7] = (GLfloat)(off_y);
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
     } else if (mRotate == IVideoRender::Rotate::Rotate_270) {
-        mDrawRegion[0] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[1] = (GLfloat)(off_y);
-        mDrawRegion[2] = (GLfloat)(off_x + draw_width);
-        mDrawRegion[3] = (GLfloat)(off_y + draw_height);
-        mDrawRegion[4] = (GLfloat)(off_x);
-        mDrawRegion[5] = (GLfloat)(off_y);
-        mDrawRegion[6] = (GLfloat)(off_x);
-        mDrawRegion[7] = (GLfloat)(off_y + draw_height);
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x + draw_width);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y);
+		
+		index++;
+        mAttributeData[stride * index] = (GLfloat)(off_x);
+        mAttributeData[stride * index + 1] = (GLfloat)(off_y + draw_height);
     }
 }
 
