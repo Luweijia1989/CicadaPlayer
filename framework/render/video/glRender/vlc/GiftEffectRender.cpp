@@ -461,8 +461,32 @@ void GiftEffectRender::releaseFbo()
     vt->BindFramebuffer(GL_FRAMEBUFFER, last_fbo);
 }
 
+void GiftEffectRender::resetGLState()
+{
+    vt->BindBuffer(GL_ARRAY_BUFFER, 0);
+    vt->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    vt->BindVertexArray(0);
+
+    vt->ActiveTexture(GL_TEXTURE0);
+    vt->BindTexture(GL_TEXTURE_2D, 0);
+
+    vt->Disable(GL_DEPTH_TEST);
+    vt->Disable(GL_STENCIL_TEST);
+    vt->Disable(GL_SCISSOR_TEST);
+
+    vt->DepthMask(true);
+
+    vt->Disable(GL_BLEND);
+    vt->BlendFunc(GL_ONE, GL_ZERO);
+
+    vt->UseProgram(0);
+}
+
 void GiftEffectRender::draw()
 {
+    resetGLState();
+
     updateTransform();
 
     vt->Viewport(0, 0, viewWidth, viewHeight);
@@ -489,6 +513,7 @@ void GiftEffectRender::draw()
     vt->UseProgram(0);
 
     if (mVapConfig && mVapConfig->isMix) {
+        resetGLState();
         MixRenderer::MixParam param{off_x,
                                     off_y,
                                     mScaleWidth,
@@ -569,7 +594,7 @@ void GiftEffectRender::initPrgm()
     			vec3 rgb_alpha;
 
     			rgb_rgb = texture2D(SamplerImage, RGBTexCoordVarying).rgb;
-    			rgb_alpha = texture2D(SamplerImage, alphaTexCoordVarying);
+    			rgb_alpha = texture2D(SamplerImage, alphaTexCoordVarying).rgb;
     
     			gl_FragColor = vec4(rgb_rgb - colorRangeFix/255.0, rgb_alpha.r - 16.0/255.0);
 

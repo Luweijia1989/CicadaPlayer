@@ -148,6 +148,7 @@ private:
     void updateFlipCoords();
     void updateTransform();
 	void createAttributes();
+    void resetGLState();
 
 private:
     opengl_vtable_t *vt = nullptr;
