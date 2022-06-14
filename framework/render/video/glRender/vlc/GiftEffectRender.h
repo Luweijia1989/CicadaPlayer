@@ -184,7 +184,7 @@ private:
     GLfloat mUProjection[4][4];
     bool mRegionChanged = true;
     bool mTextureCoordsChanged = true;
-    GLfloat mAttributeData[8] = {0.0f};
+    GLfloat mAttributeData[24] = {0.0f};
     bool mFlipChanged = true;
     GLfloat mFlipCoords[2] = {0.0f};
 

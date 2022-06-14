@@ -467,8 +467,6 @@ void GiftEffectRender::draw()
 
     vt->Viewport(0, 0, viewWidth, viewHeight);
 
-    vt->BindBuffer(GL_ARRAY_BUFFER, 0);//在不使用vbo的情况下，这里需要执行这句话，否则绘制不出来。
-
     vt->ActiveTexture(GL_TEXTURE0);
     vt->BindTexture(GL_TEXTURE_2D, videoFrameTexture);
 
@@ -477,11 +475,16 @@ void GiftEffectRender::draw()
     vt->UniformMatrix4fv(projection, 1, GL_FALSE, (GLfloat *) mUProjection);
     vt->Uniform2f(uflip, mFlipCoords[0], mFlipCoords[1]);
     vt->Uniform1i(uColorRangeFix, gpu_decoded ? 16 : 0);
-    vt->VertexAttribPointer(position, 2, GL_FLOAT, GL_FALSE, 0, mDrawRegion);
-    vt->VertexAttribPointer(RGBTexCoord, 2, GL_FLOAT, GL_FALSE, 0, mTextureCoords);
-    vt->VertexAttribPointer(alphaTexCoord, 2, GL_FLOAT, GL_FALSE, 0, mAlphaTextureCoords);
+
+	vt->BindBuffer(GL_ARRAY_BUFFER, vbo);
+	vt->BufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * 8 * 3, mAttributeData);
+    
+	vt->BindVertexArray(vao);
 
     vt->DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	vt->BindBuffer(GL_ARRAY_BUFFER, 0);
+	vt->BindVertexArray(0);
 
     vt->UseProgram(0);
 
@@ -698,32 +701,44 @@ void GiftEffectRender::updateTextureCoords()
 
     updateAlphaTextureCoords();
 
-    mTextureCoords[0] = (float) leftX / (float) fmt->i_width;
-    mTextureCoords[1] = (float) topY / (float) fmt->i_visible_height;
+	int offset = 2;
+	int stride = 6;
+	int index = 0;
+    mAttributeData[offset + index * stride] = (float) leftX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) topY / (float) fmt->i_visible_height;
 
-    mTextureCoords[2] = (float) rightX / (float) fmt->i_width;
-    mTextureCoords[3] = (float) topY / (float) fmt->i_visible_height;
+	index++;
+    mAttributeData[offset + index * stride] = (float) rightX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) topY / (float) fmt->i_visible_height;
 
-    mTextureCoords[4] = (float) leftX / (float) fmt->i_width;
-    mTextureCoords[5] = (float) bottomY / (float) fmt->i_visible_height;
+	index++;
+    mAttributeData[offset + index * stride] = (float) leftX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) bottomY / (float) fmt->i_visible_height;
 
-    mTextureCoords[6] = (float) rightX / (float) fmt->i_width;
-    mTextureCoords[7] = (float) bottomY / (float) fmt->i_visible_height;
+	index++;
+    mAttributeData[offset + index * stride] = (float) rightX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) bottomY / (float) fmt->i_visible_height;
 }
 
 void GiftEffectRender::updateAlphaTextureCoords()
 {
-    mAlphaTextureCoords[0] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_width;
-    mAlphaTextureCoords[1] = (float) mVapConfig->alphaPointRect.top / (float) fmt->i_visible_height;
+	int offset = 4;
+	int stride = 6;
+	int index = 0;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.top / (float) fmt->i_visible_height;
 
-    mAlphaTextureCoords[2] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_width;
-    mAlphaTextureCoords[3] = (float) mVapConfig->alphaPointRect.top / (float) fmt->i_visible_height;
+	index++;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.top / (float) fmt->i_visible_height;
 
-    mAlphaTextureCoords[4] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_width;
-    mAlphaTextureCoords[5] = (float) mVapConfig->alphaPointRect.bottom / (float) fmt->i_visible_height;
+	index++;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.bottom / (float) fmt->i_visible_height;
 
-    mAlphaTextureCoords[6] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_width;
-    mAlphaTextureCoords[7] = (float) mVapConfig->alphaPointRect.bottom / (float) fmt->i_visible_height;
+	index++;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_width;
+    mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.bottom / (float) fmt->i_visible_height;
 }
 
 void GiftEffectRender::updateProjection()
