@@ -2651,6 +2651,8 @@ bool SuperMediaPlayer::RenderVideo(bool force_render)
                 mMasterClock.setReferenceClock(mClockRef, mCRArg);
             }
         }
+
+		checkFirstRender();
     } else {
         AF_LOGW("drop frame,master played time is %lld,video pts is %lld\n", masterPlayedTime, videoPts);
         videoFrame->setDiscard(true);
