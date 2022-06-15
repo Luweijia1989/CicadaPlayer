@@ -14,7 +14,7 @@ public:
 
     int m;
 };
-//#define DEMO_QUICKWIDGET
+#define DEMO_QUICKWIDGET
 #ifdef DEMO_QUICKWIDGET
 OpenGLWidget *gl = nullptr;
 
@@ -28,17 +28,17 @@ int main(int argc, char *argv[])
 
     auto player = std::shared_ptr<MediaPlayer>(new MediaPlayer());
 
-    //player->setMaskMode(
-    //        IVideoRender::Mask_Right,
-    //        u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
+    player->setMaskMode(
+            IVideoRender::Mask_Right,
+            u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
     player->SetRotateMode(ROTATE_MODE_0);
     player->SetScaleMode(SM_FIT);
 
-    player->SetSpeed(0.5);
+    //player->SetSpeed(0.5);
     player->SetDefaultBandWidth(1000 * 1000);
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("https://tvideo.bxapp.cn/ad1ba4b647cc47a59518e53598cb4db4.mp4");
+    player->SetDataSource("E:\\test.mp4");
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);
@@ -104,7 +104,10 @@ int main(int argc, char *argv[])
 QQuickView *view = nullptr;
 int main(int argc, char *argv[])
 {
-    qputenv("QSG_RENDER_LOOP", "basic");
+	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+    //qputenv("QSG_RENDER_LOOP", "basic");
     QApplication app(argc, argv);
 
     qmlRegisterType<QMLPlayer>("MDKPlayer", 1, 0, "MDKPlayer");

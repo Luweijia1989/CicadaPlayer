@@ -40,10 +40,10 @@ QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), inte
     setMirrorVertically(true);
     internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
 
-    internal_player->SetDataSource("C://Users//posat//Desktop//test2.mp4");
+    internal_player->SetDataSource("E:/vap1.mp4");
 	internal_player->setMaskMode(
             IVideoRender::Mask_Right,
-            u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
+            u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
     internal_player->SetAutoPlay(true);
     internal_player->SetLoop(false);
     internal_player->Prepare();
