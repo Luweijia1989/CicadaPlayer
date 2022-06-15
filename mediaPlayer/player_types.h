@@ -77,6 +77,8 @@ namespace Cicada {
 		IVideoRender::MaskMode maskMode = IVideoRender::Mask_None;
 		std::string maskData;
 		std::map<void *, RenderInfo> renderInfos;
+        
+        bool preferAudio{false};
     };
 }
 

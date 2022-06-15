@@ -16,6 +16,7 @@
 extern "C" {
 //#include <libavutil/rational.h>
 };
+#include <utils/AFMediaType.h>
 #include <utils/CicadaType.h>
 
 struct AVRational;
@@ -38,6 +39,7 @@ public:
         int duration;
         int64_t pos;
         int64_t timePosition;
+        int64_t utcTime = INT64_MIN;
         bool seamlessPoint;
 
         uint8_t *extra_data;
@@ -169,6 +171,7 @@ public:
         int colorSpace;
 
 		void *vlc_fmt;
+        VideoColorInfo colorInfo;
 
         bool operator==(const videoInfo &info) const
         {
@@ -208,6 +211,7 @@ public:
         int64_t duration;
         bool key;
         int64_t timePosition;
+        int64_t utcTime;
         union {
             videoInfo video;
             audioInfo audio;

@@ -11,6 +11,8 @@ include_directories(video/glRender)
 add_definitions(-DHAVE_CONFIG_H)
 file(GLOB_RECURSE VLCRENDERFILE video/glRender/vlc/*.*)
   
+#set(ENABLE_CHEAT_RENDER ON)
+
 list(APPEND SRC_FILES
         video/vsync/timedVSync.cpp
         video/vsync/timedVSync.h
@@ -83,6 +85,10 @@ if (APPLE)
             video/AVFoundation/SampleDisplayLayerRender.mm
             video/AVFoundation/SampleDisplayLayerRender.h
             video/AVFoundation/DisplayLayerImpl-interface.h
+            subtitle/AppleSubtitleRender.mm
+            subtitle/AppleSubtitleRender.h
+            subtitle/AppleCATextLayerRender.mm
+            subtitle/AppleCATextLayerRender.h
             )
 endif ()
 
@@ -157,6 +163,8 @@ if (ENABLE_GLRENDER)
         set(SRC_FILES ${SRC_FILES}
                 video/glRender/OESProgramContext.cpp
                 video/glRender/OESProgramContext.h
+                video/glRender/OES2FBOProgram.cpp
+                video/glRender/OES2FBOProgram.h
                 video/glRender/platform/android/decoder_surface.cpp
                 video/glRender/platform/android/decoder_surface.h
                 )

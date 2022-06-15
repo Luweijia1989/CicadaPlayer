@@ -52,6 +52,9 @@ namespace Cicada {
         if (rangeStart != INT64_MIN) {
             avio_seek(mPuc, (int64_t) rangeStart, SEEK_SET);
         }
+        if (strcmp(avio_find_protocol_name(mUri.c_str()), "file") == 0) {
+            isNetWork = false;
+        }
 
 		parseVapInfo();
 
@@ -104,6 +107,10 @@ namespace Cicada {
 
         if (ret == AVERROR_EOF) {
             ret = 0;
+        }
+
+        if (isNetWork && ret > 0 && mConfig.listener) {
+            mConfig.listener->onNetWorkInPut(ret, IDataSource::Listener::bitStreamTypeMedia);
         }
 
         return ret;

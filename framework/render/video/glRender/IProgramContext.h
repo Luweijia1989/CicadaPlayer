@@ -8,6 +8,15 @@
 #include "platform/platform_gl.h"
 #include "render/video/IVideoRender.h"
 #include <utils/AFMediaType.h>
+#include "render/video/glRender/platform/platform_config.h"
+
+#if TARGET_PLATFORM == PLATFORM_IOS
+
+#include <OpenGLES/gltypes.h>
+#include <OpenGLES/ES2/gl.h>
+#include <OpenGLES/ES2/glext.h>
+
+#endif
 
 class IProgramContext {
 
@@ -49,6 +58,11 @@ public:
         mRenderingCbUserData = userData;
     }
 
+    virtual void setVideoProcessTextureCb(IVideoRender::videoProcessTextureCb *cb)
+    {
+        mProcessTextureCb = cb;
+    }
+
     virtual void setGLContext(void *glContext)
     {
         mGLContext = glContext;
@@ -63,6 +77,8 @@ public:
 protected:
     videoRenderingFrameCB mRenderingCb{nullptr};
     void *mRenderingCbUserData{nullptr};
+
+    IVideoRender::videoProcessTextureCb *mProcessTextureCb{nullptr};
 
     void *mGLContext{nullptr};
 };

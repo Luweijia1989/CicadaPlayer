@@ -78,6 +78,8 @@ namespace Cicada {
 
         void SetUpdateViewCallback(UpdateViewCB cb, void *userData);
 
+        void SetUrlHashCallback(UrlHashCB cb, void *userData);
+
         void SetStreamTypeFlags(uint64_t flags);
 
         void SetIPResolveType(IpResolveType type);
@@ -98,6 +100,8 @@ namespace Cicada {
          * set player view
          */
         void SetView(void *view);
+
+        void ClearScreen();
 
         /*
          * set player url source
@@ -326,6 +330,8 @@ namespace Cicada {
 
         std::string GetPropertyString(PropertyKey key);
 
+        std::string GetPropertyString(PropertyKey key, const CicadaJSONItem &param);
+
         void SetOption(const char *key, const char *value);
 
         void GetOption(const char *key, char *value);
@@ -346,6 +352,26 @@ namespace Cicada {
         void SetCacheConfig(const CacheConfig &config);
 
         /**
+         * Set filter config. call this before prepare. If want update filter config, call updateFilterConfig()
+         * @param filterConfig
+         */
+        void SetFilterConfig(const std::string &filterConfig);
+
+        /**
+         * upadate filter config.
+         * @param target  Empty or not found, will make no effect. Should not be empty.
+         * @param options
+         */
+        void UpdateFilterConfig(const std::string &target, const std::string &options);
+
+        /**
+         * disable/enable filter.
+         * @param target  if empty , disable all filters.
+         * @param invalid  true: enable(default); false: disable
+         */
+        void SetFilterInvalid(const std::string &target, bool invalid);
+
+        /**
          * get cache url. Should SetCacheConfig before call this.
          * @param URL orignal url
          * @return cached url.
@@ -364,6 +390,8 @@ namespace Cicada {
 		void setMaskMode(IVideoRender::MaskMode mode, const std::string& data = std::string());
 		void clearGLResource(void *vo);
 		static void foreignGLContextDestroyed(void *vo);
+        
+        bool IsEnableAbr();
 
     private:
         static void preparedCallback(void *userData);
@@ -384,6 +412,8 @@ namespace Cicada {
 
         static void currentPositionCallback(int64_t position, void *userData);
 
+        static void currentUtcTimeCallback(int64_t time, void *userData);
+
         static void bufferPositionCallback(int64_t position, void *userData);
 
         static void loopingStartCallback(void *userData);
@@ -401,6 +431,8 @@ namespace Cicada {
         static void subtitleHideCallback(int64_t index, int64_t size, const void *content, void *userData);
 
         static void subtitleExtAddedCallback(int64_t index, const void *url, void *userData);
+
+        static void subtitleHeaderCallback(int64_t index, const void *header, void *userData);
 
         static void streamChangedSucCallback(int64_t type, const void *Info, void *userData);
 

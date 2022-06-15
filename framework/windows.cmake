@@ -17,6 +17,8 @@ if (MSVC)
           ${WINDOWS_INSTALL_DIR}/ffmpeg/win32/${ARCH}/bin)
   set(COMMON_INC_DIR ${COMMON_INC_DIR}
           ${WINDOWS_INSTALL_DIR}/ffmpeg/win32/${ARCH}/include
+          ${WINDOWS_INSTALL_DIR}/curl/win32/${ARCH}/include
+          ${WINDOWS_INSTALL_DIR}/openssl/win32/${ARCH}/include
           ${PROJECT_SOURCE_DIR}
 		  ${PROJECT_SOURCE_DIR}/utils/vlc
           ${CMAKE_CURRENT_LIST_DIR}/../external/boost)
@@ -30,11 +32,10 @@ if (MSVC)
   link_libraries(SDL2::SDL2)
   find_package(pthread REQUIRED)
   link_libraries(${PThreads4W_LIBRARY})
-  find_package(OpenSSL REQUIRED)
-  link_libraries(OpenSSL::SSL OpenSSL::Crypto)
   find_package(LibXml2 REQUIRED)
   link_libraries(${LIBXML2_LIBRARIES})
   include_directories(${LIBXML2_INCLUDE_DIR})
+  add_definitions(-DNOMINMAX)
 else ()
   set(COMMON_LIB_DIR ${COMMON_LIB_DIR}
         ${WINDOWS_INSTALL_DIR}/curl/win32/${ARCH}/lib
@@ -46,6 +47,7 @@ else ()
         ${SDL_DIR}/${ARCH}-w64-mingw32/lib
         )
   set(FFMPEG_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/../external/external/ffmpeg/)
+  set(FFMPEG_BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/../external/build/ffmpeg/win32/${ARCH})
   set(COMMON_INC_DIR ${COMMON_INC_DIR}
         ${WINDOWS_INSTALL_DIR}/curl/win32/${ARCH}/include
         ${WINDOWS_INSTALL_DIR}/librtmp/win32/${ARCH}/include
@@ -53,6 +55,7 @@ else ()
         ${WINDOWS_INSTALL_DIR}/ffmpeg/win32/${ARCH}/include
         ${PROJECT_SOURCE_DIR}
         ${FFMPEG_SOURCE_DIR}
+        ${FFMPEG_BUILD_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/../external/boost
         ${SDL_DIR}/${ARCH}-w64-mingw32/include)
 endif ()

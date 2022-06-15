@@ -70,6 +70,8 @@ set(SOURCE_FILES
         UTCTimer.h
         globalNetWorkManager.cpp
         globalNetWorkManager.h
+        AssUtils.cpp
+        AssUtils.h
         )
  
 file(GLOB VLCFILE vlc/*.*)
@@ -81,10 +83,10 @@ list(APPEND SOURCE_FILES
         ../base/media/IAFPacket.h
         ../base/media/AVAFPacket.cpp
         ../base/media/AVAFPacket.h
-		../base/media/avcompat.h
-
-		${VLCFILE}
-
+	../base/media/avcompat.h
+        ../base/media/TextureFrame.cpp
+        ../base/media/TextureFrame.h
+        ${VLCFILE}
         )
 
 list(APPEND SOURCE_FILES

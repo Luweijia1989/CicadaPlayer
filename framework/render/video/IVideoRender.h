@@ -96,6 +96,7 @@ public:
         }
     };
 
+
     class IVideoRenderFilter {
     public:
         virtual ~IVideoRenderFilter() = default;
@@ -180,11 +181,6 @@ public:
 
     }
 
-    virtual void setFilter(IVideoRenderFilter *filter)
-    {
-        mFilter = filter;
-    }
-
     /**
      * set display view
      * @param view
@@ -227,9 +223,32 @@ public:
 	virtual void setVapInfo(const std::string& info) {}
 	virtual void clearGLResource(void *vo) {}
 	static void foreignGLContextDestroyed(void *vo);
+    
+    class videoProcessTextureCb {
+    public:
+        videoProcessTextureCb() = default;
+
+        virtual ~videoProcessTextureCb() = default;
+
+        /**
+         * @param type      TEXTURE_YUV 0, TEXTURE_RGBA 1
+         * @return
+         */
+        virtual bool init(int type) = 0;
+
+        virtual bool needProcess() = 0;
+
+        virtual bool push(std::unique_ptr<IAFFrame> &textureFrame) = 0;
+
+        virtual bool pull(std::unique_ptr<IAFFrame> &textureFrame) = 0;
+    };
+
+    virtual void setVideoProcessTextureCb(videoProcessTextureCb *cb)
+    {
+        mProcessTextureCb = cb;
+    }
 
 protected:
-    IVideoRenderFilter *mFilter{};
     bool mInvalid{false};
     IVideoRenderListener *mListener{nullptr};
 
@@ -238,6 +257,8 @@ protected:
 
 	static std::mutex renderMutex;
 	static std::map<void *, RenderInfo> mRenders;
+    
+    videoProcessTextureCb *mProcessTextureCb{nullptr};
 };
 
 

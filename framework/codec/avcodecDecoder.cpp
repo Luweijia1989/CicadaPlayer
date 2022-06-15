@@ -395,12 +395,12 @@ namespace Cicada {
             return gen_framework_errno(error_class_codec, isAudio ? codec_error_audio_not_support : codec_error_video_not_support);
         }
 
-        // TODO: not set extradata when XXvc
-
-        if (AF_CODEC_ID_PCM_S16LE == meta->codec) {
+        if (isAudio) {
             mPDecoder->codecCont->channels = meta->channels;
             mPDecoder->codecCont->sample_rate = meta->samplerate;
         }
+
+        // TODO: not set extradata when XXvc
 
         if (meta->extradata != nullptr && meta->extradata_size > 0) {
             mPDecoder->codecCont->extradata = (uint8_t *) av_mallocz(meta->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
@@ -525,14 +525,20 @@ namespace Cicada {
 
         auto dst = mPDecoder->avFrame;
         int64_t timePosition = INT64_MIN;
-        if (dst->metadata) {
-            AVDictionaryEntry *t = av_dict_get(dst->metadata, "timePosition", nullptr, AV_DICT_IGNORE_SUFFIX);
-            if (t) {
+        int64_t utcTime = INT64_MIN;
+        if (mPDecoder->avFrame->metadata){
+            AVDictionaryEntry *t = av_dict_get(mPDecoder->avFrame->metadata,"timePosition", nullptr,AV_DICT_IGNORE_SUFFIX);
+            if (t){
                 timePosition = atoll(t->value);
+            }
+            AVDictionaryEntry *utcEntry = av_dict_get(mPDecoder->avFrame->metadata, "utcTime", nullptr, AV_DICT_IGNORE_SUFFIX);
+            if (utcEntry) {
+                utcTime = atoll(utcEntry->value);
             }
         }
         pFrame = unique_ptr<IAFFrame>(new AVAFFrame(&mPDecoder->videoForamt, dst));
         pFrame->getInfo().timePosition = timePosition;
+        pFrame->getInfo().utcTime = utcTime;
         return ret;
     };
 
@@ -562,7 +568,8 @@ namespace Cicada {
         if (pkt) {
             AVDictionary *dict = nullptr;
             int size = 0;
-            av_dict_set_int(&dict, "timePosition", pPacket->getInfo().timePosition, 0);
+            av_dict_set_int(&dict,"timePosition",pPacket->getInfo().timePosition,0);
+            av_dict_set_int(&dict,"utcTime",pPacket->getInfo().utcTime,0);
             uint8_t *metadata = av_packet_pack_dictionary(dict, &size);
             av_dict_free(&dict);
 
