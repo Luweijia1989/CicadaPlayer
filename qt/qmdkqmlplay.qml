@@ -73,7 +73,7 @@ Item {
 	Button {
 		onClicked: {
 			console.log('aaaaaa')
-			player.stop()
+			player.test()
 		}
 	}
 

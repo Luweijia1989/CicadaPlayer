@@ -14,7 +14,7 @@ public:
 
     int m;
 };
-#define DEMO_QUICKWIDGET
+//#define DEMO_QUICKWIDGET
 #ifdef DEMO_QUICKWIDGET
 OpenGLWidget *gl = nullptr;
 
@@ -125,9 +125,9 @@ int main(int argc, char *argv[])
 
 	QQuickWidget m_renderWidget;
 	//m_renderWidget->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowTransparentForInput | Qt::WindowStaysOnTopHint | Qt::ToolTip);
-    m_renderWidget.setAttribute(Qt::WA_TranslucentBackground);    //…Ë÷√±≥æ∞Õ∏√˜
-    m_renderWidget.setAttribute(Qt::WA_ShowWithoutActivating);
-    m_renderWidget.setClearColor(Qt::transparent);
+    //m_renderWidget.setAttribute(Qt::WA_TranslucentBackground);    //…Ë÷√±≥æ∞Õ∏√˜
+    //m_renderWidget.setAttribute(Qt::WA_ShowWithoutActivating);
+    //m_renderWidget.setClearColor(Qt::transparent);
 	m_renderWidget.setResizeMode(QQuickWidget::SizeRootObjectToView);
 
     m_renderWidget.setSource(QUrl("qrc:/qmdkqmlplay.qml"));

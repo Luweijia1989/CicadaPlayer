@@ -45,7 +45,7 @@ QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), inte
             IVideoRender::Mask_Right,
             u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
     internal_player->SetAutoPlay(true);
-    internal_player->SetLoop(false);
+    internal_player->SetLoop(true);
     internal_player->Prepare();
 }
 
@@ -63,7 +63,7 @@ QQuickFramebufferObject::Renderer *QMLPlayer::createRenderer() const
 void QMLPlayer::test()
 {
 	internal_player->Stop();
-	internal_player->SetDataSource("https://video.hellobixin.com/video/dc37c4361114437ab84f1ebef1bbb7e5.mp4");
+	internal_player->SetDataSource("E:\\vap1.mp4");
 	/*internal_player->setMaskMode(
             IVideoRender::Mask_Right,
             u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");*/
