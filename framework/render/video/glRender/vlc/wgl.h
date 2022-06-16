@@ -12,7 +12,9 @@ public:
     static const char *GetExtensionsString(GLBase *base)
     {
         auto wgl = dynamic_cast<WGL *>(base);
-        return wgl->exts.GetExtensionsStringEXT ? wgl->exts.GetExtensionsStringEXT() : wgl->exts.GetExtensionsStringARB(wgl->hGLDC);
+        return wgl->exts.GetExtensionsStringEXT 
+			? wgl->exts.GetExtensionsStringEXT() 
+			: (wgl->exts.GetExtensionsStringARB ? wgl->exts.GetExtensionsStringARB(wgl->hGLDC) : NULL);
     }
 
     WGL()
