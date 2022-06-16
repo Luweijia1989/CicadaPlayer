@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
     player->SetDataSource("E:\\test.mp4");
+	player->EnableHardwareDecoder(true);
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);
