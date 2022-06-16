@@ -116,6 +116,7 @@ private:
 
     GLBase *glBase = nullptr;
     bool gpu_decoded = false;
+	bool gl_inited = false;
     OpenGLTextureConverter *textureConvter = nullptr;
     GiftEffectRender *giftEffectRender = nullptr;
 

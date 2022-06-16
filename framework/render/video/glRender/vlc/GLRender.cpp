@@ -94,26 +94,28 @@ GLRender::GLRender(video_format_t *format) : fmt(*format)
 
 GLRender::~GLRender()
 {
-    assert(glBase->checkCurrent());
+	if (gl_inited) {
+		assert(glBase->checkCurrent());
 
-    if (giftEffectRender) delete giftEffectRender;
+		if (giftEffectRender) delete giftEffectRender;
 
-    if (textureConvter) {
-		textureConvter->release();
+		if (textureConvter) {
+			textureConvter->release();
 
-        const size_t main_tex_count = textureConvter->tex_count;
-        const bool main_del_texs = !textureConvter->handle_texs_gen;
+			const size_t main_tex_count = textureConvter->tex_count;
+			const bool main_del_texs = !textureConvter->handle_texs_gen;
 
-        if (vt.DeleteBuffers) vt.DeleteBuffers(main_tex_count, texture_buffer_object);
+			if (vt.DeleteBuffers) vt.DeleteBuffers(main_tex_count, texture_buffer_object);
 
-        if (main_del_texs && vt.DeleteTextures) vt.DeleteTextures(main_tex_count, texture);
-    }
-    if (vt.DeleteBuffers) {
-        vt.DeleteBuffers(1, &vertex_buffer_object);
-        vt.DeleteBuffers(1, &index_buffer_object);
-    }
+			if (main_del_texs && vt.DeleteTextures) vt.DeleteTextures(main_tex_count, texture);
+		}
+		if (vt.DeleteBuffers) {
+			vt.DeleteBuffers(1, &vertex_buffer_object);
+			vt.DeleteBuffers(1, &index_buffer_object);
+		}
 
-    destroyShaderProgram();
+		destroyShaderProgram();
+	}
 
     delete glBase;
 }
@@ -317,6 +319,7 @@ bool GLRender::initGL()
     vt.GenBuffers(1, &index_buffer_object);
     vt.GenBuffers(textureConvter->tex_count, texture_buffer_object);
 
+	gl_inited = true;
     return true;
 }
 

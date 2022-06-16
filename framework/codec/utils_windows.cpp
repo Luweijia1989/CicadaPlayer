@@ -143,15 +143,17 @@ namespace Cicada {
                 arb = (PFNWGLGETEXTENSIONSSTRINGARBPROC) wglGetProcAddress("wglGetExtensionsStringARB");
             }
 
-            const char *ext_string = ext ? ext() : arb(dummy.hdc);
-            if (ext_string) {
-                if (HasExtension(ext_string, "WGL_NV_DX_interop")) {
-                    ret = wglGetProcAddress("wglDXSetResourceShareHandleNV") && wglGetProcAddress("wglDXOpenDeviceNV") &&
-                          wglGetProcAddress("wglDXCloseDeviceNV") && wglGetProcAddress("wglDXRegisterObjectNV") &&
-                          wglGetProcAddress("wglDXUnregisterObjectNV") && wglGetProcAddress("wglDXLockObjectsNV") &&
-                          wglGetProcAddress("wglDXUnlockObjectsNV");
-                }
-            }
+			if (ext || arb) {
+				const char *ext_string = ext ? ext() : arb(dummy.hdc);
+				if (ext_string) {
+					if (HasExtension(ext_string, "WGL_NV_DX_interop")) {
+						ret = wglGetProcAddress("wglDXSetResourceShareHandleNV") && wglGetProcAddress("wglDXOpenDeviceNV") &&
+							  wglGetProcAddress("wglDXCloseDeviceNV") && wglGetProcAddress("wglDXRegisterObjectNV") &&
+							  wglGetProcAddress("wglDXUnregisterObjectNV") && wglGetProcAddress("wglDXLockObjectsNV") &&
+							  wglGetProcAddress("wglDXUnlockObjectsNV");
+					}
+				}
+			}
         }
 
         gl_dummy_context_free(&dummy);
