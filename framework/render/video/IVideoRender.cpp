@@ -16,4 +16,7 @@ void IVideoRender::foreignGLContextDestroyed(void *vo)
 
 	RenderInfo &info = mRenders[vo];
     info.reset();
+
+	if (!info.cb)
+		mRenders.erase(vo);
 }

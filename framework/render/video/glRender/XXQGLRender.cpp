@@ -428,6 +428,9 @@ void XXQGLRender::clearGLResource(void *vo)
 
     RenderInfo &renderInfo = mRenders[vo];
     renderInfo.reset();
+
+	if (!renderInfo.cb)
+		mRenders.erase(vo);
 }
 
 void XXQGLRender::setMaskMode(MaskMode mode, const std::string &data)
