@@ -4035,7 +4035,7 @@ void SuperMediaPlayer::setVideoSurfaceSize(int width, int height, void *vo)
 	mSet->renderInfos[vo].videoSurfaceWidth = width;
 	mSet->renderInfos[vo].videoSurfaceHeight = height;
 
-    if (mAVDeviceManager->isVideoRenderValid()) {
+    if (mAVDeviceManager->getVideoRender()) {
         mAVDeviceManager->getVideoRender()->setVideoSurfaceSize(width, height, vo);
     } 
 }
@@ -4046,7 +4046,7 @@ void SuperMediaPlayer::setRenderCallback(std::function<void(void * vo_opaque)> c
 
 	mSet->renderInfos[vo].renderCallback = cb;
 
-    if (mAVDeviceManager->isVideoRenderValid()) {
+    if (mAVDeviceManager->getVideoRender()) {
         mAVDeviceManager->getVideoRender()->setRenderCallback(cb, vo);
     }	
 }
@@ -4058,7 +4058,7 @@ void SuperMediaPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::strin
 	mSet->maskMode = mode;
 	mSet->maskData = data;
 
-    if (mAVDeviceManager->isVideoRenderValid()) {
+    if (mAVDeviceManager->getVideoRender()) {
         mAVDeviceManager->getVideoRender()->setMaskMode(mode, data);
     }
 }		
@@ -4067,7 +4067,7 @@ void SuperMediaPlayer::clearGLResource(void *vo)
 {
     std::lock_guard<std::mutex> uMutex(mCreateMutex);
 
-    if (mAVDeviceManager->isVideoRenderValid()) {
+    if (mAVDeviceManager->getVideoRender()) {
         mAVDeviceManager->getVideoRender()->clearGLResource(vo);
     }
 }

@@ -51,6 +51,7 @@ public:
 		std::unique_ptr<GLRender> render = nullptr;
 		std::function<void(void* vo_opaque)> cb = nullptr;
 		std::shared_ptr<IAFFrame> frame = nullptr;
+		IVideoRender *parent = nullptr;
 		int surfaceWidth = 0;
 		int surfaceHeight = 0;
 		bool surfaceSizeChanged = 0;

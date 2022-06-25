@@ -51,7 +51,8 @@ int XXQGLRender::clearScreen()
     std::unique_lock<std::mutex> locker(renderMutex);
     for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
         RenderInfo &info = iter->second;
-        info.clearScreen = true;
+		if (info.parent == this)
+			info.clearScreen = true;
     }
     return 0;
 }
@@ -127,7 +128,7 @@ void XXQGLRender::invokePaint()
 	std::unique_lock<mutex> lock(renderMutex);
 	for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
 		RenderInfo &renderInfo = iter->second;
-		if (renderInfo.cb) renderInfo.cb(this);
+		if (renderInfo.cb && renderInfo.parent == this) renderInfo.cb(this);
 	}
 }
 
@@ -333,7 +334,8 @@ void XXQGLRender::renderVideo(void *vo)
             {
                 for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
                     RenderInfo &i = iter->second;
-                    i.frame = frame;
+					if (i.parent == this)
+						i.frame = frame;
                 }
             }
         }
@@ -415,8 +417,9 @@ void XXQGLRender::setRenderCallback(std::function<void(void *vo_opaque)> cb, voi
 
     std::unique_lock<mutex> lock(renderMutex);
 
-    RenderInfo &renderInfo = mRenders[vo];
-    renderInfo.cb = cb;
+	RenderInfo &renderInfo = mRenders[vo];
+	renderInfo.cb = cb;
+	renderInfo.parent = this;
 }
 
 void XXQGLRender::clearGLResource(void *vo)
