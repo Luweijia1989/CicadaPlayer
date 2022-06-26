@@ -26,7 +26,8 @@ public:
         auto p = player.lock();
         if (p) p->setVideoSurfaceSize(size.width(), size.height(), m_vo);
 		QOpenGLFramebufferObjectFormat format;
-		format.setInternalTextureFormat(GL_RGBA);
+		format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+		format.setSamples(4);
         return new QOpenGLFramebufferObject(size, format);
     }
 
@@ -34,23 +35,35 @@ public:
 	void *m_vo;
 };
 
-
+#include <QTimer>
 QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), internal_player(std::make_shared<MediaPlayer>())
 {
     setMirrorVertically(true);
-    internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
+    internal_player->setRenderCallback([this](void *p) { 
+		QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); 
+	}, this);
 
-    internal_player->SetDataSource("E:/vap1.mp4");
+	internal_player->EnableHardwareDecoder(false);
+    internal_player->SetDataSource("C:/Users/posat/Desktop/test.mp4");
 	internal_player->setMaskMode(
             IVideoRender::Mask_Right,
             u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
     internal_player->SetAutoPlay(true);
     internal_player->SetLoop(false);
     internal_player->Prepare();
+
+	//QTimer *t = new QTimer(this);
+	//connect(t, &QTimer::timeout, this, [=](){
+	//	internal_player->Stop();
+	//	internal_player->Prepare();
+	//});
+
+	//t->start(1000);
 }
 
 QMLPlayer::~QMLPlayer()
 {
+	internal_player->Stop();
     internal_player->setRenderCallback(nullptr, this);
 }
 

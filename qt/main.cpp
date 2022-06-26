@@ -14,7 +14,7 @@ public:
 
     int m;
 };
-#define DEMO_QUICKWIDGET
+//#define DEMO_QUICKWIDGET
 #ifdef DEMO_QUICKWIDGET
 OpenGLWidget *gl = nullptr;
 
@@ -36,9 +36,9 @@ int main(int argc, char *argv[])
 
     //player->SetSpeed(0.5);
     player->SetDefaultBandWidth(1000 * 1000);
-    //player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
+    player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
-    player->SetDataSource("E:\\test.mp4");
+    //player->SetDataSource("E:\\test.mp4");
 	player->EnableHardwareDecoder(true);
     player->SetAutoPlay(true);
     player->SetLoop(true);
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     config.mMaxBackwardBufferDuration = 20000;
     config.liveStartIndex = -3;
     player->SetConfig(&config);
-    player->Prepare();
+    //player->Prepare();
     player->SelectTrack(-1);
 
     QPushButton btn("new one");
@@ -58,6 +58,42 @@ int main(int argc, char *argv[])
         w->show();
     });
     btn.show();
+
+	QPushButton btn1("play");
+    QObject::connect(&btn1, &QPushButton::clicked, [=]() {
+        player->Prepare();
+    });
+    btn1.show();
+
+
+
+
+
+	auto player1 = std::shared_ptr<MediaPlayer>(new MediaPlayer());
+    player1->SetDataSource("C:\\Users\\posat\\Desktop\\vap1.mp4");
+	player1->EnableHardwareDecoder(true);
+    player1->SetAutoPlay(true);
+    player1->SetLoop(true);
+
+	QPushButton btn2("play2");
+    QObject::connect(&btn2, &QPushButton::clicked, [=]() {
+        player1->Prepare();
+    });
+    btn2.show();
+
+	QPushButton btn3("new one2");
+    QObject::connect(&btn3, &QPushButton::clicked, [=]() {
+        OpenGLWidget *w = new OpenGLWidget(player1);
+        w->resize(640, 480);
+        w->show();
+    });
+    btn3.show();
+
+	QPushButton btn4("quit");
+    QObject::connect(&btn4, &QPushButton::clicked, [=]() {
+        qApp->quit();
+    });
+    btn4.show();
 
     //QTimer t;
     //QObject::connect(&t, &QTimer::timeout, [=]() {
@@ -122,7 +158,7 @@ int main(int argc, char *argv[])
     //    view->setSource(QUrl("qrc:/qmdkqmlplay.qml"));
     //    view->show();
     //});
-    //t.start(500);
+    //t.start(300);
 
 	QQuickWidget m_renderWidget;
 	//m_renderWidget->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowTransparentForInput | Qt::WindowStaysOnTopHint | Qt::ToolTip);
