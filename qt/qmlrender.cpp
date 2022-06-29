@@ -43,8 +43,8 @@ QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), inte
 		QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); 
 	}, this);
 
-	internal_player->EnableHardwareDecoder(false);
-    internal_player->SetDataSource("C:/Users/posat/Desktop/test.mp4");
+	internal_player->EnableHardwareDecoder(true);
+    internal_player->SetDataSource("E:/test.mp4");
 	internal_player->setMaskMode(
             IVideoRender::Mask_Right,
             u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
