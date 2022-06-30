@@ -9,7 +9,6 @@ class CicadaConan(ConanFile):
     generators = "visual_studio"
 
     def package(self):
-    
         self.copy("*.h", dst="include", src="mediaPlayer", keep_path=True)
         self.copy("*.h", dst="include", src="framework", keep_path=True)
         
@@ -23,6 +22,9 @@ class CicadaConan(ConanFile):
             self.copy("media_player.lib", dst="lib", src="build64/cmdline/mediaPlayer.out/RelWithDebInfo", keep_path=False)
             self.copy("media_player.dll", dst="bin", src="build64/cmdline/mediaPlayer.out/RelWithDebInfo", keep_path=False)
             self.copy("media_player.pdb", dst="bin", src="build64/cmdline/mediaPlayer.out/RelWithDebInfo", keep_path=False)
+            
+        if self.settings.build_type!="Debug":
+            os.system("cd signtool && python sign_x64.py " + self.package_folder)
 
     def package_info(self):
         self.cpp_info.libs = ["media_player"]
