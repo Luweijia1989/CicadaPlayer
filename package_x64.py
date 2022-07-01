@@ -37,7 +37,5 @@ def main():
     system('conan export-pkg . Cicada-Player_x64/%s@bixin/%s -s compiler.version=15 -s arch=x86_64 -s build_type=Release --force' % (version,channel))
     if isOnline == "1":
        system('conan upload Cicada-Player_x64/%s@bixin/%s --all -r=pc' % (version,channel))
-       system('git tag %s' % version)
-       system('git push --tags')
 if __name__ == "__main__":
     main()
