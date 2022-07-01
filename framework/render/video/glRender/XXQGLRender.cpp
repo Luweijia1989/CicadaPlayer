@@ -448,6 +448,6 @@ void XXQGLRender::clearVOCacheFrame()
     std::unique_lock<mutex> lock(renderMutex);
     for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
         RenderInfo &renderInfo = iter->second;
-        renderInfo.frame = nullptr;
+        if (renderInfo.parent == this) renderInfo.frame = nullptr;
     }
 }
