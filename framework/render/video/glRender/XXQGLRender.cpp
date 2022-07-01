@@ -51,8 +51,7 @@ int XXQGLRender::clearScreen()
     std::unique_lock<std::mutex> locker(renderMutex);
     for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
         RenderInfo &info = iter->second;
-		if (info.parent == this)
-			info.clearScreen = true;
+        if (info.parent == this) info.clearScreen = true;
     }
     return 0;
 }
@@ -62,9 +61,9 @@ int XXQGLRender::renderFrame(std::unique_ptr<IAFFrame> &frame)
     //    AF_LOGD("-----> renderFrame");
 
     if (frame == nullptr) {
-		std::unique_lock<std::mutex> lck(mFlushMutex);
+        std::unique_lock<std::mutex> lck(mFlushMutex);
         bFlushAsync = true;
-		mFlushConditionVariable.wait(lck);
+        mFlushConditionVariable.wait(lck);
         return 0;
     }
 
@@ -125,11 +124,11 @@ int XXQGLRender::onVSync(int64_t tick)
 
 void XXQGLRender::invokePaint()
 {
-	std::unique_lock<mutex> lock(renderMutex);
-	for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
-		RenderInfo &renderInfo = iter->second;
-		if (renderInfo.cb && renderInfo.parent == this) renderInfo.cb(this);
-	}
+    std::unique_lock<mutex> lock(renderMutex);
+    for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
+        RenderInfo &renderInfo = iter->second;
+        if (renderInfo.cb && renderInfo.parent == this) renderInfo.cb(this);
+    }
 }
 
 int XXQGLRender::onVsyncInner(int64_t tick)
@@ -147,19 +146,19 @@ int XXQGLRender::onVsyncInner(int64_t tick)
     {
         std::unique_lock<std::mutex> locker(mFrameMutex);
 
-		{
-			std::unique_lock<std::mutex> lck(mFlushMutex);
-			if (bFlushAsync) {
-				while (!mInputQueue.empty()) {
-					dropFrame();
-				}
+        {
+            std::unique_lock<std::mutex> lck(mFlushMutex);
+            if (bFlushAsync) {
+                while (!mInputQueue.empty()) {
+                    dropFrame();
+                }
 
-				clearVOCacheFrame();
-				invokePaint();
+                clearVOCacheFrame();
+                invokePaint();
 
-				bFlushAsync = false;
-				mFlushConditionVariable.notify_all();
-			}
+                bFlushAsync = false;
+                mFlushConditionVariable.notify_all();
+            }
         }
 
         if (!mInputQueue.empty()) {
@@ -191,8 +190,8 @@ int XXQGLRender::onVsyncInner(int64_t tick)
                 }
             }
 
-			invokePaint();
-			updateRenderFrame = true;
+            invokePaint();
+            updateRenderFrame = true;
         }
     }
 
@@ -334,8 +333,7 @@ void XXQGLRender::renderVideo(void *vo)
             {
                 for (auto iter = mRenders.begin(); iter != mRenders.end(); iter++) {
                     RenderInfo &i = iter->second;
-					if (i.parent == this)
-						i.frame = frame;
+                    if (i.parent == this) i.frame = frame;
                 }
             }
         }
@@ -363,7 +361,7 @@ void XXQGLRender::renderVideo(void *vo)
 
     if (glRender == nullptr) return;
 
-	glRender->clearScreen(mBackgroundColor);
+    glRender->clearScreen(mBackgroundColor);
 
     auto frame = ((AVAFFrame *) mRenderFrame.get())->ToAVFrame();
     auto videoInfo = mRenderFrame->getInfo().video;
@@ -417,9 +415,9 @@ void XXQGLRender::setRenderCallback(std::function<void(void *vo_opaque)> cb, voi
 
     std::unique_lock<mutex> lock(renderMutex);
 
-	RenderInfo &renderInfo = mRenders[vo];
-	renderInfo.cb = cb;
-	renderInfo.parent = this;
+    RenderInfo &renderInfo = mRenders[vo];
+    renderInfo.cb = cb;
+    renderInfo.parent = this;
 }
 
 void XXQGLRender::clearGLResource(void *vo)
@@ -429,8 +427,7 @@ void XXQGLRender::clearGLResource(void *vo)
     RenderInfo &renderInfo = mRenders[vo];
     renderInfo.reset();
 
-	if (!renderInfo.cb)
-		mRenders.erase(vo);
+    if (!renderInfo.cb) mRenders.erase(vo);
 }
 
 void XXQGLRender::setMaskMode(MaskMode mode, const std::string &data)
