@@ -1959,6 +1959,134 @@ void SuperMediaPlayer::playCompleted()
 	mAVDeviceManager->flushVideoRender();
 }
 
+#define UUID_SIZE 16
+static uint32_t reversebytes(uint32_t value) {
+    return (value & 0x000000FFU) << 24 | (value & 0x0000FF00U) << 8 |
+        (value & 0x00FF0000U) >> 8 | (value & 0xFF000000U) >> 24;
+}
+
+static int get_sei_buffer(unsigned char *data, size_t size, char *buffer, size_t *count)
+{
+    unsigned char * sei = data;
+    int sei_type = 0;
+    unsigned sei_size = 0;
+    
+    // 2020.07.20, add by youguangxin
+    // 七牛推流的时候更改了sei playload 大小，拉流拿到的sei_size不对，需要计算下
+    unsigned sei_header_size = 0;
+    
+    //payload type
+    do {
+        sei_type += *sei;
+        sei_header_size++;
+    } while (*sei++ == 255);
+    
+    //payload size
+    do {
+        sei_size += *sei;
+        sei_header_size++;
+    } while (*sei++ == 255);
+     
+    //Check UUID
+    if (sei_size >= UUID_SIZE && sei_size <= (data + size - sei) && sei_type == 5)
+    {
+        sei += UUID_SIZE;
+        sei_size -= UUID_SIZE;
+        sei_header_size += UUID_SIZE;
+        int sei_actual_size = (int)(strlen((char *)data) - sei_header_size);
+        
+        if (buffer != NULL && count != NULL)
+        {
+            if (*count > sei_actual_size)
+            {
+                memcpy(buffer, sei, sei_actual_size);
+            }
+        }
+        if (count != NULL)
+        {
+            *count = sei_actual_size;
+        }
+        return sei_actual_size;
+    }
+    
+    return -1;
+}
+int get_sei_content(unsigned char* packet, size_t packet_size, char* buffer, size_t *buffer_size)
+{
+    if (packet==NULL || packet_size<=0) return -1;
+    
+    unsigned char ANNEXB_CODE_LOW[] = { 0x00,0x00,0x01 };
+    unsigned char ANNEXB_CODE[] = { 0x00,0x00,0x00,0x01 };
+
+    unsigned char *data = packet;
+    bool isAnnexb = false;
+    if ((packet_size > 3 && memcmp(data,ANNEXB_CODE_LOW,3) == 0) || (packet_size > 4 && memcmp(data,ANNEXB_CODE,4) == 0))
+    {
+        isAnnexb = true;
+    }
+    //isAnnexb = false; //disable Annexb
+    if (isAnnexb)
+    {
+        while (data < packet + packet_size) {
+            if ((packet + packet_size - data) > 4 && data[0] == 0x00 && data[1] == 0x00)
+            {
+                int startCodeSize = 2;
+                if (data[2] == 0x01)
+                {
+                    startCodeSize = 3;
+                }else if(data[2] == 0x00 && data[3] == 0x01)
+                {
+                    startCodeSize = 4;
+                }
+                if (startCodeSize == 3 || startCodeSize == 4)
+                {
+                    if ((packet + packet_size - data) > (startCodeSize + 1) && (data[startCodeSize] & 0x1F) == 6)
+                    {
+                        //SEI
+                        unsigned char * sei = data + startCodeSize + 1;
+
+                        int ret = get_sei_buffer(sei, (packet + packet_size - sei), buffer, buffer_size);
+                        if (ret != -1)
+                        {
+                            return ret;
+                        }
+                    }
+                    data += startCodeSize + 1;
+                }else
+                {
+                    data += startCodeSize + 1;
+                }
+            }else {
+                data++;
+            }
+        }
+    }else
+    {
+        size_t data_size = 0;
+        while (data_size < packet_size - 5) {
+            //MP4格式起始码/长度
+            uint32_t *length = (uint32_t *)data;
+            uint32_t temp = *length;
+            int nalu_size = (int)reversebytes(temp);
+            //NALU header
+            if ((*(data + 4) & 0x1F) == 6)
+            {
+                //SEI
+                unsigned char * sei = data + 4 + 1;
+                
+                int ret = get_sei_buffer(sei, min(nalu_size,(packet + packet_size - sei)), buffer, buffer_size);
+                if (ret != -1)
+                {
+                    return ret;
+                }
+            }
+            data_size += 4 + nalu_size;
+            data += 4 + nalu_size;
+        }
+    }
+    return -1;
+}
+
 int SuperMediaPlayer::DecodeVideoPacket(unique_ptr<IAFPacket> &pVideoPacket)
 {
     int ret = 0;
@@ -1988,6 +2116,12 @@ int SuperMediaPlayer::DecodeVideoPacket(unique_ptr<IAFPacket> &pVideoPacket)
             info.waitFirstFrame = true;
             info.sendFirstPacketTimeMs = af_getsteady_ms();
         }
+
+		size_t buffer_size = 1024000;
+        char* buffer = (char*)malloc(buffer_size);
+        memset(buffer, 0, buffer_size);
+        int ret = get_sei_content(pVideoPacket->getData(), pVideoPacket->getSize(), buffer, &buffer_size);
+		free(buffer);
 
         ret = mAVDeviceManager->sendPacket(pVideoPacket, SMPAVDeviceManager::DEVICE_TYPE_VIDEO, 0);
         // don't need pop if need retry later
