@@ -44,12 +44,12 @@ QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), inte
 	}, this);
 
 	internal_player->EnableHardwareDecoder(true);
-    internal_player->SetDataSource("E:/test.mp4");
+    internal_player->SetDataSource("E:/9bcf15b0357a3a59165857b4e58f7bed.mp4");
 	internal_player->setMaskMode(
             IVideoRender::Mask_Right,
             u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
     internal_player->SetAutoPlay(true);
-    internal_player->SetLoop(false);
+    internal_player->SetLoop(true);
     internal_player->Prepare();
 
 	//QTimer *t = new QTimer(this);

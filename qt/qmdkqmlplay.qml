@@ -61,7 +61,7 @@ Item {
     height: 480
 	
 	AnimatedImage {
-		source: "file:///C:/Users/posat/Documents/xxq-recon/mp4player/zhuanquan.gif"
+		source: "file:///F:/xxq-recon/mp4player/zhuanquan.gif"
 	}
 
 

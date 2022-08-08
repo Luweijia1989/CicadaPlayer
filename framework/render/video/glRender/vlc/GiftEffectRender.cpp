@@ -596,7 +596,7 @@ void GiftEffectRender::initPrgm()
     			rgb_rgb = texture2D(SamplerImage, RGBTexCoordVarying).rgb;
     			rgb_alpha = texture2D(SamplerImage, alphaTexCoordVarying).rgb;
     
-    			gl_FragColor = vec4(rgb_rgb - colorRangeFix/255.0, rgb_alpha.r - 16.0/255.0);
+    			gl_FragColor = vec4(rgb_rgb - 16.0/255.0, rgb_alpha.r - 16.0/255.0);
 
     		}
     		)";
@@ -729,19 +729,19 @@ void GiftEffectRender::updateTextureCoords()
 	int offset = 2;
 	int stride = 6;
 	int index = 0;
-    mAttributeData[offset + index * stride] = (float) leftX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) leftX / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) topY / (float) fmt->i_visible_height;
 
 	index++;
-    mAttributeData[offset + index * stride] = (float) rightX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) rightX / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) topY / (float) fmt->i_visible_height;
 
 	index++;
-    mAttributeData[offset + index * stride] = (float) leftX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) leftX / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) bottomY / (float) fmt->i_visible_height;
 
 	index++;
-    mAttributeData[offset + index * stride] = (float) rightX / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) rightX / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) bottomY / (float) fmt->i_visible_height;
 }
 
@@ -750,19 +750,19 @@ void GiftEffectRender::updateAlphaTextureCoords()
 	int offset = 4;
 	int stride = 6;
 	int index = 0;
-    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.top / (float) fmt->i_visible_height;
 
 	index++;
-    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.top / (float) fmt->i_visible_height;
 
 	index++;
-    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.left / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.bottom / (float) fmt->i_visible_height;
 
 	index++;
-    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_width;
+    mAttributeData[offset + index * stride] = (float) mVapConfig->alphaPointRect.right / (float) fmt->i_visible_width;
     mAttributeData[offset + index * stride + 1] = (float) mVapConfig->alphaPointRect.bottom / (float) fmt->i_visible_height;
 }
 
