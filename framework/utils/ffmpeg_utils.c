@@ -10,6 +10,7 @@
 #include <libavcodec/hevc_parse.h>
 #include <libavcodec/hevc_ps.h>
 #include <libavcodec/hevc_sei.h>
+#include <libavcodec/packet_internal.h>
 #include <libavformat/avc.h>
 #include <libavformat/avformat.h>
 #include <libavformat/avio_internal.h>
@@ -98,7 +99,7 @@ static void ffmpeg_log_back(void *ptr, int level, const char *fmt, va_list vl)
     __log_print(AF_LOG_LEVEL_DEBUG, "FFMPEG", "%s", line);
 }
 
-static void ffmpeg_init_once()
+static void ffmpeg_init_once(void)
 {
     AF_LOGI("Ffmpeg version %s", av_version_info());
     av_lockmgr_register(lockmgr);
@@ -1026,7 +1027,7 @@ static int has_decode_delay_been_guessed(AVStream *st)
     else
         return st->internal->nb_decoded_frames >= 20;
 }
-static AVPacketList *get_next_pkt(AVFormatContext *s, AVStream *st, AVPacketList *pktl)
+static PacketList *get_next_pkt(AVFormatContext *s, AVStream *st, PacketList *pktl)
 {
     if (pktl->next)
         return pktl->next;
@@ -1077,7 +1078,7 @@ static int64_t select_from_pts_buffer(AVStream *st, int64_t *pts_buffer, int64_t
     return dts;
 }
 static void update_dts_from_pts(AVFormatContext *s, int stream_index,
-                                AVPacketList *pkt_buffer)
+                                PacketList *pkt_buffer)
 {
     AVStream *st       = s->streams[stream_index];
     int delay          = st->internal->avctx->has_b_frames;
@@ -1105,8 +1106,8 @@ static void update_initial_timestamps(AVFormatContext *s, int stream_index,
                                       int64_t dts, int64_t pts, AVPacket *pkt)
 {
     AVStream *st       = s->streams[stream_index];
-    AVPacketList *pktl = s->internal->packet_buffer ? s->internal->packet_buffer : s->internal->parse_queue;
-    AVPacketList *pktl_it;
+    PacketList *pktl = s->internal->packet_buffer ? s->internal->packet_buffer : s->internal->parse_queue;
+    PacketList *pktl_it;
 
     uint64_t shift;
 
@@ -1155,7 +1156,7 @@ static void update_initial_timestamps(AVFormatContext *s, int stream_index,
 static void update_initial_durations(AVFormatContext *s, AVStream *st,
                                      int stream_index, int duration)
 {
-    AVPacketList *pktl = s->internal->packet_buffer ? s->internal->packet_buffer : s->internal->parse_queue;
+    PacketList *pktl = s->internal->packet_buffer ? s->internal->packet_buffer : s->internal->parse_queue;
     int64_t cur_dts    = RELATIVE_TS_BASE;
 
     if (st->first_dts != AV_NOPTS_VALUE) {
