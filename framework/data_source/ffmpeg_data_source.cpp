@@ -162,6 +162,9 @@ namespace Cicada {
                 length = stream.ReadBigEndianUInt64();
 				offset = 16;
             }
+
+			if (length == 0)
+				break;
             
 			if (name == "vapc") {
 				auto vapData = std::move(stream.Read(static_cast< uint32_t >( length ) - offset));
