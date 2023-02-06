@@ -30,7 +30,7 @@ int CicadaSetListener(playerHandle *pHandle, const playerListener &Listener);
 
 void CicadaSetOnRenderCallBack(playerHandle *pHandle, onRenderFrame cb, void *userData);
 
-void CicadaSetAudioRenderingCallBack(playerHandle *pHandle, onRenderFrame cb, void *userData);
+void CicadaSetAudioRenderingCallBack(playerHandle *pHandle, onRenderAudioFrame cb, void *userData);
 
 void CicadaSetVideoRenderingCallBack(playerHandle *pHandle, videoRenderingFrameCB cb, void *userData);
 

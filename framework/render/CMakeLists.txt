@@ -26,6 +26,8 @@ list(APPEND SRC_FILES
         audio/filterAudioRender.h
         audio/audioRenderPrototype.cpp
         audio/audioRenderPrototype.h
+		audio/audio-resampler.h
+		audio/audio-resampler-ffmpeg.c
 		${VLCRENDERFILE}
 		)
 
@@ -46,8 +48,6 @@ endif ()
 
 if (ENABLE_SDL)
     list(APPEND SRC_FILES
-            audio/SdlAFAudioRender.h
-            audio/SdlAFAudioRender.cpp
             audio/SdlAFAudioRender2.h
             audio/SdlAFAudioRender2.cpp
             video/SdlAFVideoRender.cpp

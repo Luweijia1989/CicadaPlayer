@@ -8,7 +8,6 @@ import shutil
 import glob
 import json
 import zipfile
-import requests
   
 def system(command):
     retcode = os.system(command)

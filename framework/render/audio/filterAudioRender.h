@@ -44,6 +44,11 @@ namespace Cicada {
 
         void prePause() override;
 
+		const IAFFrame::audioInfo &outputInfo() const 
+		{
+			return mOutputInfo;
+		}
+
     private:
         virtual int init_device() = 0;
 

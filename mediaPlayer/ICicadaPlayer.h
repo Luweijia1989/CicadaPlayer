@@ -34,7 +34,7 @@ namespace Cicada {
 
         virtual void SetOnRenderCallBack(onRenderFrame cb, void *userData) = 0;
 
-        virtual void SetAudioRenderingCallBack(onRenderFrame cb, void *userData) = 0;
+        virtual void SetAudioRenderingCallBack(onRenderAudioFrame cb, void *userData) = 0;
 
         virtual void SetVideoRenderingCallBack(videoRenderingFrameCB cb, void *userData) = 0;
 

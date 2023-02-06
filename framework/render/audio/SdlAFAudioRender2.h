@@ -6,6 +6,7 @@
 #define FRAMEWORK_SDLAFAUDIORENDER2_H
 
 #include "filterAudioRender.h"
+#include "audio-resampler.h"
 #include <SDL2/SDL.h>
 
 using namespace std;
@@ -15,6 +16,7 @@ namespace Cicada {
     public:
         SdlAFAudioRender2();
         ~SdlAFAudioRender2() override;
+		audio_resampler_t *mResampler = nullptr;
 
     private:
         bool device_require_format(const IAFFrame::audioInfo &info) override;

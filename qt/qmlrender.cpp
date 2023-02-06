@@ -36,6 +36,19 @@ public:
 };
 
 #include <QTimer>
+#include <qdatetime.h>
+FILE *ff;
+static void audioFrame(void *userData, uint8_t *data, int size)
+{
+	if (!ff)
+		ff = fopen("D:\\ccc.pcm", "wb");
+	fwrite(data, 1, size, ff);
+	static qint64 ss = 0;
+	auto c = QDateTime::currentMSecsSinceEpoch();
+	qDebug()<< "======= " << c -ss;
+	ss = c;
+}
+
 QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), internal_player(std::make_shared<MediaPlayer>())
 {
     setMirrorVertically(true);
@@ -43,22 +56,24 @@ QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), inte
 		QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); 
 	}, this);
 
-	internal_player->EnableHardwareDecoder(true);
-    internal_player->SetDataSource("E:/9bcf15b0357a3a59165857b4e58f7bed.mp4");
-	internal_player->setMaskMode(
-            IVideoRender::Mask_Right,
-            u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
-    internal_player->SetAutoPlay(true);
-    internal_player->SetLoop(true);
-    internal_player->Prepare();
+	QTimer *timer = new QTimer(this);
+	connect(timer, &QTimer::timeout, this, [=](){
+		internal_player->SetDataSource("D:/cut.mp4");
+		internal_player->SetAutoPlay(true);
+		internal_player->SetLoop(false);
+		internal_player->Prepare();
+	});
 
-	//QTimer *t = new QTimer(this);
-	//connect(t, &QTimer::timeout, this, [=](){
-	//	internal_player->Stop();
-	//	internal_player->Prepare();
-	//});
-
-	//t->start(1000);
+	timer->start(500);
+	//internal_player->EnableHardwareDecoder(true);
+ //   internal_player->SetDataSource("D:/test.mkv");
+	//internal_player->SetAudioRenderingCallback(audioFrame, this);
+	///*internal_player->setMaskMode(
+ //           IVideoRender::Mask_Right,
+ //           u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");*/
+ //   internal_player->SetAutoPlay(true);
+ //   internal_player->SetLoop(true);
+ //   internal_player->Prepare();
 }
 
 QMLPlayer::~QMLPlayer()

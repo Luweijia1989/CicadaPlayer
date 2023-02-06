@@ -31,7 +31,8 @@ std::map<uint32_t, std::string> IAudioRender::audioOutputDevices()
 }
 
 SdlAFAudioRender2::SdlAFAudioRender2()
-{}
+{
+}
 
 SdlAFAudioRender2::~SdlAFAudioRender2()
 {
@@ -56,6 +57,27 @@ bool SdlAFAudioRender2::device_require_format(const IAFFrame::audioInfo &info)
     return false;
 }
 
+void sdl_audio_consume_callback(void *userdata, Uint8 * stream,
+                                            int len)
+{
+	SdlAFAudioRender2 *render = (SdlAFAudioRender2 *)userdata;
+    if (render->renderingCb() && render->mResampler) {
+		auto info = render->outputInfo();
+	    int sampleSize = 4;
+		if (info.format == AF_SAMPLE_FMT_S16 || info.format == AF_SAMPLE_FMT_S16P) {
+			sampleSize = 2;
+		}
+		uint8_t *resample_data[MAX_AV_PLANES];
+		uint8_t *input_data[MAX_AV_PLANES] = {nullptr};
+		input_data[0] = stream;
+		uint32_t resample_frames;
+		uint64_t ts_offset;
+		bool success = audio_resampler_resample(render->mResampler, resample_data, &resample_frames, &ts_offset, (const uint8_t *const *)input_data, (uint32_t)len/(sampleSize * info.channels));
+		if (success)
+			render->renderingCb()(userdata, resample_data[0], resample_frames * 4);
+    }
+}
+
 int SdlAFAudioRender2::open_device(uint32_t device)
 {
 	const char *name = nullptr;
@@ -75,8 +97,10 @@ int SdlAFAudioRender2::open_device(uint32_t device)
         inputSpec.channels = mInputInfo.channels;
         inputSpec.silence = 0;
         inputSpec.samples = mInputInfo.nb_samples;
-        inputSpec.userdata = this;
+        inputSpec.userdata = nullptr;
         inputSpec.callback = nullptr;
+		inputSpec.userdata_for_nonblock = this;
+		inputSpec.callback_for_nonblock = sdl_audio_consume_callback;
         mDevID = SDL_OpenAudioDevice(name, false, &inputSpec, &mSpec, 0);
         if (mDevID == 0) {
             AF_LOGE("SdlAFAudioRender could not openAudio! Error: %s\n", SDL_GetError());
@@ -88,6 +112,30 @@ int SdlAFAudioRender2::open_device(uint32_t device)
     }
 
 	deviceIndex = device;
+
+	if (!mResampler) {
+		resample_info src;
+		if (mOutputInfo.format == AF_SAMPLE_FMT_FLT || mOutputInfo.format == AF_SAMPLE_FMT_FLTP)
+			src.format = AV_SAMPLE_FMT_FLT;
+		else if (mOutputInfo.format == AF_SAMPLE_FMT_S16 || mOutputInfo.format == AF_SAMPLE_FMT_S16P)
+			src.format = AV_SAMPLE_FMT_S16;
+		src.samples_per_sec = mOutputInfo.sample_rate;
+		src.channels = mOutputInfo.channels;
+		if (mOutputInfo.channels == 1) {
+			src.layout = AV_CH_LAYOUT_MONO;
+		} else if (mOutputInfo.channels == 2) {
+			src.layout = AV_CH_LAYOUT_STEREO;
+		}
+
+		resample_info dst;
+		dst.channels = 2;
+		dst.layout = AV_CH_LAYOUT_STEREO;
+		dst.format = AV_SAMPLE_FMT_S16;
+		dst.samples_per_sec = 48000;
+	
+		mResampler = audio_resampler_create(&dst, &src);
+	}
+
 	return 0;
 }
 
@@ -175,11 +223,7 @@ int SdlAFAudioRender2::device_write(unique_ptr<IAFFrame> &frame)
         mPcmBufferSize = pcmDataLength;
         mPcmBuffer = static_cast<uint8_t *>(realloc(mPcmBuffer, mPcmBufferSize));
     }
-    bool rendered = false;
-    if (mRenderingCb) {
-        rendered = mRenderingCb(mRenderingCbUserData, frame.get());
-    }
-    if (!mMute && !rendered) {
+    if (!mMute) {
         copyPCMData(getAVFrame(frame.get()), mPcmBuffer);
     } else {
         memset(mPcmBuffer, 0, pcmDataLength);
@@ -191,7 +235,6 @@ int SdlAFAudioRender2::device_write(unique_ptr<IAFFrame> &frame)
         mListener->onFrameInfoUpdate(frame->getInfo(), true);
     }
     mPlayedDuration += (uint64_t) frame->getInfo().audio.nb_samples * 1000000 / frame->getInfo().audio.sample_rate;
-    //AF_LOGD("queued duration is %llu\n", getQueDuration());
     frame = nullptr;
     return 0;
 }

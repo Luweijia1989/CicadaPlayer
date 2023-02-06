@@ -394,7 +394,7 @@ void XXQGLRender::renderVideo(void *vo)
         AF_LOGD("renderActually use:%lld", end - renderStartTime);
     }
 
-    AF_LOGD(" cost time : render = %d ms", (af_getsteady_ms() - renderStartTime));
+    //AF_LOGD(" cost time : render = %d ms", (af_getsteady_ms() - renderStartTime));
 }
 
 void XXQGLRender::setVideoSurfaceSize(int width, int height, void *vo)

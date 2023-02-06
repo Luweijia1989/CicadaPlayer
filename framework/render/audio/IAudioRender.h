@@ -12,7 +12,7 @@
 
 namespace Cicada{
 
-    typedef bool (*renderingFrameCB)(void *userData, IAFFrame *frame);
+    typedef void (*renderingFrameCB)(void *userData, uint8_t *data, int size);
 
     class IAFRenderFilter {
     public:
@@ -182,6 +182,11 @@ namespace Cicada{
             mRenderingCb = cb;
             mRenderingCbUserData = userData;
         }
+
+		virtual renderingFrameCB renderingCb()
+		{
+			return mRenderingCb;
+		}
         virtual void prePause() = 0;
 
 		static std::map<uint32_t, std::string> audioOutputDevices();

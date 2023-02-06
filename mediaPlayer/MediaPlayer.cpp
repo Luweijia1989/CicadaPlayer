@@ -1164,7 +1164,7 @@ namespace Cicada {
         CicadaSetOnRenderCallBack(handle, cb, userData);
     }
 
-    void MediaPlayer::SetAudioRenderingCallback(onRenderFrame cb, void *userData)
+    void MediaPlayer::SetAudioRenderingCallback(onRenderAudioFrame cb, void *userData)
     {
         GET_PLAYER_HANDLE;
         CicadaSetAudioRenderingCallBack(handle, cb, userData);

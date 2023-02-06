@@ -185,6 +185,8 @@ typedef int64_t(*clockRefer)(void *arg);
 
 typedef bool (*onRenderFrame)(void *userData, IAFFrame *frame);
 
+typedef void (*onRenderAudioFrame)(void *userData, uint8_t *data, int size);
+
 typedef bool (*UpdateViewCB)(int videoType, void *userData);
 
 class ErrorConverter {

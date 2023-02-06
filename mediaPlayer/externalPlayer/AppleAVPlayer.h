@@ -142,7 +142,7 @@ namespace Cicada {
 
         int invokeComponent(std::string content) override;
 
-        void SetAudioRenderingCallBack(onRenderFrame cb, void *userData)
+        void SetAudioRenderingCallBack(onRenderAudioFrame cb, void *userData)
         {}
 
         void SetVideoRenderingCallBack(videoRenderingFrameCB cb, void *userData)

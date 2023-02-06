@@ -72,7 +72,7 @@ namespace Cicada {
 
         void SetOnRenderFrameCallback(onRenderFrame cb, void *userData);
 
-        void SetAudioRenderingCallback(onRenderFrame cb, void *userData);
+        void SetAudioRenderingCallback(onRenderAudioFrame cb, void *userData);
 
         void SetVideoRenderingCallback(videoRenderingFrameCB cb, void *userData);
 

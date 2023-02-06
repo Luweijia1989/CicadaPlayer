@@ -3941,7 +3941,7 @@ void SuperMediaPlayer::SetOnRenderCallBack(onRenderFrame cb, void *userData)
     mFrameCbUserData = userData;
 }
 
-void SuperMediaPlayer::SetAudioRenderingCallBack(onRenderFrame cb, void *userData)
+void SuperMediaPlayer::SetAudioRenderingCallBack(onRenderAudioFrame cb, void *userData)
 {
     mAudioRenderingCb = cb;
     mAudioRenderingCbUserData = userData;
