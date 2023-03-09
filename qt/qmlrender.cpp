@@ -1,15 +1,19 @@
 #include "qmlrender.h"
-#include <qquickwindow.h>
+#include <QOpenGLFramebufferObjectFormat>
 
-class VideoRendererInternal : public QQuickFramebufferObject::Renderer {
+class VideoRendererInternal : public QQuickFramebufferObject::Renderer
+{
 public:
-    VideoRendererInternal(const std::shared_ptr<MediaPlayer> &p, void *vo) : player(p), m_vo(vo)
-    {}
+    VideoRendererInternal(const std::shared_ptr< MediaPlayer > &p, void *vo)
+        : player(p)
+        , m_vo(vo)
+    {
+    }
 
     ~VideoRendererInternal()
     {
         auto p = player.lock();
-        if (p)
+        if(p)
             p->clearGLResource(m_vo);
         else
             MediaPlayer::foreignGLContextDestroyed(m_vo);
@@ -18,52 +22,65 @@ public:
     void render() override
     {
         auto p = player.lock();
-        if (p) p->renderVideo(m_vo);
+        if(p)
+            p->renderVideo(m_vo);
     }
 
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override
     {
         auto p = player.lock();
-        if (p) p->setVideoSurfaceSize(size.width(), size.height(), m_vo);
-		QOpenGLFramebufferObjectFormat format;
+        if(p)
+            p->setVideoSurfaceSize(size.width(), size.height(), m_vo);
+        QOpenGLFramebufferObjectFormat format;
 		format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
 		format.setSamples(4);
         return new QOpenGLFramebufferObject(size, format);
     }
 
-    std::weak_ptr<MediaPlayer> player;
-	void *m_vo;
+    std::weak_ptr< MediaPlayer > player;
+    void *                       m_vo;
 };
 
-#include <QTimer>
-QMLPlayer::QMLPlayer(QQuickItem *parent) : QQuickFramebufferObject(parent), internal_player(std::make_shared<MediaPlayer>())
+void QMLPlayer::onVideoSize(int64_t width, int64_t height, void *userData)
 {
+    QMLPlayer *p = (QMLPlayer *)userData;
+    if(p)
+        emit p->videoRatioChanged((qreal)width / (qreal)height);
+}
+
+void QMLPlayer::onEOS(void *userData)
+{
+    QMLPlayer *p = (QMLPlayer *)userData;
+    if(p)
+        emit p->ended();
+}
+
+void QMLPlayer::onFirstFrame(void *userData)
+{
+	QMLPlayer *p = (QMLPlayer *)userData;
+    if(p)
+        emit p->firstFrame();
+}
+
+QMLPlayer::QMLPlayer(QQuickItem *parent)
+    : QQuickFramebufferObject(parent)
+    , internal_player(std::make_shared< MediaPlayer >())
+{
+    playerListener pListener{ nullptr };
+    pListener.userData         = this;
+    pListener.VideoSizeChanged = onVideoSize;
+    pListener.Completion       = onEOS;
+	pListener.FirstFrameShow   = onFirstFrame;
+    internal_player->SetListener(pListener);
+
     setMirrorVertically(true);
-    internal_player->setRenderCallback([this](void *p) { 
-		QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); 
-	}, this);
-
-	internal_player->EnableHardwareDecoder(true);
-    internal_player->SetDataSource("E:/9bcf15b0357a3a59165857b4e58f7bed.mp4");
-	internal_player->setMaskMode(
-            IVideoRender::Mask_Right,
-            u8"{\"[imgUser]\":\"E:/test.jpg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");
-    internal_player->SetAutoPlay(true);
-    internal_player->SetLoop(true);
-    internal_player->Prepare();
-
-	//QTimer *t = new QTimer(this);
-	//connect(t, &QTimer::timeout, this, [=](){
-	//	internal_player->Stop();
-	//	internal_player->Prepare();
-	//});
-
-	//t->start(1000);
+	internal_player->EnableHardwareDecoder(false);
+    internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
+    //internal_player->setMaskMode(IVideoRender::Mask_Right);
 }
 
 QMLPlayer::~QMLPlayer()
 {
-	internal_player->Stop();
     internal_player->setRenderCallback(nullptr, this);
 }
 
@@ -72,14 +89,15 @@ QQuickFramebufferObject::Renderer *QMLPlayer::createRenderer() const
     return new VideoRendererInternal(internal_player, (void *)this);
 }
 
-#include <QThread>
-void QMLPlayer::test()
+void QMLPlayer::setMixInfo(QString info)
 {
-	internal_player->Stop();
-	internal_player->SetDataSource("https://video.hellobixin.com/video/dc37c4361114437ab84f1ebef1bbb7e5.mp4");
-	/*internal_player->setMaskMode(
-            IVideoRender::Mask_Right,
-            u8"{\"[imgUser]\":\"C:/Users/posat/Desktop/big.jpeg\", \"[textUser]\":\"luweijia\", \"[textAnchor]\":\"rurongrong\"}");*/
+    //internal_player->setMaskMode(IVideoRender::Mask_Right, info.toStdString());
+}
+
+void QMLPlayer::setSource(QString path)
+{
+    std::string p = path.toStdString();
+    internal_player->SetDataSource(p.c_str());
     internal_player->SetAutoPlay(true);
     internal_player->SetLoop(false);
     internal_player->Prepare();
@@ -87,5 +105,12 @@ void QMLPlayer::test()
 
 void QMLPlayer::stop()
 {
-	internal_player->Stop();
+    internal_player->Stop();
+}
+
+void QMLPlayer::testplay()
+{
+	stop();
+    setMixInfo("");
+    setSource("D:\\test2.mp4");
 }

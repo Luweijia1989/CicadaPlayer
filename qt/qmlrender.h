@@ -1,14 +1,11 @@
 #pragma once
-
-#include <QOpenGLFramebufferObject>
 #include <QQuickFramebufferObject>
-#include <memory>
-
-#include "MediaPlayer.h"
+#include <MediaPlayer.h>
 
 using namespace Cicada;
 
-class QMLPlayer : public QQuickFramebufferObject {
+class QMLPlayer : public QQuickFramebufferObject
+{
     Q_OBJECT
 public:
     QMLPlayer(QQuickItem *parent = nullptr);
@@ -16,10 +13,20 @@ public:
 
     QQuickFramebufferObject::Renderer *createRenderer() const;
 
-	Q_INVOKABLE void test();
-	Q_INVOKABLE void stop();
+    Q_INVOKABLE void setMixInfo(QString info);
+    Q_INVOKABLE void setSource(QString path);
+    Q_INVOKABLE void stop();
+	Q_INVOKABLE void testplay();
+
+    static void onVideoSize(int64_t width, int64_t height, void *userData);
+    static void onEOS(void *userData);
+	static void onFirstFrame(void *userData);
+
+signals:
+	void videoRatioChanged(qreal ratio);
+	void ended();
+	void firstFrame();
 
 private:
-    QString m_source;
-    std::shared_ptr<MediaPlayer> internal_player;
+    std::shared_ptr< MediaPlayer > internal_player;
 };

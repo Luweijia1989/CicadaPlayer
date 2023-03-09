@@ -138,10 +138,10 @@ private:
     GLuint texture_buffer_object[PICTURE_PLANE_MAX] = {0};
 
     struct {
-        unsigned int i_x_offset;
-        unsigned int i_y_offset;
-        unsigned int i_visible_width;
-        unsigned int i_visible_height;
+        unsigned int i_x_offset = 0;
+        unsigned int i_y_offset = 0;
+        unsigned int i_visible_width = 0;
+        unsigned int i_visible_height = 0;
     } last_source;
 
     /* Non-power-of-2 texture size support */

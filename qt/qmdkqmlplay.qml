@@ -68,12 +68,17 @@ Item {
 	MDKPlayer {
 		id: player
 		anchors.fill: parent
+
+		onEnded: {
+            stop()
+            testplay()
+        }
 	}
 
 	Button {
 		onClicked: {
 			console.log('aaaaaa')
-			player.stop()
+			player.testplay()
 		}
 	}
 
