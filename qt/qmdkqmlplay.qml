@@ -70,8 +70,6 @@ Item {
 		anchors.fill: parent
 
 		onEnded: {
-            stop()
-            testplay()
         }
 	}
 
@@ -79,6 +77,13 @@ Item {
 		onClicked: {
 			console.log('aaaaaa')
 			player.testplay()
+		}
+	}
+
+	Button {
+	y:100
+		onClicked: {
+			player.seektobegin()
 		}
 	}
 

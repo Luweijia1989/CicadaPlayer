@@ -306,4 +306,6 @@ void CicadaSetRenderCallback(playerHandle *player, std::function<void(void* vo_o
 void CicadaSetMaskMode(playerHandle *player, IVideoRender::MaskMode mode, const std::string& data);
 void CicadaClearGLResource(playerHandle *player, void *vo);
 
+void CicadaSetSmoothLoop(playerHandle *player, bool smooth);
+
 #endif // CICADA_PLAYER_H_

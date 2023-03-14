@@ -840,6 +840,7 @@ int SMPMessageControllerListener::openUrl()
     config.userAgent = mPlayer.mSet->userAgent;
     config.customHeaders = mPlayer.mSet->customHeaders;
     config.listener = mPlayer.mSourceListener.get();
+	config.smooth_loop = mPlayer.mSet->smoothLoop;
     mPlayer.mSourceListener->enableRetry();
 
     if (mPlayer.mCanceled) {

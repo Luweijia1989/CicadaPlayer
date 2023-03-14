@@ -53,6 +53,8 @@ void QMLPlayer::onEOS(void *userData)
     QMLPlayer *p = (QMLPlayer *)userData;
     if(p)
         emit p->ended();
+
+	//p->seektobegin();
 }
 
 void QMLPlayer::onFirstFrame(void *userData)
@@ -74,9 +76,11 @@ QMLPlayer::QMLPlayer(QQuickItem *parent)
     internal_player->SetListener(pListener);
 
     setMirrorVertically(true);
-	internal_player->EnableHardwareDecoder(false);
+	internal_player->EnableHardwareDecoder(true);
     internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
-    //internal_player->setMaskMode(IVideoRender::Mask_Right);
+    internal_player->setMaskMode(IVideoRender::Mask_Right);
+	internal_player->setSmoothLoop(true);
+
 }
 
 QMLPlayer::~QMLPlayer()
@@ -112,5 +116,18 @@ void QMLPlayer::testplay()
 {
 	stop();
     setMixInfo("");
-    setSource("D:\\test2.mp4");
+    setSource("D:\\fenceng 1.mp4");
+}
+
+void QMLPlayer::seektobegin()
+{
+	static bool paused = false;
+	if (!paused) {
+	internal_player->Pause();
+	paused = true;
+	} else {
+		paused = false;
+		internal_player->Start();
+	}
+	
 }

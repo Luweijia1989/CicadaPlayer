@@ -1245,4 +1245,10 @@ namespace Cicada {
 	{
 		IVideoRender::foreignGLContextDestroyed(vo);
 	}
+
+	void MediaPlayer::setSmoothLoop(bool smooth)
+	{
+		GET_PLAYER_HANDLE;
+		CicadaSetSmoothLoop(handle, smooth);
+	}
 }

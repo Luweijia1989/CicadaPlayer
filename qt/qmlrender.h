@@ -22,6 +22,8 @@ public:
     static void onEOS(void *userData);
 	static void onFirstFrame(void *userData);
 
+	Q_INVOKABLE void seektobegin();
+
 signals:
 	void videoRatioChanged(qreal ratio);
 	void ended();

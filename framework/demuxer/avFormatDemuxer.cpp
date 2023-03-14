@@ -289,6 +289,11 @@ namespace Cicada {
                         mCtx->pb->error = 0;
                         return ret;
                     }
+					
+					if (sourceConfig.smooth_loop) {
+						avformat_seek_file(mCtx, -1, 0, 0, 0, 0);
+						return 1;
+					}
 
                     av_packet_free(&pkt);
                     return 0;// EOS
@@ -682,15 +687,17 @@ namespace Cicada {
         int ret = ReadPacketInternal(pkt);
 
         if (ret > 0) {
-            std::unique_lock<std::mutex> waitLock(mQueLock);
+			if (pkt) {
+				std::unique_lock<std::mutex> waitLock(mQueLock);
 
-            if (mPacketQueue.size() > MAX_QUEUE_SIZE) {
-                mQueCond.wait(waitLock, [this]() {
-                    return mPacketQueue.size() <= MAX_QUEUE_SIZE || bPaused || mInterrupted;
-                });
-            }
-
-            mPacketQueue.push_back(std::move(pkt));
+				if (mPacketQueue.size() > MAX_QUEUE_SIZE) {
+					mQueCond.wait(waitLock, [this]() {
+						return mPacketQueue.size() <= MAX_QUEUE_SIZE || bPaused || mInterrupted;
+					});
+				}
+			
+				mPacketQueue.push_back(std::move(pkt));
+			}
         } else if (ret == 0) {
             bEOS = true;
         } else {

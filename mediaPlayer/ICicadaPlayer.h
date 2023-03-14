@@ -276,6 +276,8 @@ namespace Cicada {
 		virtual void setMaskMode(IVideoRender::MaskMode mode, const std::string& data) = 0;
 		virtual void clearGLResource(void *vo) = 0;
 
+		virtual void setSmoothLoop(bool smooth) = 0;
+
     protected:
         playerMediaFrameCb mMediaFrameCb = nullptr;
         void *mMediaFrameCbArg = nullptr;

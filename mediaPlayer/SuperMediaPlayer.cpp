@@ -4072,6 +4072,11 @@ void SuperMediaPlayer::clearGLResource(void *vo)
     }
 }
 
+void SuperMediaPlayer::setSmoothLoop(bool smooth)
+{
+	mSet->smoothLoop = smooth;
+}
+
 void SuperMediaPlayer::ApsaraAudioRenderCallback::onFrameInfoUpdate(IAFFrame::AFFrameInfo &info, bool rendered)
 {
     mPlayer.RenderCallback(ST_TYPE_AUDIO, rendered, info);

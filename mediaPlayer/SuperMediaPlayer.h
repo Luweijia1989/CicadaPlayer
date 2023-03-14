@@ -233,6 +233,8 @@ namespace Cicada {
 		void setMaskMode(IVideoRender::MaskMode mode, const std::string& data) override;
 		void clearGLResource(void *vo) override;
 
+		void setSmoothLoop(bool smooth);
+
     private:
         void NotifyPosition(int64_t position);
 

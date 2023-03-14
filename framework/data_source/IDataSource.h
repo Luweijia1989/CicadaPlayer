@@ -59,6 +59,8 @@ namespace Cicada {
             bool enableLog{true};
 
             std::string toString();
+
+			bool smooth_loop = false;
         };
 
 

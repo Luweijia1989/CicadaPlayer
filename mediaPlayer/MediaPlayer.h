@@ -365,6 +365,8 @@ namespace Cicada {
 		void clearGLResource(void *vo);
 		static void foreignGLContextDestroyed(void *vo);
 
+		void setSmoothLoop(bool smooth);
+
     private:
         static void preparedCallback(void *userData);
 

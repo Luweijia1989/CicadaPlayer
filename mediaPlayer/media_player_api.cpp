@@ -779,3 +779,10 @@ void CicadaClearGLResource(playerHandle *pHandle, void *vo)
 	if (player)
 		player->clearGLResource(vo);
 }
+
+void CicadaSetSmoothLoop(playerHandle *pHandle, bool smooth)
+{
+	GET_PLAYER;
+	if (player)
+		player->setSmoothLoop(smooth);
+}

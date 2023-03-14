@@ -122,7 +122,7 @@ namespace Cicada {
 
         mDemuxerPtr->setDemuxerCb(mDemuxerCbfunc);
 
-        if (mDemuxerPtr->isPlayList()) {
+        if (true/*mDemuxerPtr->isPlayList()*/) { // change: always set source config to make smoot loop take effect
             IDataSource::SourceConfig config;
 
             if (mPDataSource) {
