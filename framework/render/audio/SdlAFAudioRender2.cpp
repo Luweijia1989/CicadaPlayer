@@ -11,9 +11,11 @@
 #include <utils/frame_work_log.h>
 
 using namespace Cicada;
-
+static std::mutex sdlAudioInitMutex;
 std::map<uint32_t, std::string> IAudioRender::audioOutputDevices()
 {
+	std::lock_guard<std::mutex> lock(sdlAudioInitMutex);
+
 	std::map<uint32_t, std::string> ret;
 
 	SDL_InitSubSystem(SDL_INIT_AUDIO);
@@ -35,6 +37,8 @@ SdlAFAudioRender2::SdlAFAudioRender2()
 
 SdlAFAudioRender2::~SdlAFAudioRender2()
 {
+	std::lock_guard<std::mutex> lock(sdlAudioInitMutex);
+
     if (mDevID > 0) {
         SDL_CloseAudioDevice(mDevID);
         mDevID = 0;
@@ -77,7 +81,10 @@ int SdlAFAudioRender2::open_device(uint32_t device)
         inputSpec.samples = mInputInfo.nb_samples;
         inputSpec.userdata = this;
         inputSpec.callback = nullptr;
-        mDevID = SDL_OpenAudioDevice(name, false, &inputSpec, &mSpec, 0);
+		{
+			std::lock_guard<std::mutex> lock(sdlAudioInitMutex);
+			mDevID = SDL_OpenAudioDevice(name, false, &inputSpec, &mSpec, 0);
+		}
         if (mDevID == 0) {
             AF_LOGE("SdlAFAudioRender could not openAudio! Error: %s\n", SDL_GetError());
             return OPEN_AUDIO_DEVICE_FAILED;
@@ -95,14 +102,17 @@ int SdlAFAudioRender2::init_device()
 {
     needFilter = true;
     // init sdl audio subsystem
-    if (!mSdlAudioInited) {
-        int initRet = SDL_Init(SDL_INIT_AUDIO);
-        if (initRet < 0) {
-            AF_LOGE("SdlAFAudioRender could not initialize! Error: %s\n", SDL_GetError());
-            return initRet;
-        }
-        mSdlAudioInited = true;
-    }
+	{
+		std::lock_guard<std::mutex> lock(sdlAudioInitMutex);
+		if (!mSdlAudioInited) {
+			int initRet = SDL_Init(SDL_INIT_AUDIO);
+			if (initRet < 0) {
+				AF_LOGE("SdlAFAudioRender could not initialize! Error: %s\n", SDL_GetError());
+				return initRet;
+			}
+			mSdlAudioInited = true;
+		}
+	}
 
     return open_device(UINT32_MAX);
 }
@@ -115,6 +125,7 @@ void SdlAFAudioRender2::device_change_device(uint32_t deviceId)
 	std::lock_guard<std::mutex> lock(mutex);
 
 	if (mDevID > 0) {
+		std::lock_guard<std::mutex> lock(sdlAudioInitMutex);
         SDL_CloseAudioDevice(mDevID);
         mDevID = 0;
     }
