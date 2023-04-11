@@ -12,29 +12,20 @@
 
 using namespace Cicada;
 
-class SDLAudioInitHelper {
-public:
-	SDLAudioInitHelper() {
-		SDL_InitSubSystem(SDL_INIT_AUDIO);
-	}
-
-	~SDLAudioInitHelper() {
-		SDL_QuitSubSystem(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
-	}
-};
-
-static SDLAudioInitHelper sdl_audio_helper;
-
 std::map<uint32_t, std::string> IAudioRender::audioOutputDevices()
 {
 	std::map<uint32_t, std::string> ret;
-	
+
+	SDL_InitSubSystem(SDL_INIT_AUDIO);
+
 	auto count = SDL_GetNumAudioDevices(0);
 	for (auto i = 0; i < count; i++) {
         ret.insert({i, SDL_GetAudioDeviceName(i, 0)});
 	}
 	
 	ret.insert({UINT32_MAX, "default"});
+
+	SDL_QuitSubSystem(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
 	return ret;
 }
@@ -48,6 +39,7 @@ SdlAFAudioRender2::~SdlAFAudioRender2()
         SDL_CloseAudioDevice(mDevID);
         mDevID = 0;
     }
+    SDL_QuitSubSystem(SDL_INIT_AUDIO | SDL_INIT_EVENTS);
 
     if (mPcmBuffer) {
         free(mPcmBuffer);
@@ -102,6 +94,16 @@ int SdlAFAudioRender2::open_device(uint32_t device)
 int SdlAFAudioRender2::init_device()
 {
     needFilter = true;
+    // init sdl audio subsystem
+    if (!mSdlAudioInited) {
+        int initRet = SDL_Init(SDL_INIT_AUDIO);
+        if (initRet < 0) {
+            AF_LOGE("SdlAFAudioRender could not initialize! Error: %s\n", SDL_GetError());
+            return initRet;
+        }
+        mSdlAudioInited = true;
+    }
+
     return open_device(UINT32_MAX);
 }
 

@@ -36,6 +36,7 @@ namespace Cicada {
     private:
 		std::mutex mutex;
 		uint32_t deviceIndex = 0;
+        bool mSdlAudioInited = false;
         SDL_AudioDeviceID mDevID{0};
         uint64_t mPlayedDuration = 0;
         uint8_t *mPcmBuffer = nullptr;
