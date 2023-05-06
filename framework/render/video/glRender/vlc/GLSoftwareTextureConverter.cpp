@@ -51,6 +51,9 @@ GLSoftwareTextureConverter::GLSoftwareTextureConverter()
 
 GLSoftwareTextureConverter::~GLSoftwareTextureConverter()
 {
+	if (!pbo_cache)
+		return;
+
     for (size_t i = 0; i < PBO_DISPLAY_COUNT && pbo_cache->pbo.display_pics[i]; ++i) pbo_picture_destroy(pbo_cache->pbo.display_pics[i]);
 
     free(pbo_cache->texture_temp_buf);
