@@ -90,6 +90,7 @@ public:
     int displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode mode, const std::string &data, AVFrame *frame, int frameIndex,
                        IVideoRender::Rotate rotate, IVideoRender::Scale scale, IVideoRender::Flip flip, const video_format_t *source,
                        int viewWidth, int viewHeight);
+	void setExternalFboId(unsigned int id) { external_fbo_id = id; }
 
 private:
     void resetGLState();
@@ -128,6 +129,8 @@ private:
     GLsizei tex_height[PICTURE_PLANE_MAX] = {0};
 
     GLuint texture[PICTURE_PLANE_MAX] = {0};
+
+	GLuint external_fbo_id = -1;
 
     /* One YUV program and one RGBA program (for subpics) */
     GLProgram prgm = {0}; /* Main program */

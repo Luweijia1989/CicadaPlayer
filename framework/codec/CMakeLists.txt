@@ -13,7 +13,9 @@ target_sources(videodec PRIVATE
         decoderFactory.cpp
         decoderFactory.h
         ActiveDecoder.cpp
-        ActiveDecoder.h)
+        ActiveDecoder.h
+		SimpleDecoder.h
+		SimpleDecoder.cpp)
 
 if (ENABLE_AVCODEC_DECODER)
     target_compile_definitions(videodec PRIVATE ENABLE_AVCODEC_DECODER)

@@ -133,7 +133,7 @@ public:
         gpu_decoded = b;
     }
 
-    void bindFbo();
+    void bindFbo(unsigned int id);
     void releaseFbo();
 
     void draw();
@@ -205,9 +205,9 @@ private:
 
 class FBOBindHelper {
 public:
-    FBOBindHelper(GiftEffectRender *render) : mRender(render)
+    FBOBindHelper(unsigned int id, GiftEffectRender *render) : mRender(render)
     {
-        mRender->bindFbo();
+        mRender->bindFbo(id);
     }
 
     ~FBOBindHelper()

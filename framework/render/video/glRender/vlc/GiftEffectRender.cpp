@@ -449,9 +449,13 @@ GiftEffectRender::~GiftEffectRender()
     vt->DeleteProgram(prgm);
 }
 
-void GiftEffectRender::bindFbo()
+void GiftEffectRender::bindFbo(unsigned int id)
 {
-    vt->GetIntegerv(GL_FRAMEBUFFER_BINDING, &last_fbo);
+    if (id == -1)
+        vt->GetIntegerv(GL_FRAMEBUFFER_BINDING, &last_fbo);
+    else 
+        last_fbo = id;
+    
     vt->BindFramebuffer(GL_FRAMEBUFFER, videoFrameFbo);
     vt->Viewport(0, 0, fmt->i_visible_width, fmt->i_visible_height);
 }

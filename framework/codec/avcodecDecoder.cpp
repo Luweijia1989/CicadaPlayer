@@ -103,7 +103,11 @@ namespace Cicada {
         p_sys->width = p_context->coded_width;
         p_sys->height = p_context->coded_height;
 
-        if (!can_hwaccel) return swfmt;
+        if (!can_hwaccel) {
+            ((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, swfmt, swfmt);
+            p_sys->pix_fmt = swfmt;
+            return swfmt;
+        }
 
 #if (LIBAVCODEC_VERSION_MICRO >= 100) && (LIBAVCODEC_VERSION_INT < AV_VERSION_INT(57, 83, 101))
         if (p_context->active_thread_type) {
@@ -124,45 +128,43 @@ namespace Cicada {
             AV_PIX_FMT_NONE,
         };
 
-		bool useHW = ((avcodecDecoder *) p_context->opaque)->mPDecoder->flags & DECFLAG_HW;
-		if (useHW)
-		{
-			for (size_t i = 0; hwfmts[i] != AV_PIX_FMT_NONE; i++) {
-				AVPixelFormat hwfmt = AV_PIX_FMT_NONE;
-				for (size_t j = 0; hwfmt == AV_PIX_FMT_NONE && pi_fmt[j] != AV_PIX_FMT_NONE; j++)
-					if (hwfmts[i] == pi_fmt[j]) hwfmt = hwfmts[i];
+        bool useHW = ((avcodecDecoder *) p_context->opaque)->mPDecoder->flags & DECFLAG_HW;
+        if (useHW) {
+            for (size_t i = 0; hwfmts[i] != AV_PIX_FMT_NONE; i++) {
+                AVPixelFormat hwfmt = AV_PIX_FMT_NONE;
+                for (size_t j = 0; hwfmt == AV_PIX_FMT_NONE && pi_fmt[j] != AV_PIX_FMT_NONE; j++)
+                    if (hwfmts[i] == pi_fmt[j]) hwfmt = hwfmts[i];
 
-				if (hwfmt == AV_PIX_FMT_NONE) continue;
+                if (hwfmt == AV_PIX_FMT_NONE) continue;
 
-				p_sys->videoForamt.i_chroma = VideoAcceleration::vlc_va_GetChroma(hwfmt, swfmt);
-				if (p_sys->videoForamt.i_chroma == 0) continue;        /* Unknown brand of hardware acceleration */
-				if (p_context->width == 0 || p_context->height == 0) { /* should never happen */
-					AF_LOGE("unspecified video dimensions");
-					continue;
-				}
-				const AVPixFmtDescriptor *dsc = av_pix_fmt_desc_get(hwfmt);
-				AF_LOGD("trying format %s", dsc ? dsc->name : "unknown");
+                p_sys->videoForamt.i_chroma = VideoAcceleration::vlc_va_GetChroma(hwfmt, swfmt);
+                if (p_sys->videoForamt.i_chroma == 0) continue;        /* Unknown brand of hardware acceleration */
+                if (p_context->width == 0 || p_context->height == 0) { /* should never happen */
+                    AF_LOGE("unspecified video dimensions");
+                    continue;
+                }
+                const AVPixFmtDescriptor *dsc = av_pix_fmt_desc_get(hwfmt);
+                AF_LOGD("trying format %s", dsc ? dsc->name : "unknown");
 
-				if (hwfmt == AV_PIX_FMT_DXVA2_VLD && !avcodecDecoder::DXNVInteropAvailable)
-					continue;
+                if (hwfmt == AV_PIX_FMT_DXVA2_VLD && !avcodecDecoder::DXNVInteropAvailable) continue;
 
-				auto va = VideoAcceleration::createVA(p_context, hwfmt);
-				if (!va) continue;
+                auto va = VideoAcceleration::createVA(p_context, hwfmt);
+                if (!va) continue;
 
-				if (va->open() != VLC_SUCCESS) {
-					delete va;
-					continue;
-				}
+                if (va->open() != VLC_SUCCESS) {
+                    delete va;
+                    continue;
+                }
 
-				AF_LOGD("Using %s for hardware decoding", va->description().c_str());
+                AF_LOGD("Using %s for hardware decoding", va->description().c_str());
 
-				p_sys->mVA = va;
-				p_sys->pix_fmt = hwfmt;
-				p_context->draw_horiz_band = NULL;
-				((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, hwfmt, swfmt);
-				return hwfmt;
-			}
-		}
+                p_sys->mVA = va;
+                p_sys->pix_fmt = hwfmt;
+                p_context->draw_horiz_band = NULL;
+                ((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, hwfmt, swfmt);
+                return hwfmt;
+            }
+        }
 
         AF_LOGE("Fallback to default behaviour");
         ((avcodecDecoder *) p_context->opaque)->getVideoFormat(p_context, swfmt, swfmt);
@@ -171,8 +173,8 @@ namespace Cicada {
     }
 
     avcodecDecoder avcodecDecoder::se(0);
-	bool avcodecDecoder::DXNVInteropAvailable = false;
-	bool avcodecDecoder::DXNVInteropAvailableChecked = false;
+    bool avcodecDecoder::DXNVInteropAvailable = false;
+    bool avcodecDecoder::DXNVInteropAvailableChecked = false;
 
     void avcodecDecoder::close_va_decoder()
     {
@@ -213,7 +215,7 @@ namespace Cicada {
 
         video_format_Init(&mPDecoder->videoForamt, 0);
 
-		mPDecoder->videoForamt.decoder_p = this;
+        mPDecoder->videoForamt.decoder_p = this;
 
         bool software_decoding = pix_fmt == sw_pix_fmt;
         if (software_decoding) { /* software decoding */
@@ -469,10 +471,10 @@ namespace Cicada {
 
     avcodecDecoder::avcodecDecoder() : ActiveDecoder()
     {
-		if (!DXNVInteropAvailableChecked) {
-			DXNVInteropAvailable = checkDxInteropAvailable();
-			DXNVInteropAvailableChecked = true;
-		}
+        if (!DXNVInteropAvailableChecked) {
+            DXNVInteropAvailable = checkDxInteropAvailable();
+            DXNVInteropAvailableChecked = true;
+        }
 
         mName = "VD.avcodec";
         mPDecoder = new decoder_handle_v();

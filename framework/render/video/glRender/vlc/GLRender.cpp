@@ -789,7 +789,7 @@ int GLRender::displayGLFrame(const std::string &vapInfo, IVideoRender::MaskMode 
         giftEffectRender->setFrameIndex(frameIndex);
         giftEffectRender->setGpuDecoded(gpu_decoded);
 
-        FBOBindHelper helper(giftEffectRender);
+        FBOBindHelper helper(external_fbo_id, giftEffectRender);
         displayGLFrameInternal(source, viewWidth, viewHeight, true);
     } else {
         updateOutParam(rotate, scale, flip, viewWidth, viewHeight);
