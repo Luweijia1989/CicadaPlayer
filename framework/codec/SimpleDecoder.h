@@ -12,6 +12,11 @@ extern "C" {
 #include <mutex>
 
 class VideoAcceleration;
+struct video_frame_info
+{
+	int index = 0;
+	video_format_t format{};
+};
 struct video_format_t;
 class SimpleDecoder {
 public:
@@ -42,9 +47,9 @@ private:
 	bool m_eof = false;
 	std::mutex m_frameMutex;
 	bool m_useHW = true;
-
+	int m_currentFrameIndex = 0;
 	/* VA API */
-	video_format_t videoForamt = { 0 };
+	video_frame_info m_frameInfo = { 0 };
 	VideoAcceleration *mVA = nullptr;
 	AVPixelFormat pix_fmt{};
 	int profile = 0;

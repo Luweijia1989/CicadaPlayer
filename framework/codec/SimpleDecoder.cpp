@@ -92,8 +92,8 @@ no_reuse:
 
 			if (hwfmt == AV_PIX_FMT_NONE) continue;
 
-			decoder->videoForamt.i_chroma = VideoAcceleration::vlc_va_GetChroma(hwfmt, swfmt);
-			if (decoder->videoForamt.i_chroma == 0) continue;      /* Unknown brand of hardware acceleration */
+			decoder->m_frameInfo.format.i_chroma = VideoAcceleration::vlc_va_GetChroma(hwfmt, swfmt);
+			if (decoder->m_frameInfo.format.i_chroma == 0) continue;      /* Unknown brand of hardware acceleration */
 			if (p_context->width == 0 || p_context->height == 0) { /* should never happen */
 				continue;
 			}
@@ -155,6 +155,7 @@ bool SimpleDecoder::setupDecoder(AVCodecID id, uint8_t *extra_data, int extra_da
 	if (avcodec_open2(m_codecCont, m_codec, nullptr) < 0) return false;
 
 	m_decodedFrame = av_frame_alloc();
+	m_currentFrameIndex = 0;
 	return true;
 }
 
@@ -189,23 +190,23 @@ int SimpleDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fm
 	int height = ctx->coded_height;
 	int aligns[AV_NUM_DATA_POINTERS] = { 0 };
 
-	video_format_Init(&videoForamt, 0);
+	video_format_Init(&m_frameInfo.format, 0);
 
-	videoForamt.decoder_p = this;
+	m_frameInfo.format.decoder_p = this;
 
 	bool software_decoding = pix_fmt == sw_pix_fmt;
 	if (software_decoding) { /* software decoding */
 		avcodec_align_dimensions2(ctx, &width, &height, aligns);
-		videoForamt.i_chroma = FindVlcChroma(pix_fmt);
+		m_frameInfo.format.i_chroma = FindVlcChroma(pix_fmt);
 	}
 	else /* hardware decoding */
-		videoForamt.i_chroma = VideoAcceleration::vlc_va_GetChroma(pix_fmt, sw_pix_fmt);
+		m_frameInfo.format.i_chroma = VideoAcceleration::vlc_va_GetChroma(pix_fmt, sw_pix_fmt);
 
 	if (width == 0 || height == 0 || width > 8192 || height > 8192 || width < ctx->width || height < ctx->height) {
 		return -1; /* invalid display size */
 	}
 
-	const vlc_chroma_description_t *p_dsc = vlc_fourcc_GetChromaDescription(videoForamt.i_chroma);
+	const vlc_chroma_description_t *p_dsc = vlc_fourcc_GetChromaDescription(m_frameInfo.format.i_chroma);
 	if (!p_dsc) return VLC_EGENERIC;
 
 	int tw = ctx->coded_width;
@@ -228,56 +229,56 @@ int SimpleDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fm
 	const int i_height_aligned = ctx->coded_height;
 	const int i_height_extra = 0; /* This one is a hack for some ASM functions */
 
-	videoForamt.i_width = i_width_aligned;
-	videoForamt.i_height = i_height_aligned;
-	videoForamt.i_visible_width = ctx->width;
-	videoForamt.i_visible_height = ctx->height;
+	m_frameInfo.format.i_width = i_width_aligned;
+	m_frameInfo.format.i_height = i_height_aligned;
+	m_frameInfo.format.i_visible_width = ctx->width;
+	m_frameInfo.format.i_visible_height = ctx->height;
 
-	videoForamt.i_sar_num = ctx->sample_aspect_ratio.num;
-	videoForamt.i_sar_den = ctx->sample_aspect_ratio.den;
+	m_frameInfo.format.i_sar_num = ctx->sample_aspect_ratio.num;
+	m_frameInfo.format.i_sar_den = ctx->sample_aspect_ratio.den;
 
-	if (videoForamt.i_sar_num == 0 || videoForamt.i_sar_den == 0) videoForamt.i_sar_num = videoForamt.i_sar_den = 1;
+	if (m_frameInfo.format.i_sar_num == 0 || m_frameInfo.format.i_sar_den == 0) m_frameInfo.format.i_sar_num = m_frameInfo.format.i_sar_den = 1;
 
 	for (unsigned i = 0; i < p_dsc->plane_count; i++) {
-		auto *p = &videoForamt.plane[i];
+		auto *p = &m_frameInfo.format.plane[i];
 
 		p->i_lines = (i_height_aligned + i_height_extra) * p_dsc->p[i].h.num / p_dsc->p[i].h.den;
-		p->i_visible_lines = (videoForamt.i_visible_height + (p_dsc->p[i].h.den - 1)) / p_dsc->p[i].h.den * p_dsc->p[i].h.num;
+		p->i_visible_lines = (m_frameInfo.format.i_visible_height + (p_dsc->p[i].h.den - 1)) / p_dsc->p[i].h.den * p_dsc->p[i].h.num;
 		p->i_pitch = i_width_aligned * p_dsc->p[i].w.num / p_dsc->p[i].w.den * p_dsc->pixel_size;
 		p->i_visible_pitch =
-			(videoForamt.i_visible_width + (p_dsc->p[i].w.den - 1)) / p_dsc->p[i].w.den * p_dsc->p[i].w.num * p_dsc->pixel_size;
+			(m_frameInfo.format.i_visible_width + (p_dsc->p[i].w.den - 1)) / p_dsc->p[i].w.den * p_dsc->p[i].w.num * p_dsc->pixel_size;
 		p->i_pixel_pitch = p_dsc->pixel_size;
 
 		assert((p->i_pitch % 16) == 0);
 	}
-	videoForamt.i_planes = p_dsc->plane_count;
+	m_frameInfo.format.i_planes = p_dsc->plane_count;
 
 	/* FIXME we should only set the known values and let the core decide
 	 * later of fallbacks, but we can't do that with a boolean */
 	switch (ctx->color_range) {
 	case AVCOL_RANGE_JPEG:
-		videoForamt.b_color_range_full = true;
+		m_frameInfo.format.b_color_range_full = true;
 		break;
 	case AVCOL_RANGE_UNSPECIFIED:
-		videoForamt.b_color_range_full = !vlc_fourcc_IsYUV(videoForamt.i_chroma);
+		m_frameInfo.format.b_color_range_full = !vlc_fourcc_IsYUV(m_frameInfo.format.i_chroma);
 		break;
 	case AVCOL_RANGE_MPEG:
 	default:
-		videoForamt.b_color_range_full = false;
+		m_frameInfo.format.b_color_range_full = false;
 		break;
 	}
 
 	switch (ctx->colorspace) {
 	case AVCOL_SPC_BT709:
-		videoForamt.space = COLOR_SPACE_BT709;
+		m_frameInfo.format.space = COLOR_SPACE_BT709;
 		break;
 	case AVCOL_SPC_SMPTE170M:
 	case AVCOL_SPC_BT470BG:
-		videoForamt.space = COLOR_SPACE_BT601;
+		m_frameInfo.format.space = COLOR_SPACE_BT601;
 		break;
 	case AVCOL_SPC_BT2020_NCL:
 	case AVCOL_SPC_BT2020_CL:
-		videoForamt.space = COLOR_SPACE_BT2020;
+		m_frameInfo.format.space = COLOR_SPACE_BT2020;
 		break;
 	default:
 		break;
@@ -285,30 +286,30 @@ int SimpleDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fm
 
 	switch (ctx->color_trc) {
 	case AVCOL_TRC_LINEAR:
-		videoForamt.transfer = TRANSFER_FUNC_LINEAR;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_LINEAR;
 		break;
 	case AVCOL_TRC_GAMMA22:
-		videoForamt.transfer = TRANSFER_FUNC_SRGB;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_SRGB;
 		break;
 	case AVCOL_TRC_BT709:
-		videoForamt.transfer = TRANSFER_FUNC_BT709;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_BT709;
 		break;
 	case AVCOL_TRC_SMPTE170M:
 	case AVCOL_TRC_BT2020_10:
 	case AVCOL_TRC_BT2020_12:
-		videoForamt.transfer = TRANSFER_FUNC_BT2020;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_BT2020;
 		break;
 	case AVCOL_TRC_ARIB_STD_B67:
-		videoForamt.transfer = TRANSFER_FUNC_ARIB_B67;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_ARIB_B67;
 		break;
 	case AVCOL_TRC_SMPTE2084:
-		videoForamt.transfer = TRANSFER_FUNC_SMPTE_ST2084;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_SMPTE_ST2084;
 		break;
 	case AVCOL_TRC_SMPTE240M:
-		videoForamt.transfer = TRANSFER_FUNC_SMPTE_240;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_SMPTE_240;
 		break;
 	case AVCOL_TRC_GAMMA28:
-		videoForamt.transfer = TRANSFER_FUNC_BT470_BG;
+		m_frameInfo.format.transfer = TRANSFER_FUNC_BT470_BG;
 		break;
 	default:
 		break;
@@ -316,17 +317,17 @@ int SimpleDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fm
 
 	switch (ctx->color_primaries) {
 	case AVCOL_PRI_BT709:
-		videoForamt.primaries = COLOR_PRIMARIES_BT709;
+		m_frameInfo.format.primaries = COLOR_PRIMARIES_BT709;
 		break;
 	case AVCOL_PRI_BT470BG:
-		videoForamt.primaries = COLOR_PRIMARIES_BT601_625;
+		m_frameInfo.format.primaries = COLOR_PRIMARIES_BT601_625;
 		break;
 	case AVCOL_PRI_SMPTE170M:
 	case AVCOL_PRI_SMPTE240M:
-		videoForamt.primaries = COLOR_PRIMARIES_BT601_525;
+		m_frameInfo.format.primaries = COLOR_PRIMARIES_BT601_525;
 		break;
 	case AVCOL_PRI_BT2020:
-		videoForamt.primaries = COLOR_PRIMARIES_BT2020;
+		m_frameInfo.format.primaries = COLOR_PRIMARIES_BT2020;
 		break;
 	default:
 		break;
@@ -334,19 +335,19 @@ int SimpleDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fm
 
 	switch (ctx->chroma_sample_location) {
 	case AVCHROMA_LOC_LEFT:
-		videoForamt.chroma_location = CHROMA_LOCATION_LEFT;
+		m_frameInfo.format.chroma_location = CHROMA_LOCATION_LEFT;
 		break;
 	case AVCHROMA_LOC_CENTER:
-		videoForamt.chroma_location = CHROMA_LOCATION_CENTER;
+		m_frameInfo.format.chroma_location = CHROMA_LOCATION_CENTER;
 		break;
 	case AVCHROMA_LOC_TOPLEFT:
-		videoForamt.chroma_location = CHROMA_LOCATION_TOP_LEFT;
+		m_frameInfo.format.chroma_location = CHROMA_LOCATION_TOP_LEFT;
 		break;
 	default:
 		break;
 	}
 
-	if (mVA) videoForamt.extra_info = mVA->getExtraInfoForRender();
+	if (mVA) m_frameInfo.format.extra_info = mVA->getExtraInfoForRender();
 
 	return 0;
 }
@@ -384,7 +385,8 @@ int SimpleDecoder::getDecodedFrame()
 
 		av_frame_free(&m_outputFrame);
 		m_outputFrame = av_frame_clone(m_decodedFrame);
-		m_outputFrame->opaque = &videoForamt;
+		m_frameInfo.index = m_currentFrameIndex++;
+		m_outputFrame->opaque = &m_frameInfo;
 	}
 	return ret;
 }

@@ -1,6 +1,7 @@
 ﻿#include "SimpleEffectPlayer.h"
 #include <codec/SimpleDecoder.h>
 #include <render/video/glRender/SimpleGLRender.h>
+#include <data_source/vapparser/BinaryFileStream.hpp>
 #include <utils/timer.h>
 extern "C" {
 #include <libavformat/avformat.h>
@@ -19,11 +20,49 @@ SimpleEffectPlayer::~SimpleEffectPlayer()
 	delete m_decoder;
 }
 
+void SimpleEffectPlayer::parseVapInfo(const std::string &path)
+{
+	ISOBMFF::BinaryFileStream stream(path);
+	uint64_t length = 0;
+	uint32_t offset = 0;
+	std::string name;
+	while (stream.HasBytesAvailable()) {
+		length = stream.ReadBigEndianUInt32();
+		name = stream.ReadFourCC();
+		offset = 8;
+		if (length == 1) {
+			length = stream.ReadBigEndianUInt64();
+			offset = 16;
+		}
+
+		if (length == 0 || length <= offset)
+			break;
+
+		if (name == "vapc") {
+			auto vapData = std::move(stream.Read(static_cast<uint32_t>(length) - offset));
+			std::string vap;
+			vap.assign((char *)vapData.data(), vapData.size());
+			m_render->setVapInfo(vap);
+			break;
+		}
+		else {
+			try {
+				stream.Seek(length - offset, ISOBMFF::BinaryStream::SeekDirection::Current);
+			}
+			catch (const std::exception &) {
+				break;
+			}
+		}
+	}
+}
+
 void SimpleEffectPlayer::start(const std::string &path)
 {
 	if (m_started) return;
 
 	if (path.empty()) return;
+
+	parseVapInfo(path);
 
 	bool ready = false;
 	do {

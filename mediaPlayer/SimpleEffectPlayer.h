@@ -44,6 +44,7 @@ public:
 	static void videoThread(void *param);
 
 private:
+	void parseVapInfo(const std::string &path);
 	void videoThreadInternal();
 	AVPacket *readPacket();
 

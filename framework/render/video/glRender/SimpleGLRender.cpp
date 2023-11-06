@@ -8,6 +8,7 @@
 #include <render/video/glRender/base/utils.h>
 #include <utils/AFMediaType.h>
 #include <utils/timer.h>
+#include <codec/SimpleDecoder.h>
 
 using namespace std;
 
@@ -27,11 +28,12 @@ void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
 {
 	RenderInfo &renderInfo = mRenders[vo];
 	if (!frame) {
-		if (renderInfo.render) renderInfo.render->clearScreen(0xff000000);
+		if (renderInfo.render) renderInfo.render->clearScreen(0);
 		return;
 	}
 
-	auto vfmt = (video_format_t *)frame->opaque;
+	auto vfmInfo = (video_frame_info *)frame->opaque;
+	auto vfmt = &vfmInfo->format;
 	if (!renderInfo.render) {
 		std::unique_ptr<GLRender> render = std::make_unique<GLRender>(vfmt);
 		if (render->initGL()) renderInfo.render = move(render);
@@ -50,10 +52,10 @@ void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
 	if (glRender == nullptr) return;
 
 	glRender->setExternalFboId(fbo_id);
-	glRender->clearScreen(0xff000000);
+	glRender->clearScreen(0);
 
 	mMaskInfoMutex.lock();
-	int ret = glRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, /*mRenderFrame->getInfo().video.frameIndex*/0, IVideoRender::Rotate::Rotate_None, IVideoRender::Scale::Scale_AspectFit,
+	int ret = glRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, vfmInfo->index, IVideoRender::Rotate::Rotate_None, IVideoRender::Scale::Scale_AspectFit,
 		IVideoRender::Flip::Flip_None, vfmt, renderInfo.surfaceWidth, renderInfo.surfaceHeight);
 	mMaskInfoMutex.unlock();
 }
