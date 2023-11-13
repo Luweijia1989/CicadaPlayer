@@ -1,7 +1,7 @@
 ﻿#include "SimpleEffectPlayer.h"
 #include <codec/SimpleDecoder.h>
-#include <render/video/glRender/SimpleGLRender.h>
 #include <data_source/vapparser/BinaryFileStream.hpp>
+#include <render/video/glRender/SimpleGLRender.h>
 #include <utils/timer.h>
 extern "C" {
 #include <libavformat/avformat.h>
@@ -35,8 +35,7 @@ void SimpleEffectPlayer::parseVapInfo(const std::string &path)
 			offset = 16;
 		}
 
-		if (length == 0 || length <= offset)
-			break;
+		if (length == 0 || length <= offset) break;
 
 		if (name == "vapc") {
 			auto vapData = std::move(stream.Read(static_cast<uint32_t>(length) - offset));
@@ -92,6 +91,15 @@ void SimpleEffectPlayer::start(const std::string &path)
 		}
 	}
 
+	auto codec = m_ctx->streams[m_videoIndex]->codec;
+	if (m_vw != codec->width || m_vh != codec->height) {
+		if (m_listener.VideoSizeChanged) {
+			m_listener.VideoSizeChanged(codec->width, codec->height, m_listener.userData);
+		}
+		m_vw = codec->width;
+		m_vh = codec->height;
+	}
+
 	m_fps = av_q2d(m_ctx->streams[m_videoIndex]->r_frame_rate);
 	m_requestStopped = false;
 	m_videoThread = std::thread(SimpleEffectPlayer::videoThread, this);
@@ -107,6 +115,8 @@ void SimpleEffectPlayer::stop()
 
 	avformat_free_context(m_ctx);
 	m_decoder->closeDecoder();
+	m_vw = -1;
+	m_vh = -1;
 
 	m_started = false;
 }
@@ -201,16 +211,7 @@ void SimpleEffectPlayer::videoThreadInternal()
 
 void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id)
 {
-	m_decoder->renderFrame([=](void *v, AVFrame *frame, unsigned int id) {
-		if (frame && (m_vw != frame->width || m_vh != frame->height)) {
-			if (m_listener.VideoSizeChanged) {
-				m_listener.VideoSizeChanged(frame->width, frame->height, m_listener.userData);
-			}
-			m_vw = frame->width;
-			m_vh = frame->height;
-		}
-		m_render->renderVideo(v, frame, id);
-	}, vo, fbo_id);
+	m_decoder->renderFrame([=](void *v, AVFrame *frame, unsigned int id) { m_render->renderVideo(v, frame, id); }, vo, fbo_id);
 }
 
 void SimpleEffectPlayer::clearGLResource(void *vo)
@@ -237,7 +238,7 @@ void SimpleEffectPlayer::setRenderCallback(std::function<void(void *vo_opaque)> 
 	}
 }
 
-void SimpleEffectPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string& data)
+void SimpleEffectPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string &data)
 {
 	m_render->setMaskMode(mode, data);
 }
