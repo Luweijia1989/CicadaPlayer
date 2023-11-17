@@ -52,40 +52,58 @@
 import QtQuick 2.0
 import QtQuick.Window 2.2
 import MDKPlayer 1.0
+import SimplePlayer 1.0
 import QtQuick.Controls 2.14
 
 Item {
 
-	visible: true
-    width: 320
-    height: 480
-	
-	AnimatedImage {
-		source: "file:///F:/xxq-recon/mp4player/zhuanquan.gif"
-	}
+    visible: true
 
+//    MDKPlayer {
+//        id: player
+//        anchors.fill: parent
 
-	MDKPlayer {
-		id: player
-		anchors.fill: parent
+//        onEnded: {
+//            stop()
+//        }
+//    }
 
-		onEnded: {
+    SimplePlayer {
+        id: player
+        anchors.fill: parent
+    }
+
+    Button {
+        text: "play1"
+        anchors.centerIn: parent
+        onClicked: {
+            player.play1()
         }
-	}
+    }
 
-	Button {
-		onClicked: {
-			console.log('aaaaaa')
-			player.testplay()
-		}
-	}
+    Button {
+        text: "play2"
+        onClicked: {
+            player.play2()
+        }
+    }
 
-	Button {
-	y:100
-		onClicked: {
-			player.seektobegin()
-		}
-	}
 
+//    Rectangle {
+//        id: rec
+//        width: 100
+//        height: 100
+//        color: "gray"
+
+//        NumberAnimation {
+//            target: rec
+//            running: true
+//            property: "width"
+//            duration: 2000
+//            from: 100
+//            to: 0
+//            loops: Animation.Infinite
+//        }
+//    }
 }
 //! [2]

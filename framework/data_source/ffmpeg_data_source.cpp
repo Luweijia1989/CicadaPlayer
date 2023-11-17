@@ -163,7 +163,7 @@ namespace Cicada {
 				offset = 16;
             }
 
-			if (length == 0 || length <= offset)
+			if (length == 0)
 				break;
             
 			if (name == "vapc") {

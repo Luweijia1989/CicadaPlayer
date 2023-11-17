@@ -35,7 +35,7 @@ void SimpleEffectPlayer::parseVapInfo(const std::string &path)
 			offset = 16;
 		}
 
-		if (length == 0 || length <= offset) break;
+		if (length == 0) break;
 
 		if (name == "vapc") {
 			auto vapData = std::move(stream.Read(static_cast<uint32_t>(length) - offset));
