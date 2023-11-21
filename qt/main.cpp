@@ -147,7 +147,11 @@ int main(int argc, char *argv[])
     //qputenv("QSG_RENDER_LOOP", "basic");
     QApplication app(argc, argv);
 
+	qputenv("QT_DEBUG_PLUGINS", "1");
+    qputenv("QML_IMPORT_TRACE", "1");
+
     qmlRegisterType<QMLPlayer>("MDKPlayer", 1, 0, "MDKPlayer");
+    qmlRegisterType<SimpleQMLPlayer>("SimplePlayer", 1, 0, "SimplePlayer");
 
     //QTimer t;
     //QObject::connect(&t, &QTimer::timeout, [=]() {

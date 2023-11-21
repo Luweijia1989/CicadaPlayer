@@ -165,7 +165,14 @@ SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
 {
     setMirrorVertically(true);
 
-    internal_player->setSmoothLoop(true);
+    playerListener pListener{nullptr};
+    pListener.userData = this;
+    pListener.VideoSizeChanged = onVideoSize;
+    pListener.Completion = onEOS;
+    pListener.FirstFrameShow = onFirstFrame;
+    internal_player->SetListener(pListener);
+    
+    internal_player->setSmoothLoop(false);
     internal_player->EnableHardwareDecoder(true);
     internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
     //internal_player->start("C:\\Users\\luweijia\\Desktop\\aework\\output-2.mp4");
@@ -194,5 +201,25 @@ void SimpleQMLPlayer::play1()
 void SimpleQMLPlayer::play2()
 {
     internal_player->stop();
-    internal_player->start("D:\\crf_compose.mp4");
+    internal_player->start("F:\\workspace\\avsolution\\screen-recorder\\x64\\Debug_DLL\\hlqk\\output\\crf_compose.mp4");
+}
+
+void SimpleQMLPlayer::play3(QString path)
+{
+    qInfo() << __FUNCTION__ << path;
+    internal_player->stop();
+    internal_player->start(path.toStdString());
+}
+
+void SimpleQMLPlayer::onVideoSize(int64_t width, int64_t height, void *userData)
+{
+    qInfo() << __FUNCTION__ << width << height << userData;
+}
+void SimpleQMLPlayer::onEOS(void *userData)
+{
+    qInfo() << __FUNCTION__ << userData;
+}
+void SimpleQMLPlayer::onFirstFrame(void *userData)
+{
+    qInfo() << __FUNCTION__ <<userData;
 }

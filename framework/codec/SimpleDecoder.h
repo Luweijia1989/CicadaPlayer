@@ -33,7 +33,7 @@ public:
 	int sendPkt(AVPacket *pkt);
 	int getDecodedFrame();
 
-	void renderFrame(std::function<void(void*, AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id);
+	void renderFrame(std::function<void(void*, int ,AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id);
 
 public:
 	static int lavc_GetFrame(struct AVCodecContext *ctx, AVFrame *frame, int flags);

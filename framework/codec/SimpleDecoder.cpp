@@ -359,10 +359,10 @@ int SimpleDecoder::sendPkt(AVPacket *pkt)
 	return ret;
 }
 
-void SimpleDecoder::renderFrame(std::function<void(void*, AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id)
+void SimpleDecoder::renderFrame(std::function<void(void*, int ,AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id)
 {
 	std::lock_guard<std::mutex> locker(m_frameMutex);
-	cb(vo, m_outputFrame, fbo_id);
+	cb(vo, m_frameInfo.index,m_outputFrame, fbo_id);
 }
 
 int SimpleDecoder::getDecodedFrame()

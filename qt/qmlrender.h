@@ -38,10 +38,16 @@ public:
 	SimpleQMLPlayer(QQuickItem *parent = nullptr);
 	~SimpleQMLPlayer();
 
-	QQuickFramebufferObject::Renderer *createRenderer() const;
+	QQuickFramebufferObject::Renderer *createRenderer() const;	
 
 	Q_INVOKABLE void play1();
-	Q_INVOKABLE void play2();
+    Q_INVOKABLE void play2();
+    Q_INVOKABLE void play3(QString path);
+
+protected:
+    static void onVideoSize(int64_t width, int64_t height, void *userData);
+    static void onEOS(void *userData);
+    static void onFirstFrame(void *userData);
 
 private:
 	std::shared_ptr<SimpleEffectPlayer> internal_player;

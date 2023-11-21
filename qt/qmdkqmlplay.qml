@@ -54,8 +54,15 @@ import QtQuick.Window 2.2
 import MDKPlayer 1.0
 import SimplePlayer 1.0
 import QtQuick.Controls 2.14
+import QtQuick.Layouts 1.14
 
 Item {
+
+    property var hz1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy01.mp4"
+    property var hz2 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy02.mp4"
+
+    width: 320
+    height: 480
 
     visible: true
 
@@ -69,25 +76,37 @@ Item {
 //    }
 
     SimplePlayer {
-        id: player
+        id:player1
         anchors.fill: parent
     }
 
-    Button {
-        text: "play1"
-        anchors.centerIn: parent
-        onClicked: {
-            player.play1()
-        }
+    SimplePlayer {
+        id:player2
+        anchors.fill: parent
     }
 
-    Button {
-        text: "play2"
-        onClicked: {
-            player.play2()
+    ColumnLayout {
+        width:play1.width
+        height:parent.height
+        spacing:10
+        Button {
+            text: "vapbtn"
+            onClicked: {
+                player1.play1()
+            }
+        }
+
+        Button {
+            text: "mutilRes"
+            onClicked: {
+                player1.play3(hz1)
+                //player2.play3(hz2)
+            }
+        }
+        Item {
+            Layout.fillHeight:true
         }
     }
-
 
 //    Rectangle {
 //        id: rec
