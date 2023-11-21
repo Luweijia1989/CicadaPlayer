@@ -11,7 +11,7 @@ extern "C" {
 
 SimpleEffectPlayer::SimpleEffectPlayer()
 {
-    AF_LOGE("Ctor");
+    AF_LOGI("Ctor");
     m_render = new SimpleGLRender;
     m_render->setMaskMode(IVideoRender::MaskMode::Mask_Right, "");
     m_decoder = new SimpleDecoder();
@@ -97,7 +97,7 @@ void SimpleEffectPlayer::start(const std::string &path)
     auto codec = m_ctx->streams[m_videoIndex]->codec;
     if (m_vw != codec->width || m_vh != codec->height) {
         if (m_listener.VideoSizeChanged) {
-            AF_LOGE("VideoSizeChanged");
+            AF_LOGI("VideoSizeChanged");
             m_listener.VideoSizeChanged(codec->width, codec->height, m_listener.userData);
         }
         m_vw = codec->width;
@@ -183,7 +183,7 @@ AVPacket *SimpleEffectPlayer::readPacket()
 
 void SimpleEffectPlayer::videoThreadInternal()
 {
-    AF_LOGE("videoThreadInternal begin.");
+    AF_LOGI("videoThreadInternal begin.");
     int ms = 1000. / m_fps;
     bool eof = false;
     int64_t beginPts = af_getsteady_ms();
@@ -204,7 +204,7 @@ void SimpleEffectPlayer::videoThreadInternal()
             int64_t endPts = af_getsteady_ms();
             int64_t interval = endPts - beginPts;
             beginPts = endPts;
-            AF_LOGE("decoder const ms: %f,frameCount: %d,cost interval: %d", ms, frameCount.load(), interval);
+            AF_LOGI("decoder const ms: %f,frameCount: %d,cost interval: %d", ms, frameCount.load(), interval);
         }
 
         {
@@ -217,7 +217,7 @@ void SimpleEffectPlayer::videoThreadInternal()
 
         if (eof) {
             if (m_listener.Completion) {
-                AF_LOGE("Completion");
+                AF_LOGI("Completion");
                 m_videoStaged = STAGE_COMPLETED;
                 m_listener.Completion(m_listener.userData);
             }
@@ -249,14 +249,14 @@ void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id)
 
                     if (m_videoStaged & STAGE_FIRST_DECODEED) {
                         m_videoStaged = STAGE_FIRST_RENDER;
-                        AF_LOGE("FirstFrameShow");
+                        AF_LOGI("FirstFrameShow");
                         if (m_listener.FirstFrameShow) {
                             m_listener.FirstFrameShow(m_listener.userData);
                         }
                     }
 
                     int64_t endPts = af_getsteady_ms();
-                    AF_LOGE("renderVideo  frameIndex : %d,cost time Interval: %d", frameIndex, endPts - lastPts);
+                    AF_LOGI("renderVideo  frameIndex : %d,cost time Interval: %d", frameIndex, endPts - lastPts);
                 }
             },
             vo, fbo_id);
@@ -274,7 +274,7 @@ void SimpleEffectPlayer::foreignGLContextDestroyed(void *vo)
 
 void SimpleEffectPlayer::setRenderCallback(std::function<void(void *vo_opaque)> cb, void *vo)
 {
-    AF_LOGE("setRenderCallback");
+    AF_LOGI("setRenderCallback");
     std::lock_guard<std::mutex> lock(m_cbMutex);
     if (cb) {
         UpdateCallbackInfo info;
@@ -288,19 +288,19 @@ void SimpleEffectPlayer::setRenderCallback(std::function<void(void *vo_opaque)> 
 
 void SimpleEffectPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string &data)
 {
-    AF_LOGE("setMaskMode");
+    AF_LOGI("setMaskMode");
     m_render->setMaskMode(mode, data);
 }
 
 int SimpleEffectPlayer::SetListener(const playerListener &Listener)
 {
-    AF_LOGE("SetListener");
+    AF_LOGI("SetListener");
     m_listener = Listener;
     return 0;
 }
 
 void SimpleEffectPlayer::EnableHardwareDecoder(bool enable)
 {
-    AF_LOGE("EnableHardwareDecoder : %d", enable);
+    AF_LOGI("EnableHardwareDecoder : %d", enable);
     m_decoder->enableHWDecoder(enable);
 }
