@@ -61,6 +61,8 @@ Item {
     property var hz1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy01.mp4"
     property var hz2 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy02.mp4"
 
+    property var hlqk1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_base01.mp4"
+
     width: 320
     height: 480
 

@@ -1,5 +1,7 @@
+#define LOG_TAG "SimpleDecoder"
 #include "SimpleDecoder.h"
 #include <codec/vlc/VideoAcceleration.h>
+#include "utils/frame_work_log.h"
 
 int SimpleDecoder::lavc_GetFrame(struct AVCodecContext *ctx, AVFrame *frame, int flags)
 {
@@ -354,7 +356,9 @@ int SimpleDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fm
 
 int SimpleDecoder::sendPkt(AVPacket *pkt)
 {
-	auto ret = avcodec_send_packet(m_codecCont, pkt);
+    static int nCount = 0;
+    auto ret = avcodec_send_packet(m_codecCont, pkt);
+    //AF_LOGI("sendPkt nCount1:%d,ret: %d", ++nCount,ret);
 	av_packet_free(&pkt);
 	return ret;
 }
@@ -385,7 +389,7 @@ int SimpleDecoder::getDecodedFrame()
 
 		av_frame_free(&m_outputFrame);
 		m_outputFrame = av_frame_clone(m_decodedFrame);
-		m_frameInfo.index = m_currentFrameIndex++;
+        m_frameInfo.index = ++m_currentFrameIndex;
 		m_outputFrame->opaque = &m_frameInfo;
 	}
 	return ret;

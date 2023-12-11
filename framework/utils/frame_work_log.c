@@ -212,7 +212,8 @@ static void linux_print(int prio, char *printf_buf)
 #ifdef WIN32
     OutputDebugString(printf_buf);
     if (logCtrl.logFile) {
-        fwrite(printf_buf, strlen(printf_buf), 1, logCtrl.logFile);
+        fwrite(printf_buf, 1,strlen(printf_buf), logCtrl.logFile);
+        fflush(logCtrl.logFile);
     }
 #endif
     printf("%s", printf_buf);
@@ -273,6 +274,9 @@ static void initLog()
     if (logCtrl.logFile == NULL) {
         logCtrl.logFile = fopen(".\\effectplayer.log", "wb+");
     }
+
+    log_enable_color(1);
+    //log_set_level(AF_LOG_LEVEL_TRACE, 1);
 #endif
 #ifdef NDEBUG
     logCtrl.log_level = AF_LOG_LEVEL_INFO;
