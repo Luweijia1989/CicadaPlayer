@@ -10,6 +10,8 @@ extern "C" {
 #include <chroma.h>
 }
 #include <mutex>
+#include <list>
+#include <tuple>
 
 class VideoAcceleration;
 struct video_frame_info
@@ -23,6 +25,7 @@ public:
 	SimpleDecoder();
 	~SimpleDecoder();
 
+	void setVideoTag(const std::string& tag);
 	void enableHWDecoder(bool enable);
 	bool setupDecoder(AVCodecID id, uint8_t *extra_data, int extra_data_size);
 	void closeDecoder();
@@ -33,7 +36,7 @@ public:
 	int sendPkt(AVPacket *pkt);
 	int getDecodedFrame();
 
-	void renderFrame(std::function<void(void*, int ,AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id);
+	void renderFrame(std::function<void(void*,int , AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id);
 
 public:
 	static int lavc_GetFrame(struct AVCodecContext *ctx, AVFrame *frame, int flags);
@@ -43,7 +46,7 @@ private:
 	AVCodecContext *m_codecCont = nullptr;
 	AVCodec *m_codec = nullptr;
 	AVFrame *m_decodedFrame = nullptr;
-	AVFrame *m_outputFrame = nullptr;
+	std::list<std::tuple<AVFrame *,int>> m_outputFrames;
 	bool m_eof = false;
 	std::mutex m_frameMutex;
 	bool m_useHW = true;
@@ -56,4 +59,7 @@ private:
 	int level = 0;
 	int width = 0;
 	int height = 0;
+
+    std::string m_sourceTag;
+    int m_nCount = 0;
 };

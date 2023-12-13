@@ -34,6 +34,7 @@ public:
 	struct UpdateCallbackInfo {
 		std::function<void(void *vo_opaque)> cb;
 		void *param;
+        std::string sourceTag;
 	};
 
 	SimpleEffectPlayer();
@@ -47,13 +48,14 @@ public:
 
 	void setSmoothLoop(bool enable);
 
-	void setSurfaceSize(void *vo, int w, int h);
-	void renderVideo(void *vo, unsigned int fbo_id);
+	void setSourceTag(const std::string& tag);
+	void setSurfaceSize(void *vo,int w, int h);
+    void renderVideo(void *vo,unsigned int fbo_id);
 	void clearGLResource(void *vo);
 	void setRenderCallback(std::function<void(void *vo_opaque)> cb, void *vo);
 	void setMaskMode(IVideoRender::MaskMode mode, const std::string& data);
 
-	static void foreignGLContextDestroyed(void *vo);
+	static void foreignGLContextDestroyed(void *vo,const std::string& tag);
 
 public:
 	static void videoThread(void *param);
@@ -86,4 +88,6 @@ private:
 	int m_vw = 0, m_vh = 0;
 
 	VideoPlayerStage m_videoStaged = STAGE_IDEL;
+
+	std::string m_sourceTag;
 };

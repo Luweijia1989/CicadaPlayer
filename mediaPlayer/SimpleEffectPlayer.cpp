@@ -58,6 +58,7 @@ void SimpleEffectPlayer::parseVapInfo(const std::string &path)
 
 void SimpleEffectPlayer::start(const std::string &path)
 {
+    AF_LOGI("===========statr=============");
     if (m_started) return;
 
     if (path.empty()) return;
@@ -97,7 +98,7 @@ void SimpleEffectPlayer::start(const std::string &path)
     auto codec = m_ctx->streams[m_videoIndex]->codec;
     if (m_vw != codec->width || m_vh != codec->height) {
         if (m_listener.VideoSizeChanged) {
-            AF_LOGI("VideoSizeChanged");
+            AF_LOGI("VideoSizeChanged : %s",m_sourceTag.c_str());
             m_listener.VideoSizeChanged(codec->width, codec->height, m_listener.userData);
         }
         m_vw = codec->width;
@@ -105,6 +106,7 @@ void SimpleEffectPlayer::start(const std::string &path)
     }
 
     m_fps = av_q2d(m_ctx->streams[m_videoIndex]->r_frame_rate);
+    AF_LOGI("fps: %f, tag: %s", m_fps, m_sourceTag.c_str());
     m_requestStopped = false;
     m_videoThread = std::thread(SimpleEffectPlayer::videoThread, this);
     m_started = true;
@@ -133,8 +135,21 @@ void SimpleEffectPlayer::setSmoothLoop(bool enable)
     m_smoothLoop = enable;
 }
 
+void SimpleEffectPlayer::setSourceTag(const std::string& tag)
+{
+    AF_LOGI("setSourceTag : %s", tag.c_str());
+    m_sourceTag = tag;
+    if (m_decoder) {
+        m_decoder->setVideoTag(tag);
+	}
+    if (m_render) {
+        m_render->setVideoTag(tag);
+	}
+}
+
 void SimpleEffectPlayer::setSurfaceSize(void *vo, int w, int h)
 {
+    AF_LOGI("setSurfaceSize : %s", m_sourceTag.c_str());
     m_render->setVideoSurfaceSize(vo, w, h);
 }
 
@@ -183,12 +198,13 @@ AVPacket *SimpleEffectPlayer::readPacket()
 
 void SimpleEffectPlayer::videoThreadInternal()
 {
-    AF_LOGI("videoThreadInternal begin.");
-    int ms = 1000. / m_fps;
+    AF_LOGI("videoThreadInternal begin. tag: %s",m_sourceTag.c_str());
+    int ms = 1000.0 / m_fps;
     bool eof = false;
     int64_t beginPts = af_getsteady_ms();
     std::atomic_int frameCount = 0;
     while (!m_requestStopped) {
+        beginPts = af_getsteady_ms();
         while (!eof) {
             auto ret = m_decoder->getDecodedFrame();
             eof = ret == AVERROR_EOF;
@@ -204,7 +220,7 @@ void SimpleEffectPlayer::videoThreadInternal()
             int64_t endPts = af_getsteady_ms();
             int64_t interval = endPts - beginPts;
             beginPts = endPts;
-            AF_LOGI("decoder const ms: %f,frameCount: %d,cost interval: %d", ms, frameCount.load(), interval);
+            AF_LOGI("decoder const ms: %d,frameCount: %d,cost interval: %d [%s]",ms, frameCount.load(), interval,m_sourceTag.c_str());
         }
 
         {
@@ -217,7 +233,7 @@ void SimpleEffectPlayer::videoThreadInternal()
 
         if (eof) {
             if (m_listener.Completion) {
-                AF_LOGI("Completion");
+                AF_LOGI("Completion tag: %s",m_sourceTag.c_str());
                 m_videoStaged = STAGE_COMPLETED;
                 m_listener.Completion(m_listener.userData);
             }
@@ -249,14 +265,14 @@ void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id)
 
                     if (m_videoStaged & STAGE_FIRST_DECODEED) {
                         m_videoStaged = STAGE_FIRST_RENDER;
-                        AF_LOGI("FirstFrameShow");
+                        AF_LOGI("FirstFrameShow tag: %s",m_sourceTag.c_str());
                         if (m_listener.FirstFrameShow) {
                             m_listener.FirstFrameShow(m_listener.userData);
                         }
                     }
 
                     int64_t endPts = af_getsteady_ms();
-                    AF_LOGI("renderVideo  frameIndex : %d,cost time Interval: %d", frameIndex, endPts - lastPts);
+                    AF_LOGI("renderVideo  frameIndex : %d,cost time Interval: %d [%s]", frameIndex, endPts - lastPts,m_sourceTag.c_str());
                 }
             },
             vo, fbo_id);
@@ -267,19 +283,20 @@ void SimpleEffectPlayer::clearGLResource(void *vo)
     m_render->clearGLResource(vo);
 }
 
-void SimpleEffectPlayer::foreignGLContextDestroyed(void *vo)
+void SimpleEffectPlayer::foreignGLContextDestroyed(void *vo, const std::string &tag)
 {
-    SimpleGLRender::foreignGLContextDestroyed(vo);
+    SimpleGLRender::foreignGLContextDestroyed(vo,tag);
 }
 
 void SimpleEffectPlayer::setRenderCallback(std::function<void(void *vo_opaque)> cb, void *vo)
 {
-    AF_LOGI("setRenderCallback");
+    AF_LOGI("setRenderCallback %p,%p,tag: %s", cb,vo,m_sourceTag.c_str());
     std::lock_guard<std::mutex> lock(m_cbMutex);
     if (cb) {
         UpdateCallbackInfo info;
         info.cb = cb;
         info.param = vo;
+        info.sourceTag = m_sourceTag;
         m_cbs[vo] = info;
     } else {
         m_cbs.erase(vo);
@@ -288,7 +305,7 @@ void SimpleEffectPlayer::setRenderCallback(std::function<void(void *vo_opaque)> 
 
 void SimpleEffectPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string &data)
 {
-    AF_LOGI("setMaskMode");
+    AF_LOGI("setMaskMode tag: %s",m_sourceTag.c_str());
     m_render->setMaskMode(mode, data);
 }
 
@@ -301,6 +318,7 @@ int SimpleEffectPlayer::SetListener(const playerListener &Listener)
 
 void SimpleEffectPlayer::EnableHardwareDecoder(bool enable)
 {
-    AF_LOGI("EnableHardwareDecoder : %d", enable);
+    AF_LOGI("EnableHardwareDecoder : %d tag: %s", enable,m_sourceTag.c_str());
     m_decoder->enableHWDecoder(enable);
+    m_render->enableHWDecoder(enable);
 }

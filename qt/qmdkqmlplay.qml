@@ -60,8 +60,13 @@ Item {
 
     property var hz1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy01.mp4"
     property var hz2 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy02.mp4"
+    property var hz3 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy03.mp4"
+    property var hz4 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy04.mp4"
+
 
     property var hlqk1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_base01.mp4"
+
+    property bool mutilEnded: false
 
     width: 320
     height: 480
@@ -79,16 +84,50 @@ Item {
 
     SimplePlayer {
         id:player1
+        visible: !mutilEnded
+        sourceTag:"tag1"
         anchors.fill: parent
+        onEnded:{
+            console.log("onEnded","tag1")
+            mutilEnded = true
+        }
     }
 
     SimplePlayer {
         id:player2
+        visible: !mutilEnded
+        sourceTag:"tag2"
         anchors.fill: parent
+        onEnded:{
+            console.log("onEnded","tag2")
+            mutilEnded = true
+        }
+    }
+
+    SimplePlayer {
+        id:player3
+        visible: !mutilEnded
+        sourceTag:"tag3"
+        anchors.fill: parent
+        onEnded:{
+            console.log("onEnded","tag3")
+            mutilEnded = true
+        }
+    }
+
+    SimplePlayer {
+        id:player4
+        visible: !mutilEnded
+        sourceTag:"tag4"
+        anchors.fill: parent
+        onEnded:{
+            console.log("onEnded","tag4")
+            mutilEnded = true
+        }
     }
 
     ColumnLayout {
-        width:play1.width
+        width:player1.width
         height:parent.height
         spacing:10
         Button {
@@ -101,8 +140,12 @@ Item {
         Button {
             text: "mutilRes"
             onClicked: {
+                mutilEnded = false
                 player1.play3(hz1)
-                //player2.play3(hz2)
+                player2.play3(hz2)
+                player3.play3(hz3)
+                player4.play3(hz4)
+                
             }
         }
         Item {
