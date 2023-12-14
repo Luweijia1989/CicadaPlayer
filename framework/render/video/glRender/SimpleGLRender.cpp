@@ -92,7 +92,7 @@ void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
 	glRender->setExternalFboId(fbo_id);
 	glRender->clearScreen(0);
 
-	AF_LOGD("after tagName: %s,frameIndex: %d,render:%p", m_sourceTag.c_str(), frameIndex, glRender);
+	//AF_LOGD("after tagName: %s,frameIndex: %d,render:%p", m_sourceTag.c_str(), frameIndex, glRender);
 
 	mMaskInfoMutex.lock();
 	int ret = glRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, vfmInfo->index, IVideoRender::Rotate::Rotate_None, IVideoRender::Scale::Scale_AspectFit,

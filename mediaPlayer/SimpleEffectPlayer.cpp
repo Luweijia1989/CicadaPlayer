@@ -198,13 +198,15 @@ AVPacket *SimpleEffectPlayer::readPacket()
 
 void SimpleEffectPlayer::videoThreadInternal()
 {
-    AF_LOGI("videoThreadInternal begin. tag: %s",m_sourceTag.c_str());
-    int ms = 1000.0 / m_fps;
+    double ms = 1000.0 / m_fps;
     bool eof = false;
     int64_t beginPts = af_getsteady_ms();
     std::atomic_int frameCount = 0;
+
+    AF_LOGI("videoThreadInternal begin. %ld,%s", beginPts,m_sourceTag.c_str());
+
     while (!m_requestStopped) {
-        beginPts = af_getsteady_ms();
+        auto lastPts = af_getsteady_ms();
         while (!eof) {
             auto ret = m_decoder->getDecodedFrame();
             eof = ret == AVERROR_EOF;
@@ -214,38 +216,52 @@ void SimpleEffectPlayer::videoThreadInternal()
             if (ret != 0 && ret != AVERROR(EAGAIN)) break;
         }
 
-        int64_t interval = -1;
         if (!eof) {
             frameCount.fetch_add(1, std::memory_order_relaxed);
             int64_t endPts = af_getsteady_ms();
-            int64_t interval = endPts - beginPts;
-            beginPts = endPts;
-            AF_LOGI("decoder const ms: %d,frameCount: %d,cost interval: %d [%s]",ms, frameCount.load(), interval,m_sourceTag.c_str());
+            int64_t interval = endPts - lastPts;
+            //beginPts = endPts;
+            AF_LOGI("decoder frameCount: %d,cost interval: %d [%s]", frameCount.load(), interval, m_sourceTag.c_str());
         }
 
         {
             std::lock_guard<std::mutex> lock(m_cbMutex);
             for (auto iter = m_cbs.begin(); iter != m_cbs.end(); iter++) {
                 auto &cb = iter->second;
+                m_rendered.store(false);
                 cb.cb(cb.param);
             }
         }
 
         if (eof) {
             if (m_listener.Completion) {
-                AF_LOGI("Completion tag: %s",m_sourceTag.c_str());
+                AF_LOGI("Completion tag: %s", m_sourceTag.c_str());
                 m_videoStaged = STAGE_COMPLETED;
                 m_listener.Completion(m_listener.userData);
             }
             break;
         } else {
+            //wait render finish or timeout
+            //AF_LOGI("render finished before");
             std::unique_lock<std::mutex> lock(m_waitMutex);
-            m_waitVar.wait_for(lock, std::chrono::milliseconds(ms - interval));
+            m_waitVar.wait_for(lock, frameCount.load() ? 60ms: 20ms, [=] { return m_rendered.load(); });
+            //AF_LOGI("render finished after");
         }
 
-        std::unique_lock<std::mutex> lock(m_waitMutex);
-        std::chrono::system_clock::time_point timeout = std::chrono::system_clock::now() + std::chrono::milliseconds((int) ms - interval);
-        if (interval < ms) m_waitVar.wait_until(lock, timeout);
+        int64_t needPts = beginPts + frameCount.load() * ms;
+        int64_t endPts = af_getsteady_ms();
+        //AF_LOGI("decoder Pts1: %ld,Pts2: %ld ,internal: %ld ,FrameCount: %d [%s]", needPts, endPts, (needPts - endPts),frameCount.load(), m_sourceTag.c_str());
+        if (needPts > endPts) {
+            std::unique_lock<std::mutex> lock(m_waitMutex);
+            m_waitVar.wait_for(lock, std::chrono::milliseconds(needPts - endPts));
+        }
+
+		//calculate fps
+        if (frameCount.load() % int(m_fps)  == 0) {
+            int64_t endPts = af_getsteady_ms();
+            double dy_fps = frameCount.load() *1000.0 / (endPts - beginPts);
+            AF_LOGI("curPts: %ld,caculate dynamic fps : %f  framecount: %d [%s]", endPts,dy_fps, frameCount.load(), m_sourceTag.c_str());
+		}
     }
 }
 
@@ -261,7 +277,10 @@ void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id)
                     }
 
                     m_render->renderVideo(v, frame, id);
+                    //AF_LOGI("render finished notify before");
+                    m_rendered.store(true);
                     m_waitVar.notify_one();
+                    //AF_LOGI("render finished notify after");
 
                     if (m_videoStaged & STAGE_FIRST_DECODEED) {
                         m_videoStaged = STAGE_FIRST_RENDER;

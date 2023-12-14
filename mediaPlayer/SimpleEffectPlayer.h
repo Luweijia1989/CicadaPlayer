@@ -5,6 +5,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <atomic>
 #include <utils/CicadaType.h>
 #include <native_cicada_player_def.h>
 #include <render/video/IVideoRender.h>
@@ -90,4 +91,5 @@ private:
 	VideoPlayerStage m_videoStaged = STAGE_IDEL;
 
 	std::string m_sourceTag;
+    std::atomic_bool m_rendered{true};
 };

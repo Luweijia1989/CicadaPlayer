@@ -142,9 +142,9 @@ Item {
             onClicked: {
                 mutilEnded = false
                 player1.play3(hz1)
-                player2.play3(hz2)
+                 player2.play3(hz2)
                 player3.play3(hz3)
-                player4.play3(hz4)
+                // player4.play3(hz4)
                 
             }
         }
