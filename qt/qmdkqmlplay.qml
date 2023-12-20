@@ -65,6 +65,9 @@ Item {
 
 
     property var hlqk1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_base01.mp4"
+    property var hlqk2 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_gender02.mp4"
+    property var hlqk3 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_caidai03.mp4"
+    property var hlqk4 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_huoyan04.mp4"
 
     property bool mutilEnded: false
 
@@ -141,10 +144,10 @@ Item {
             text: "mutilRes"
             onClicked: {
                 mutilEnded = false
-                player1.play3(hz1)
-                 player2.play3(hz2)
-                player3.play3(hz3)
-                // player4.play3(hz4)
+                player1.play3(hlqk1)
+                player2.play3(hlqk2)
+                player3.play3(hlqk3)
+                player4.play3(hlqk4)
                 
             }
         }

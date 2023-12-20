@@ -31,7 +31,7 @@ public:
 
 	void setVideoTag(const std::string &tag);
     void enableHWDecoder(bool hw);
-	void renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id);
+    void renderVideo(void *vo, AVFrame *frame, int index, unsigned int fbo_id);
 	void setVideoSurfaceSize(void *vo, int width, int height);
 	void setMaskMode(IVideoRender::MaskMode mode, const std::string& data);
 	void setVapInfo(const std::string& info);

@@ -376,7 +376,7 @@ int SimpleDecoder::sendPkt(AVPacket *pkt)
 {
     m_nCount++;
     auto ret = avcodec_send_packet(m_codecCont, pkt);
-    AF_LOGI("sendPkt nCount:%d,ret: %d  [%s]", m_nCount, ret, m_sourceTag.c_str());
+    //AF_LOGI("sendPkt nCount:%d,ret: %d  [%s]", m_nCount, ret, m_sourceTag.c_str());
 	av_packet_free(&pkt);
 	return ret;
 }

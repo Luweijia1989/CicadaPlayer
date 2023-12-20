@@ -40,9 +40,9 @@ void SimpleGLRender::enableHWDecoder(bool hw)
     m_enableHW = hw;
 }
 
-void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
+void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, int index,unsigned int fbo_id)
 {
-    //AF_LOGI("before renders: %d [%s]", mRenders.size(),m_sourceTag.c_str());
+    AF_LOGI("before renders referenceIndex: %d,frameIndex: %d [%s]", referenceIndex,index, m_sourceTag.c_str());
 	RenderInfo &renderInfo = mRenders[{vo,m_sourceTag}];
 	if (!frame) {
 		if (renderInfo.render) renderInfo.render->clearScreen(0);
@@ -53,15 +53,18 @@ void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
 	auto vfmt = &vfmInfo->format;
     auto frameIndex = vfmInfo->index;
 
-	//frame internal sync
+    //AF_LOGI("after renders index: %d [%s]", frameIndex, m_sourceTag.c_str());
+	//frame external index sync
+#if 0
     if (referenceTag != m_sourceTag) {
         std::unique_lock<std::mutex> lock(m_cv_mutex);
-        m_cv.wait_for(lock,15ms, [=] { return referenceIndex == frameIndex; });
+        m_cv.wait_for(lock,15ms, [=] { return referenceIndex == index; });
 	}
     if (referenceTag == m_sourceTag) {
-        referenceIndex = frameIndex;
+        referenceIndex = index;
         m_cv.notify_all();
     }
+#endif
 
 	if (!renderInfo.render) {
 		AF_LOGI("Implement GL [%s]", m_sourceTag.c_str());
