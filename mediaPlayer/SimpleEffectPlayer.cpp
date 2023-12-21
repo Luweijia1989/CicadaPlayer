@@ -58,7 +58,7 @@ void SimpleEffectPlayer::parseVapInfo(const std::string &path)
 
 void SimpleEffectPlayer::start(const std::string &path)
 {
-    AF_LOGI("===========statr=============");
+    AF_LOGI("===========[%s] statr path: %s=============",m_sourceTag.c_str(),path.c_str());
     if (m_started) return;
 
     if (path.empty()) return;
@@ -98,7 +98,7 @@ void SimpleEffectPlayer::start(const std::string &path)
     auto codec = m_ctx->streams[m_videoIndex]->codec;
     if (m_vw != codec->width || m_vh != codec->height) {
         if (m_listener.VideoSizeChanged) {
-            AF_LOGI("VideoSizeChanged : %s",m_sourceTag.c_str());
+            AF_LOGI("VideoSizeChanged : %s", m_sourceTag.c_str());
             m_listener.VideoSizeChanged(codec->width, codec->height, m_listener.userData);
         }
         m_vw = codec->width;
@@ -135,16 +135,16 @@ void SimpleEffectPlayer::setSmoothLoop(bool enable)
     m_smoothLoop = enable;
 }
 
-void SimpleEffectPlayer::setSourceTag(const std::string& tag)
+void SimpleEffectPlayer::setSourceTag(const std::string &tag)
 {
     AF_LOGI("setSourceTag : %s", tag.c_str());
     m_sourceTag = tag;
     if (m_decoder) {
         m_decoder->setVideoTag(tag);
-	}
+    }
     if (m_render) {
         m_render->setVideoTag(tag);
-	}
+    }
 }
 
 void SimpleEffectPlayer::setSurfaceSize(void *vo, int w, int h)
@@ -203,7 +203,7 @@ void SimpleEffectPlayer::videoThreadInternal()
     int64_t beginPts = af_getsteady_ms();
     std::atomic_int frameCount = 0;
 
-    AF_LOGI("videoThreadInternal begin. %ld,%s", beginPts,m_sourceTag.c_str());
+    AF_LOGI("videoThreadInternal begin. %ld,%s", beginPts, m_sourceTag.c_str());
 
     while (!m_requestStopped) {
         auto lastPts = af_getsteady_ms();
@@ -216,10 +216,11 @@ void SimpleEffectPlayer::videoThreadInternal()
             if (ret != 0 && ret != AVERROR(EAGAIN)) break;
         }
 
+        int64_t interval = 0;
         if (!eof) {
             frameCount.fetch_add(1, std::memory_order_relaxed);
             int64_t endPts = af_getsteady_ms();
-            int64_t interval = endPts - lastPts;
+            interval  = endPts - lastPts;
             //beginPts = endPts;
             AF_LOGI("decoder frameCount: %d,cost interval: %d [%s]", frameCount.load(), interval, m_sourceTag.c_str());
         }
@@ -244,54 +245,64 @@ void SimpleEffectPlayer::videoThreadInternal()
             //wait render finish or timeout
             //AF_LOGI("render finished before");
             std::unique_lock<std::mutex> lock(m_waitMutex);
-            m_waitVar.wait_for(lock, frameCount.load() ? 80ms: 20ms, [=] { return m_rendered.load(); });
+            m_waitVar.wait_for(lock, frameCount.load() == 1 ? 60ms : 20ms, [=] { return m_rendered.load(); });
             //AF_LOGI("render finished after");
         }
 
         int64_t needPts = beginPts + frameCount.load() * ms;
         int64_t endPts = af_getsteady_ms();
-        //AF_LOGI("decoder Pts1: %ld,Pts2: %ld ,internal: %ld ,FrameCount: %d [%s]", needPts, endPts, (needPts - endPts),frameCount.load(), m_sourceTag.c_str());
+        //AF_LOGI("decoder needPts: %ld,endPts: %ld ,wait internal: %ld ,FrameCount: %d [%s]", needPts, endPts, (endPts - lastPts),frameCount.load(), m_sourceTag.c_str());
         if (needPts > endPts) {
             std::unique_lock<std::mutex> lock(m_waitMutex);
+            //AF_LOGI("wait 1 [%s]",m_sourceTag.c_str());
             m_waitVar.wait_for(lock, std::chrono::milliseconds(needPts - endPts));
+        } else {
+            std::unique_lock<std::mutex> lock(m_waitMutex);
+            //AF_LOGI("wait 2 [%s]", m_sourceTag.c_str());
+            m_waitVar.wait_for(lock, std::chrono::milliseconds((int)ms - (endPts - lastPts)));
         }
 
-		//calculate fps
-        if (frameCount.load() % int(m_fps)  == 0) {
+        //calculate fps
+        if (frameCount.load() % int(m_fps) == 0) {
             int64_t endPts = af_getsteady_ms();
-            double dy_fps = frameCount.load() *1000.0 / (endPts - beginPts);
-            AF_LOGI("curPts: %ld,caculate dynamic fps : %f  framecount: %d [%s]", endPts,dy_fps, frameCount.load(), m_sourceTag.c_str());
-		}
+            double dy_fps = frameCount.load() * 1000.0 / (endPts - beginPts);
+            AF_LOGI("curPts: %ld,caculate dynamic fps : %f  framecount: %d [%s]", endPts, dy_fps, frameCount.load(), m_sourceTag.c_str());
+        }
     }
 }
 
-void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id)
+void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id, int count)
 {
+    //AF_LOGI("renderVideo entry [%s]", m_sourceTag.c_str());
     int64_t lastPts = af_getsteady_ms();
 
-    m_decoder->renderFrame(
+    int nRes = m_decoder->renderFrame(
             [=](void *v, int frameIndex, AVFrame *frame, unsigned int id) {
                 if (frame) {
                     if (m_videoStaged & STAGE_PLAYING) {
                         m_videoStaged = STAGE_FIRST_DECODEED;
                     }
 
-                    m_render->renderVideo(v, frame,frameIndex, id);
+                    m_render->renderVideo(v, frame, frameIndex, id);
                     //AF_LOGI("render finished notify before");
-                    m_rendered.store(true);
-                    m_waitVar.notify_one();
+                    if (count == 2) {
+                        m_rendered.store(true);
+                        m_waitVar.notify_one();
+                    }
                     //AF_LOGI("render finished notify after");
 
                     if (m_videoStaged & STAGE_FIRST_DECODEED) {
                         m_videoStaged = STAGE_FIRST_RENDER;
-                        AF_LOGI("FirstFrameShow tag: %s",m_sourceTag.c_str());
+                        AF_LOGI("FirstFrameShow tag: %s", m_sourceTag.c_str());
                         if (m_listener.FirstFrameShow) {
                             m_listener.FirstFrameShow(m_listener.userData);
                         }
                     }
 
                     int64_t endPts = af_getsteady_ms();
-                    AF_LOGI("renderVideo  frameIndex : %d,cost time Interval: %d [%s]", frameIndex, endPts - lastPts,m_sourceTag.c_str());
+                    AF_LOGI("renderVideo  frameIndex : %d,cost time Interval: %d [%s]", frameIndex, endPts - lastPts, m_sourceTag.c_str());
+                } else {
+                    AF_LOGE("renderVideo  no enough buffer to Render [%s]", m_sourceTag.c_str());
                 }
             },
             vo, fbo_id);
@@ -304,12 +315,12 @@ void SimpleEffectPlayer::clearGLResource(void *vo)
 
 void SimpleEffectPlayer::foreignGLContextDestroyed(void *vo, const std::string &tag)
 {
-    SimpleGLRender::foreignGLContextDestroyed(vo,tag);
+    SimpleGLRender::foreignGLContextDestroyed(vo, tag);
 }
 
 void SimpleEffectPlayer::setRenderCallback(std::function<void(void *vo_opaque)> cb, void *vo)
 {
-    AF_LOGI("setRenderCallback %p,%p,tag: %s", cb,vo,m_sourceTag.c_str());
+    AF_LOGI("setRenderCallback %p,%p,tag: %s", cb, vo, m_sourceTag.c_str());
     std::lock_guard<std::mutex> lock(m_cbMutex);
     if (cb) {
         UpdateCallbackInfo info;
@@ -324,7 +335,7 @@ void SimpleEffectPlayer::setRenderCallback(std::function<void(void *vo_opaque)> 
 
 void SimpleEffectPlayer::setMaskMode(IVideoRender::MaskMode mode, const std::string &data)
 {
-    AF_LOGI("setMaskMode tag: %s",m_sourceTag.c_str());
+    AF_LOGI("setMaskMode tag: %s", m_sourceTag.c_str());
     m_render->setMaskMode(mode, data);
 }
 
@@ -337,7 +348,7 @@ int SimpleEffectPlayer::SetListener(const playerListener &Listener)
 
 void SimpleEffectPlayer::EnableHardwareDecoder(bool enable)
 {
-    AF_LOGI("EnableHardwareDecoder : %d tag: %s", enable,m_sourceTag.c_str());
+    AF_LOGI("EnableHardwareDecoder : %d tag: %s", enable, m_sourceTag.c_str());
     m_decoder->enableHWDecoder(enable);
     m_render->enableHWDecoder(enable);
 }

@@ -3,7 +3,7 @@
 #include <codec/vlc/VideoAcceleration.h>
 #include "utils/frame_work_log.h"
 
-#define FRAME_CACHE_COUNT 4
+#define FRAME_CACHE_COUNT 5
 
 int SimpleDecoder::lavc_GetFrame(struct AVCodecContext *ctx, AVFrame *frame, int flags)
 {
@@ -152,7 +152,7 @@ bool SimpleDecoder::setupDecoder(AVCodecID id, uint8_t *extra_data, int extra_da
 	m_codecCont->get_format = ffmpeg_GetFormat;
 	m_codecCont->get_buffer2 = lavc_GetFrame;
 	m_codecCont->opaque = this;
-
+	
 	m_codecCont->thread_count = 1;
 	m_codecCont->thread_safe_callbacks = true;
 	m_codecCont->thread_type = 0;
@@ -381,17 +381,20 @@ int SimpleDecoder::sendPkt(AVPacket *pkt)
 	return ret;
 }
 
-void SimpleDecoder::renderFrame(std::function<void(void*, int frameIndex,AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id)
+int SimpleDecoder::renderFrame(std::function<void(void*, int frameIndex,AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id)
 {
 	std::lock_guard<std::mutex> locker(m_frameMutex);
-	if (m_outputFrames.empty())
-		return;
+    if (m_outputFrames.empty()) {
+        cb(vo, 0, nullptr, 0);
+        return 0;
+	}
 
 	auto frame = m_outputFrames.front();
     cb(vo, std::get<1>(frame),std::get<0>(frame), fbo_id);
 	av_frame_free(&std::get<0>(frame));
 	m_outputFrames.pop_front();
-    AF_LOGI("renderFrame outFrames: %d [%s]", m_outputFrames.size(),m_sourceTag.c_str());
+    //AF_LOGI("renderFrame outFrames: %d [%s]", m_outputFrames.size(),m_sourceTag.c_str());
+    return m_outputFrames.size();
 }
 
 int SimpleDecoder::getDecodedFrame()
@@ -428,7 +431,7 @@ int SimpleDecoder::getDecodedFrame()
 		}
         m_outputFrames.push_back({frame, m_frameInfo.index});
 
-        AF_LOGI("getDecodedFrame outFrames: %d [%s]", m_outputFrames.size(),m_sourceTag.c_str());
+       // AF_LOGI("getDecodedFrame outFrames: %d [%s]", m_outputFrames.size(),m_sourceTag.c_str());
 	}
 
 	//if (m_outputFrames.size() > FRAME_CACHE_COUNT)

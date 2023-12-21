@@ -142,7 +142,7 @@ public:
     {
         auto p = player.lock();
         if (p) {
-            p->renderVideo(m_vo, fbo_id);
+            p->renderVideo(m_vo, fbo_id,2);
         }
     }
 
@@ -189,6 +189,18 @@ SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
             internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
         }
     });
+
+	connect(this, &SimpleQMLPlayer::sourceUrlChanged, this, [=]() {
+        qInfo() << "sourceUrlChanged" << m_sourceUrl;
+        return;
+        QTimer::singleShot(100, this, [=]() {
+            qInfo() << "start render special videofile"<<m_sourceUrl;
+            if (internal_player && m_sourceUrl.length()) {
+                internal_player->stop();
+                internal_player->start(m_sourceUrl.toStdString());
+            }
+		});
+	});
 }
 
 SimpleQMLPlayer::~SimpleQMLPlayer()
@@ -242,6 +254,7 @@ QString SimpleQMLPlayer::sourceUrl()
 }
 void SimpleQMLPlayer::setSourceUrl(const QString& url)
 {
+    qInfo()<<__FUNCTION__<<url;
     if (m_sourceUrl != url) {
         m_sourceUrl = url;
         sourceUrlChanged();
