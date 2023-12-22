@@ -70,6 +70,6 @@ signals:
 private:
     std::shared_ptr<SimpleEffectPlayer> internal_player;
 
-    QString m_sourceUrl;
+    QString m_sourceUrl = "";
     QString m_sourceTag = "unknown";
 };

@@ -271,7 +271,7 @@ void SimpleEffectPlayer::videoThreadInternal()
     }
 }
 
-void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id, int count)
+void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id)
 {
     //AF_LOGI("renderVideo entry [%s]", m_sourceTag.c_str());
     int64_t lastPts = af_getsteady_ms();
@@ -285,10 +285,8 @@ void SimpleEffectPlayer::renderVideo(void *vo, unsigned int fbo_id, int count)
 
                     m_render->renderVideo(v, frame, frameIndex, id);
                     //AF_LOGI("render finished notify before");
-                    if (count == 2) {
-                        m_rendered.store(true);
-                        m_waitVar.notify_one();
-                    }
+                    m_rendered.store(true);
+                    m_waitVar.notify_one();
                     //AF_LOGI("render finished notify after");
 
                     if (m_videoStaged & STAGE_FIRST_DECODEED) {

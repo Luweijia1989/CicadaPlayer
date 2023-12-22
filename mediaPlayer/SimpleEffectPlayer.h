@@ -51,7 +51,7 @@ public:
 
 	void setSourceTag(const std::string& tag);
 	void setSurfaceSize(void *vo,int w, int h);
-    void renderVideo(void *vo,unsigned int fbo_id,int count);
+    void renderVideo(void *vo,unsigned int fbo_id);
 	void clearGLResource(void *vo);
 	void setRenderCallback(std::function<void(void *vo_opaque)> cb, void *vo);
 	void setMaskMode(IVideoRender::MaskMode mode, const std::string& data);

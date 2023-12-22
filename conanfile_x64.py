@@ -19,9 +19,9 @@ class CicadaConan(ConanFile):
             self.copy("media_player.dll", dst="bin", src="build64/cmdline/mediaPlayer.out/Debug", keep_path=False)
             self.copy("media_player.pdb", dst="bin", src="build64/cmdline/mediaPlayer.out/Debug", keep_path=False)
         else:
-            self.copy("media_player.lib", dst="lib", src="build64/cmdline/mediaPlayer.out/RelWithDebInfo", keep_path=False)
-            self.copy("media_player.dll", dst="bin", src="build64/cmdline/mediaPlayer.out/RelWithDebInfo", keep_path=False)
-            self.copy("media_player.pdb", dst="bin", src="build64/cmdline/mediaPlayer.out/RelWithDebInfo", keep_path=False)
+            self.copy("media_player.lib", dst="lib", src="build64/cmdline/mediaPlayer.out/Release", keep_path=False)
+            self.copy("media_player.dll", dst="bin", src="build64/cmdline/mediaPlayer.out/Release", keep_path=False)
+            self.copy("media_player.pdb", dst="bin", src="build64/cmdline/mediaPlayer.out/Release", keep_path=False)
             
         if self.settings.build_type!="Debug":
             os.system("cd signtool && python sign_x64.py " + self.package_folder)

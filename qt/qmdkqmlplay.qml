@@ -154,6 +154,8 @@ Item {
     //         }
     //     }
     // }
+
+    /*
     Repeater{
         model: 4//chooseModel.length
         delegate:SimplePlayer{
@@ -196,6 +198,7 @@ Item {
             }
         }
     }
+    */
     
     SimplePlayer {
         id:player1
@@ -222,10 +225,10 @@ Item {
     SimplePlayer {
         id:player3
         visible: !mutilEnded
-        sourceTag:"tag3"
+        sourceTag:"tag13"
         anchors.fill: parent
         onEnded:{
-            console.log("onEnded","tag3")
+            console.log("onEnded","tag13")
             mutilEnded = true
         }
     }
@@ -233,10 +236,10 @@ Item {
     SimplePlayer {
         id:player4
         visible: !mutilEnded
-        sourceTag:"tag4"
+        sourceTag:"tag14"
         anchors.fill: parent
         onEnded:{
-            console.log("onEnded","tag4")
+            console.log("onEnded","tag14")
             mutilEnded = true
         }
     }
@@ -269,9 +272,9 @@ Item {
             onClicked: {
                 mutilEnded = false  
                 player1.play3(hlqk1)
-                player2.play3(hlqk2)
-                player3.play3(hlqk3)
-                player4.play3(hlqk4)
+                // player2.play3(hlqk2)
+                // player3.play3(hlqk3)
+                // player4.play3(hlqk4)
             }
         }
 

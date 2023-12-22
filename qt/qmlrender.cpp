@@ -142,7 +142,7 @@ public:
     {
         auto p = player.lock();
         if (p) {
-            p->renderVideo(m_vo, fbo_id,2);
+            p->renderVideo(m_vo, fbo_id);
         }
     }
 
@@ -170,8 +170,6 @@ SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
 {
     setMirrorVertically(true);
 
-	connect(this, &SimpleQMLPlayer::sourceUrlChanged, this, [=]() { qInfo() << "sourceUrlChanged" << m_sourceUrl; });
-
     connect(this, &SimpleQMLPlayer::sourceTagChanged, this, [=]() {
         //qInfo() << "sourceTagChanged" << m_sourceTag;
         if (internal_player) {
@@ -184,7 +182,7 @@ SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
             pListener.FirstFrameShow = onFirstFrame;
             internal_player->SetListener(pListener);
 
-            internal_player->setSmoothLoop(false);
+            internal_player->setSmoothLoop(true);
             internal_player->EnableHardwareDecoder(true);
             internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
         }

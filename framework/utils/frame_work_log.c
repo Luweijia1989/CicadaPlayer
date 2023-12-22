@@ -275,7 +275,7 @@ static void initLog()
         logCtrl.logFile = fopen(".\\effectplayer.log", "wb+");
     }
 
-    log_enable_color(1);
+    //log_enable_color(1);
     //log_set_level(AF_LOG_LEVEL_TRACE, 1);
 #endif
 #ifdef NDEBUG
