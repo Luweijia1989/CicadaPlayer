@@ -30,7 +30,7 @@ SimpleGLRender::~SimpleGLRender()
 
 void SimpleGLRender::setVideoTag(const std::string &tag)
 {
-    AF_LOGI("setVideoTag : %", tag.c_str());
+    AF_LOGI("setVideoTag : %s", tag.c_str());
     m_sourceTag = tag;
 }
 
@@ -42,7 +42,7 @@ void SimpleGLRender::enableHWDecoder(bool hw)
 
 void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, int index,unsigned int fbo_id)
 {
-    AF_LOGI("before renders referenceIndex: %d,frameIndex: %d [%s]", referenceIndex,index, m_sourceTag.c_str());
+    AF_LOGI("before renders referenceIndex: %d,frameIndex: %d [%s]", referenceIndex, index,m_sourceTag.c_str());
 	RenderInfo &renderInfo = mRenders[{vo,m_sourceTag}];
 	if (!frame) {
 		if (renderInfo.render) renderInfo.render->clearScreen(0);
@@ -139,6 +139,13 @@ void SimpleGLRender::clearGLResource(void *vo)
 {
     AF_LOGI("clearGLResource");
 	clearGL(mRenders, vo,m_sourceTag);
+}
+
+void SimpleGLRender::clearGLSurface()
+{
+    AF_LOGI("clearGLSurface");
+    RenderInfo &renderInfo = mRenders[{m_sourceTag}];
+	if (renderInfo.render) renderInfo.render->clearScreen(0);
 }
 
 void SimpleGLRender::foreignGLContextDestroyed(void *vo, const std::string &tag)

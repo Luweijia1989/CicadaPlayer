@@ -182,7 +182,7 @@ SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
             pListener.FirstFrameShow = onFirstFrame;
             internal_player->SetListener(pListener);
 
-            internal_player->setSmoothLoop(true);
+            internal_player->setSmoothLoop(false);
             internal_player->EnableHardwareDecoder(true);
             internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
         }

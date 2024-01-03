@@ -110,6 +110,7 @@ no_reuse:
 				continue;
 			}
 
+            AF_LOGI("Using %s for hardware decoding %s", va->description().c_str() , decoder->m_sourceTag.c_str());
 			decoder->mVA = va;
 			decoder->pix_fmt = hwfmt;
 			p_context->draw_horiz_band = NULL;
@@ -118,6 +119,7 @@ no_reuse:
 		}
 	}
 
+    AF_LOGI("Fallback to default behaviour %s", decoder->m_sourceTag.c_str());
 	((SimpleDecoder *)p_context->opaque)->getVideoFormat(p_context, swfmt, swfmt);
 	decoder->pix_fmt = swfmt;
 	return swfmt;

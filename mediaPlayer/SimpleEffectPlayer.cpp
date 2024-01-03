@@ -123,6 +123,7 @@ void SimpleEffectPlayer::stop()
 
     avformat_free_context(m_ctx);
     m_decoder->closeDecoder();
+    //m_render->clearGLSurface();
     m_vw = -1;
     m_vh = -1;
 
@@ -239,6 +240,7 @@ void SimpleEffectPlayer::videoThreadInternal()
                 AF_LOGI("Completion tag: %s", m_sourceTag.c_str());
                 m_videoStaged = STAGE_COMPLETED;
                 m_listener.Completion(m_listener.userData);
+                if (m_render) m_render->clearGLSurface();
             }
             break;
         } else {
@@ -346,7 +348,7 @@ int SimpleEffectPlayer::SetListener(const playerListener &Listener)
 
 void SimpleEffectPlayer::EnableHardwareDecoder(bool enable)
 {
-    AF_LOGI("EnableHardwareDecoder : %d tag: %s", enable, m_sourceTag.c_str());
+    AF_LOGI("EnableHardwareDecoder : %d [%s]", enable, m_sourceTag.c_str());
     m_decoder->enableHWDecoder(enable);
     m_render->enableHWDecoder(enable);
 }

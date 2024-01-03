@@ -36,6 +36,7 @@ public:
 	void setMaskMode(IVideoRender::MaskMode mode, const std::string& data);
 	void setVapInfo(const std::string& info);
 	void clearGLResource(void *vo);
+    void clearGLSurface();
 
 	static void foreignGLContextDestroyed(void *vo,const std::string& tag);
 	//static std::map<void *, RenderInfo> mRenders;
