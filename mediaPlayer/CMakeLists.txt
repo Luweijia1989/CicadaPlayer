@@ -119,7 +119,11 @@ set(SOURCE_FILES
         SMPMessageControllerListener.cpp
         SMPMessageControllerListener.h
 		SimpleEffectPlayer.cpp
-		SimpleEffectPlayer.h)
+		SimpleEffectPlayer.h
+        DiyEffectPlayer.cpp
+        DiyEffectPlayer.h
+        DiyImplement.cpp
+        DiyImplement.h)
 
 if(APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-arc")

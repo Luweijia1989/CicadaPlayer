@@ -44,7 +44,7 @@ public:
     bool operator==(const RenderKey &other) const
     {
         if (p && tag.length() > 0)
-            return p == other.p || tag == other.tag;
+            return p == other.p && tag == other.tag;
         else if (!p)
             return tag == other.tag;
         else if (tag.length() == 0)
@@ -61,6 +61,21 @@ public:
 };
 #define KEY1(key) RenderKey(key)
 #define KEY2(key1, key2) RenderKey(key1, key2)
+
+enum VideoPlayerStage : int {
+    STAGE_IDEL = (1 << 0),
+    STAGE_INIIALIZED = (1 << 1),
+    STAGE_PREPARED = (1 << 2),
+    STAGE_PLAYING = (1 << 3),
+    STAGE_FIRST_DECODEED = (1 << 4),
+    STAGE_FIRST_RENDER = (1 << 5),
+    STAGE_PLAYING_POSTION = (1 << 6),
+    STAGE_COMPLETED = (1 << 7),
+    STAGE_PAUSED = (1 << 8),
+    STAGE_STOPED = (1 << 9),
+    STAGE_ERROR = (1 << 10),
+    STAGE_RELEASED = (1 << 11),
+};
 
 class GLRender;
 class IVideoRender {

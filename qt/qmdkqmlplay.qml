@@ -53,6 +53,7 @@ import QtQuick 2.0
 import QtQuick.Window 2.2
 import MDKPlayer 1.0
 import SimplePlayer 1.0
+import DiyPlayer 1.0
 import QtQuick.Controls 2.14
 import QtQuick.Layouts 1.14
 
@@ -69,8 +70,10 @@ Item {
     property var hlqk3 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_caidai03.mp4"
     property var hlqk4 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_huoyan04.mp4"
 
+    property var hlqkTemp : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\hlqk_base_temp.mp4"
+
     property var hlqkArr:[hlqk1,hlqk2,"",""]
-    property var hzArr:[hz1,hz2,"",""]
+    property var hzArr:[hz1,hz2]
     property var chooseModel : hzArr
 
     property var temp1 : hz1
@@ -208,6 +211,7 @@ Item {
         onEnded:{
             console.log("onEnded","tag11")
             mutilEnded = true
+            stop()
         }
     }
 
@@ -244,8 +248,20 @@ Item {
         }
     }
 
+    // DiyPlayer{
+    //     id:diy
+    //     visible: !mutilEnded
+    //     sourceTag:"diy"
+    //     anchors.fill: parent
+    //     sourceList:hzArr
+    //     onEnded:{
+    //         console.log("onEnded","diy")
+    //         mutilEnded = true
+    //     }
+    // }
+
     ColumnLayout {
-        width:player1.width
+        width:parent.width
         height:parent.height
         spacing:10
         Button {
@@ -272,9 +288,9 @@ Item {
             onClicked: {
                 mutilEnded = false  
                 player1.play3(hlqk1)
-                // player2.play3(hlqk2)
-                // player3.play3(hlqk3)
-                // player4.play3(hlqk4)
+                player2.play3(hlqk2)
+                player3.play3(hlqk3)
+                player4.play3(hlqk4)
             }
         }
 
@@ -282,10 +298,20 @@ Item {
             text: "swtich2"
             onClicked: {
                 mutilEnded = false
-                player1.play3(hz1)
-                player2.play3(hz2)
-                player3.play3(hz3)
-                player4.play3(hz4)
+                player1.play3(hlqk1)
+                // player2.play3(hz2)
+                // player3.play3(hz3)
+                // player4.play3(hz4)
+            }
+        }
+        Button {
+            text: "diyEntry"
+            onClicked: {
+                mutilEnded = false
+                diy.play4(hzArr)
+                // player2.play3(hz2)
+                // player3.play3(hz3)
+                // player4.play3(hz4)
             }
         }
         Item {

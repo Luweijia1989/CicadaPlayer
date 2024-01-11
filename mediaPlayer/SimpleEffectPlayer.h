@@ -15,21 +15,6 @@ struct AVPacket;
 class SimpleDecoder;
 class SimpleGLRender;
 
-enum VideoPlayerStage : int {
-    STAGE_IDEL = (1 << 0),
-    STAGE_INIIALIZED = (1 << 1),
-    STAGE_PREPARED = (1 << 2),
-    STAGE_PLAYING = (1 << 3),
-    STAGE_FIRST_DECODEED = (1 << 4),
-    STAGE_FIRST_RENDER = (1 << 5),
-    STAGE_PLAYING_POSTION = (1 << 6),
-    STAGE_COMPLETED = (1 << 7),
-    STAGE_PAUSED = (1 << 8),
-    STAGE_STOPED = (1 << 9),
-    STAGE_ERROR = (1 << 10),
-    STAGE_RELEASED = (1 << 11),
-};
-
 class CICADA_CPLUS_EXTERN SimpleEffectPlayer {
 public:
 	struct UpdateCallbackInfo {

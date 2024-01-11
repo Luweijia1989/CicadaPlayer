@@ -1,51 +1,23 @@
 #pragma once
-#include <MediaPlayer.h>
 #include <QQuickFramebufferObject>
-#include <SimpleEffectPlayer.h>
+//#include <SimpleEffectPlayer.h>
+#include <DiyEffectPlayer.h>
 
-using namespace Cicada;
-
-class QMLPlayer : public QQuickFramebufferObject {
-    Q_OBJECT
-public:
-    QMLPlayer(QQuickItem *parent = nullptr);
-    ~QMLPlayer();
-
-    QQuickFramebufferObject::Renderer *createRenderer() const;
-
-    Q_INVOKABLE void setMixInfo(QString info);
-    Q_INVOKABLE void setSource(QString path);
-    Q_INVOKABLE void stop();
-    Q_INVOKABLE void testplay();
-
-    static void onVideoSize(int64_t width, int64_t height, void *userData);
-    static void onFirstFrame(void *userData);
-
-    Q_INVOKABLE void seektobegin();
-
-signals:
-    void videoRatioChanged(qreal ratio);
-    void ended();
-    void firstFrame();
-
-private:
-    std::shared_ptr<MediaPlayer> internal_player;
-};
-
-class SimpleQMLPlayer : public QQuickFramebufferObject {
+class DiyQMLPlayer : public QQuickFramebufferObject {
     Q_OBJECT
     Q_PROPERTY(QString sourceTag READ sourceTag WRITE setSourceTag NOTIFY sourceTagChanged)
     Q_PROPERTY(QString sourceUrl READ sourceUrl WRITE setSourceUrl NOTIFY sourceUrlChanged)
+    Q_PROPERTY(QVariantList sourceList READ sourceList WRITE setSourceList NOTIFY sourceListChanged)
 public:
-    SimpleQMLPlayer(QQuickItem *parent = nullptr);
-    ~SimpleQMLPlayer();
+    DiyQMLPlayer(QQuickItem *parent = nullptr);
+    ~DiyQMLPlayer();
 
     QQuickFramebufferObject::Renderer *createRenderer() const;
 
     Q_INVOKABLE void play1();
     Q_INVOKABLE void play2();
     Q_INVOKABLE void play3(QString path);
-    Q_INVOKABLE void stop();
+    Q_INVOKABLE void play4(QVariantList urlList);
 
 public:
     QString sourceTag();
@@ -54,9 +26,13 @@ public:
     QString sourceUrl();
     void setSourceUrl(const QString &url);
 
+	QVariantList sourceList();
+    void setSourceList(const QVariantList &urlList);
+
 signals:
     void sourceTagChanged();
     void sourceUrlChanged();
+    void sourceListChanged();
 
 protected:
     static void onVideoSize(int64_t width, int64_t height, void *userData);
@@ -69,8 +45,9 @@ signals:
     void firstFrame();
 
 private:
-    std::shared_ptr<SimpleEffectPlayer> internal_player;
+    std::shared_ptr<DiyEffectPlayer> internal_player;
 
     QString m_sourceUrl = "";
     QString m_sourceTag = "unknown";
+    QVariantList m_sourceList;
 };

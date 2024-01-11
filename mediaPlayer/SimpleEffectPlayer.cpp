@@ -121,7 +121,8 @@ void SimpleEffectPlayer::stop()
     m_requestStopped = true;
     if (m_videoThread.joinable()) m_videoThread.join();
 
-    avformat_free_context(m_ctx);
+    //avformat_free_context(m_ctx);
+    avformat_close_input(&m_ctx);
     m_decoder->closeDecoder();
     //m_render->clearGLSurface();
     m_vw = -1;

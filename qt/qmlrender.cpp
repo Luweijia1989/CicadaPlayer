@@ -127,7 +127,7 @@ public:
         : player(p), m_vo(vo), m_videoTag(videoTag)
     {
         qInfo() << __FUNCTION__;
-	}
+    }
 
     ~SimpleVideoRendererInternal()
     {
@@ -188,17 +188,17 @@ SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
         }
     });
 
-	connect(this, &SimpleQMLPlayer::sourceUrlChanged, this, [=]() {
+    connect(this, &SimpleQMLPlayer::sourceUrlChanged, this, [=]() {
         qInfo() << "sourceUrlChanged" << m_sourceUrl;
         return;
         QTimer::singleShot(100, this, [=]() {
-            qInfo() << "start render special videofile"<<m_sourceUrl;
+            qInfo() << "start render special videofile" << m_sourceUrl;
             if (internal_player && m_sourceUrl.length()) {
                 internal_player->stop();
                 internal_player->start(m_sourceUrl.toStdString());
             }
-		});
-	});
+        });
+    });
 }
 
 SimpleQMLPlayer::~SimpleQMLPlayer()
@@ -229,8 +229,19 @@ void SimpleQMLPlayer::play2()
 void SimpleQMLPlayer::play3(QString path)
 {
     qInfo() << __FUNCTION__ << path;
+    QFile file(path);
+    if (file.exists()) {
+        internal_player->stop();
+        internal_player->start(path.toStdString());
+    } else {
+        qInfo() << "file not exist";
+    }
+}
+
+void SimpleQMLPlayer::stop()
+{
+    qInfo() << __FUNCTION__;
     internal_player->stop();
-    internal_player->start(path.toStdString());
 }
 
 QString SimpleQMLPlayer::sourceTag()
@@ -238,25 +249,25 @@ QString SimpleQMLPlayer::sourceTag()
     return m_sourceTag;
 }
 
-void SimpleQMLPlayer::setSourceTag(const QString& tag)
+void SimpleQMLPlayer::setSourceTag(const QString &tag)
 {
     if (m_sourceTag != tag) {
         m_sourceTag = tag;
         sourceTagChanged();
-	}
+    }
 }
 
 QString SimpleQMLPlayer::sourceUrl()
 {
     return m_sourceUrl;
 }
-void SimpleQMLPlayer::setSourceUrl(const QString& url)
+void SimpleQMLPlayer::setSourceUrl(const QString &url)
 {
-    qInfo()<<__FUNCTION__<<url;
+    qInfo() << __FUNCTION__ << url;
     if (m_sourceUrl != url) {
         m_sourceUrl = url;
         sourceUrlChanged();
-	}
+    }
 }
 
 void SimpleQMLPlayer::onVideoSize(int64_t width, int64_t height, void *userData)
@@ -269,9 +280,9 @@ void SimpleQMLPlayer::onEOS(void *userData)
     if (userData) {
         SimpleQMLPlayer *p = (SimpleQMLPlayer *) userData;
         emit p->ended();
-	}
+    }
 }
 void SimpleQMLPlayer::onFirstFrame(void *userData)
 {
-    qInfo() << __FUNCTION__ <<userData;
+    qInfo() << __FUNCTION__ << userData;
 }
