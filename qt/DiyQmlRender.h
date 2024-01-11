@@ -18,6 +18,7 @@ public:
     Q_INVOKABLE void play2();
     Q_INVOKABLE void play3(QString path);
     Q_INVOKABLE void play4(QVariantList urlList);
+    Q_INVOKABLE void stop();
 
 public:
     QString sourceTag();

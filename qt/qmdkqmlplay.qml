@@ -209,9 +209,9 @@ Item {
         sourceTag:"tag11"
         anchors.fill: parent
         onEnded:{
+            stop()
             console.log("onEnded","tag11")
             mutilEnded = true
-            stop()
         }
     }
 
@@ -221,6 +221,7 @@ Item {
         sourceTag:"tag12"
         anchors.fill: parent
         onEnded:{
+            stop()
             console.log("onEnded","tag12")
             mutilEnded = true
         }
@@ -232,6 +233,7 @@ Item {
         sourceTag:"tag13"
         anchors.fill: parent
         onEnded:{
+            stop()
             console.log("onEnded","tag13")
             mutilEnded = true
         }
@@ -243,22 +245,24 @@ Item {
         sourceTag:"tag14"
         anchors.fill: parent
         onEnded:{
+            stop()
             console.log("onEnded","tag14")
             mutilEnded = true
         }
     }
 
-    // DiyPlayer{
-    //     id:diy
-    //     visible: !mutilEnded
-    //     sourceTag:"diy"
-    //     anchors.fill: parent
-    //     sourceList:hzArr
-    //     onEnded:{
-    //         console.log("onEnded","diy")
-    //         mutilEnded = true
-    //     }
-    // }
+    DiyPlayer{
+        id:diy
+        visible: !mutilEnded
+        sourceTag:"diy"
+        anchors.fill: parent
+        sourceList:hzArr
+        onEnded:{
+            stop()
+            console.log("onEnded","diy")
+            mutilEnded = true
+        }
+    }
 
     ColumnLayout {
         width:parent.width

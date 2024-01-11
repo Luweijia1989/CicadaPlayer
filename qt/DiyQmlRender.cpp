@@ -145,6 +145,12 @@ void DiyQMLPlayer::play4(QVariantList urlList)
     }
 }
 
+void DiyQMLPlayer::stop()
+{
+    qInfo() << __FUNCTION__;
+    if (internal_player) internal_player->stop();
+}
+
 QString DiyQMLPlayer::sourceTag()
 {
     return m_sourceTag;

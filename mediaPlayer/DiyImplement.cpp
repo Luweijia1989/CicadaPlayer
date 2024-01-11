@@ -21,6 +21,7 @@ DiyImplement::DiyImplement()
 }
 DiyImplement ::~DiyImplement()
 {
+    AF_LOGI("Dtor");
     stop();
     delete m_render;
     delete m_decoder;
@@ -85,10 +86,13 @@ void DiyImplement::start(const std::string &path)
 
 void DiyImplement::stop()
 {
+    if (!m_started) return;
+
     m_requestStopped = true;
     if (m_videoThread.joinable()) m_videoThread.join();
 
-    avformat_free_context(m_ctx);
+    //avformat_free_context(m_ctx);
+    avformat_close_input(&m_ctx);
     m_decoder->closeDecoder();
     //m_render->clearGLSurface();
     m_vw = -1;
@@ -127,9 +131,11 @@ void DiyImplement::videoThreadInternal()
         } else {
             if (m_videoStaged == VideoPlayerStage::STAGE_FIRST_RENDER) {
                 if (m_listener.Completion) {
+                    AF_LOGI("Completion tag: %s", m_sourceTag.c_str());
                     m_listener.Completion(m_listener.userData);
 				}
 			}
+            break;
 		}
 
 		{

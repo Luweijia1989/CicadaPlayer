@@ -124,7 +124,7 @@ void SimpleEffectPlayer::stop()
     //avformat_free_context(m_ctx);
     avformat_close_input(&m_ctx);
     m_decoder->closeDecoder();
-    //m_render->clearGLSurface();
+    m_render->clearGLSurface();
     m_vw = -1;
     m_vh = -1;
 

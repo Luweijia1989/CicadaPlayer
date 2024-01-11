@@ -76,7 +76,7 @@ private:
     std::mutex m_DiyMutex;
 
 	std::string m_keyTag{""};
-    int m_keyIndex{0};
+    int m_keyIndex{1};
 	VideoPlayerStage m_videoStage{VideoPlayerStage::STAGE_IDEL};
 };
 

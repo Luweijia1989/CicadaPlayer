@@ -82,7 +82,7 @@ void DiyEffectPlayer::stop()
 
 	m_mapPath.clear();
     m_started = false;
-    m_keyIndex = 0;
+    m_keyIndex = 1;
     m_keyTag.clear();
     m_videoStage = VideoPlayerStage::STAGE_STOPED;
 }
@@ -115,7 +115,6 @@ void DiyEffectPlayer::setSurfaceSize(void *vo, int w, int h)
 void DiyEffectPlayer::renderVideo(void *vo, unsigned int fbo_id)
 {
     std::lock_guard<std::mutex> autoLock(m_DiyMutex);
-    m_keyIndex++;
     for (auto item : m_mapDiyImp) {
         item.second->renderVideo(vo, fbo_id);
     }
@@ -163,6 +162,7 @@ void DiyEffectPlayer::videoThreadInternal()
 void DiyEffectPlayer::completionCallback(void *userData)
 {
     DiyEffectPlayer *pThis = (DiyEffectPlayer *) userData;
+    AF_LOGI("completionCallback tag: %s", pThis->m_rootTag.c_str());
 
 	if (pThis->m_videoStage == VideoPlayerStage::STAGE_FIRST_RENDER) {
         if (pThis->m_listener.Completion) {
@@ -200,6 +200,7 @@ void DiyEffectPlayer::preparedRender()
 		if (m_videoStage == VideoPlayerStage::STAGE_PLAYING) {
             m_videoStage = VideoPlayerStage::STAGE_FIRST_DECODEED;
         }
+        m_keyIndex++;
 	}
 }
 
