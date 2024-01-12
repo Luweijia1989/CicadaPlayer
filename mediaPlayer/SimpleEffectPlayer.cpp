@@ -241,7 +241,7 @@ void SimpleEffectPlayer::videoThreadInternal()
                 AF_LOGI("Completion tag: %s", m_sourceTag.c_str());
                 m_videoStaged = STAGE_COMPLETED;
                 m_listener.Completion(m_listener.userData);
-                if (m_render) m_render->clearGLSurface();
+                //if (m_render) m_render->clearGLSurface();
             }
             break;
         } else {
