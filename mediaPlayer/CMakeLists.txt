@@ -119,7 +119,11 @@ set(SOURCE_FILES
         SMPMessageControllerListener.cpp
         SMPMessageControllerListener.h
 		SimpleEffectPlayer.cpp
-		SimpleEffectPlayer.h)
+		SimpleEffectPlayer.h
+        DiyEffectPlayer.cpp
+        DiyEffectPlayer.h
+        DiyImplement.cpp
+        DiyImplement.h)
 
 if(APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fobjc-arc")
@@ -261,13 +265,13 @@ endif()
 function(install_dependency target)
 add_custom_command(TARGET media_player POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy
-			"E:/opensource/CicadaPlayer/build64/cmdline/mediaPlayer.out/Debug/${target}.pdb"
-			"E:/opensource/CicadaPlayer/build64/qt/Debug/${target}.pdb"
+			"F:/workspace/utility/SimpleCicadaPlayer/build64/cmdline/mediaPlayer.out/Debug/${target}.pdb"
+			"F:/workspace/utility/SimpleCicadaPlayer/build64/qt/Debug/${target}.pdb"
 		VERBATIM)
 add_custom_command(TARGET media_player POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy
-			"E:/opensource/CicadaPlayer/build64/cmdline/mediaPlayer.out/Debug/${target}.dll"
-			"E:/opensource/CicadaPlayer/build64/qt/Debug/${target}.dll"
+			"F:/workspace/utility/SimpleCicadaPlayer/build64/cmdline/mediaPlayer.out/Debug/${target}.dll"
+			"F:/workspace/utility/SimpleCicadaPlayer/build64/qt/Debug/${target}.dll"
 		VERBATIM)
 endfunction()
 

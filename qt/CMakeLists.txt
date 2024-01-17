@@ -22,6 +22,8 @@ list(APPEND SRC_FILE
 		glwidget.h
 		qmlrender.cpp
 		qmlrender.h
+		DiyQmlRender.h
+		DiyQmlRender.cpp
         )
 
 add_executable(YppPlayer

@@ -112,6 +112,7 @@ typedef struct playerListener_t {
 
     playerType13Callback ErrorCallback;
 
+	playerType13Callback VideoDecode;
     playerType13Callback EventCallback;
     playerType13Callback MediaInfoGet;
     playerType13Callback StreamSwitchSuc;

@@ -12,7 +12,11 @@
 
 using namespace std;
 
-std::map<void *, SimpleGLRender::RenderInfo> SimpleGLRender::mRenders = {};
+std::map<RenderKey, SimpleGLRender::RenderInfo> SimpleGLRender::mRenders = {};
+std::string SimpleGLRender::referenceTag = "tag1";
+int SimpleGLRender::referenceIndex =0;
+std::condition_variable SimpleGLRender::m_cv;
+std::mutex SimpleGLRender::m_cv_mutex;
 
 SimpleGLRender::SimpleGLRender()
 {
@@ -21,12 +25,25 @@ SimpleGLRender::SimpleGLRender()
 
 SimpleGLRender::~SimpleGLRender()
 {
-	AF_LOGE("~GLRender");
+	AF_LOGE("~SimpleGLRender [%s]",m_sourceTag.c_str());
 }
 
-void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
+void SimpleGLRender::setVideoTag(const std::string &tag)
 {
-	RenderInfo &renderInfo = mRenders[vo];
+    AF_LOGI("setVideoTag : %s", tag.c_str());
+    m_sourceTag = tag;
+}
+
+void SimpleGLRender::enableHWDecoder(bool hw)
+{
+    AF_LOGI("enableHardWareDecoder %d", hw);
+    m_enableHW = hw;
+}
+
+void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, int index,unsigned int fbo_id)
+{
+    AF_LOGI("before renders referenceIndex: %d,frameIndex: %d [%s]", referenceIndex, index,m_sourceTag.c_str());
+	RenderInfo &renderInfo = mRenders[{vo,m_sourceTag}];
 	if (!frame) {
 		if (renderInfo.render) renderInfo.render->clearScreen(0);
 		return;
@@ -34,16 +51,40 @@ void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
 
 	auto vfmInfo = (video_frame_info *)frame->opaque;
 	auto vfmt = &vfmInfo->format;
+    auto frameIndex = vfmInfo->index;
+
+    //AF_LOGI("after renders index: %d [%s]", frameIndex, m_sourceTag.c_str());
+	//frame external index sync
+#if 0
+    if (referenceTag != m_sourceTag) {
+        std::unique_lock<std::mutex> lock(m_cv_mutex);
+        m_cv.wait_for(lock,15ms, [=] { return referenceIndex == index; });
+	}
+    if (referenceTag == m_sourceTag) {
+        referenceIndex = index;
+        m_cv.notify_all();
+    }
+#endif
+
 	if (!renderInfo.render) {
-		std::unique_ptr<GLRender> render = std::make_unique<GLRender>(vfmt);
-		if (render->initGL()) renderInfo.render = move(render);
+		AF_LOGI("Implement GL [%s]", m_sourceTag.c_str());
+		std::shared_ptr<GLRender> render = std::make_shared<GLRender>(vfmt);
+		if (render->initGL()) renderInfo.render = render;
+
+		if (!m_enableHW) {
+            for (auto &item : mRenders) {
+                if (!item.second.render) {
+                    item.second.render = render;
+                }
+            }
+		}
 	}
 	else {
 		if (renderInfo.render->videoFormatChanged(vfmt)) {
 			renderInfo.render.reset();
 
-			std::unique_ptr<GLRender> render = std::make_unique<GLRender>(vfmt);
-			if (render->initGL()) renderInfo.render = move(render);
+			std::shared_ptr<GLRender> render = std::make_shared<GLRender>(vfmt);
+			if (render->initGL()) renderInfo.render = render;
 		}
 	}
 
@@ -54,6 +95,8 @@ void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
 	glRender->setExternalFboId(fbo_id);
 	glRender->clearScreen(0);
 
+	//AF_LOGD("after tagName: %s,frameIndex: %d,render:%p", m_sourceTag.c_str(), frameIndex, glRender);
+
 	mMaskInfoMutex.lock();
 	int ret = glRender->displayGLFrame(mMaskVapInfo, mMode, mMaskVapData, frame, vfmInfo->index, IVideoRender::Rotate::Rotate_None, IVideoRender::Scale::Scale_AspectFit,
 		IVideoRender::Flip::Flip_None, vfmt, renderInfo.surfaceWidth, renderInfo.surfaceHeight);
@@ -62,7 +105,9 @@ void SimpleGLRender::renderVideo(void *vo, AVFrame *frame, unsigned int fbo_id)
 
 void SimpleGLRender::setVideoSurfaceSize(void *vo, int width, int height)
 {
-	RenderInfo &renderInfo = mRenders[vo];
+    AF_LOGI("setVideoSurfaceSize width: %d,height: %d [%s]", width, height, m_sourceTag.c_str());
+	RenderInfo &renderInfo = mRenders[{vo,m_sourceTag}];
+    renderInfo.sourceTag = m_sourceTag;
 	if (renderInfo.surfaceWidth == width && renderInfo.surfaceHeight == height) return;
 
 	renderInfo.surfaceWidth = width;
@@ -82,19 +127,29 @@ void SimpleGLRender::setVapInfo(const std::string &info)
 	mMaskVapInfo = info;
 }
 
-void clearGL(std::map<void *, SimpleGLRender::RenderInfo> &renders, void *vo)
+void clearGL(std::map<RenderKey, SimpleGLRender::RenderInfo> &renders, void *vo,const std::string& tag)
 {
-	SimpleGLRender::RenderInfo &renderInfo = renders[vo];
+    AF_LOGI("clearGL %s",tag.c_str());
+	SimpleGLRender::RenderInfo &renderInfo = renders[{vo,tag}];
 	renderInfo.reset();
 	renders.erase(vo);
 }
 
 void SimpleGLRender::clearGLResource(void *vo)
 {
-	clearGL(mRenders, vo);
+    AF_LOGI("clearGLResource");
+	clearGL(mRenders, vo,m_sourceTag);
 }
 
-void SimpleGLRender::foreignGLContextDestroyed(void *vo)
+void SimpleGLRender::clearGLSurface()
 {
-	clearGL(mRenders, vo);
+    AF_LOGI("clearGLSurface");
+    RenderInfo &renderInfo = mRenders[{m_sourceTag}];
+	if (renderInfo.render) renderInfo.render->clearScreen(0);
+}
+
+void SimpleGLRender::foreignGLContextDestroyed(void *vo, const std::string &tag)
+{
+    AF_LOGI("foreignGLContextDestroyed");
+	clearGL(mRenders, vo,tag);
 }

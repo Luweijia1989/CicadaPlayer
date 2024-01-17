@@ -1,5 +1,9 @@
+#define LOG_TAG "SimpleDecoder"
 #include "SimpleDecoder.h"
 #include <codec/vlc/VideoAcceleration.h>
+#include "utils/frame_work_log.h"
+
+#define FRAME_CACHE_COUNT 5
 
 int SimpleDecoder::lavc_GetFrame(struct AVCodecContext *ctx, AVFrame *frame, int flags)
 {
@@ -106,6 +110,7 @@ no_reuse:
 				continue;
 			}
 
+            AF_LOGI("Using %s for hardware decoding %s", va->description().c_str() , decoder->m_sourceTag.c_str());
 			decoder->mVA = va;
 			decoder->pix_fmt = hwfmt;
 			p_context->draw_horiz_band = NULL;
@@ -114,6 +119,7 @@ no_reuse:
 		}
 	}
 
+    AF_LOGI("Fallback to default behaviour %s", decoder->m_sourceTag.c_str());
 	((SimpleDecoder *)p_context->opaque)->getVideoFormat(p_context, swfmt, swfmt);
 	decoder->pix_fmt = swfmt;
 	return swfmt;
@@ -125,6 +131,12 @@ SimpleDecoder::SimpleDecoder()
 SimpleDecoder::~SimpleDecoder()
 {}
 
+void SimpleDecoder::setVideoTag(const std::string &tag)
+{
+    m_sourceTag = tag;
+    AF_LOGI("setVideoTag : %s", m_sourceTag.c_str());
+}
+
 void SimpleDecoder::enableHWDecoder(bool enable)
 {
 	m_useHW = enable;
@@ -132,6 +144,7 @@ void SimpleDecoder::enableHWDecoder(bool enable)
 
 bool SimpleDecoder::setupDecoder(AVCodecID id, uint8_t *extra_data, int extra_data_size)
 {
+	m_eof = false;
 	m_codec = avcodec_find_decoder(id);
 	if (!m_codec) return false;
 
@@ -141,7 +154,7 @@ bool SimpleDecoder::setupDecoder(AVCodecID id, uint8_t *extra_data, int extra_da
 	m_codecCont->get_format = ffmpeg_GetFormat;
 	m_codecCont->get_buffer2 = lavc_GetFrame;
 	m_codecCont->opaque = this;
-
+	
 	m_codecCont->thread_count = 1;
 	m_codecCont->thread_safe_callbacks = true;
 	m_codecCont->thread_type = 0;
@@ -170,9 +183,18 @@ void SimpleDecoder::closeDecoder()
 	m_codec = nullptr;
 
 	av_frame_free(&m_decodedFrame);
-	av_frame_free(&m_outputFrame);
+	{
+		std::lock_guard<std::mutex> locker(m_frameMutex);
+		for (auto frame : m_outputFrames)
+		{
+			av_frame_free(&std::get<0>(frame));
+		}
+		m_outputFrames.clear();
+	}
 
 	close_va_decoder();
+
+	m_nCount = 0;
 }
 
 void SimpleDecoder::close_va_decoder()
@@ -354,15 +376,27 @@ int SimpleDecoder::getVideoFormat(AVCodecContext *ctx, enum AVPixelFormat pix_fm
 
 int SimpleDecoder::sendPkt(AVPacket *pkt)
 {
-	auto ret = avcodec_send_packet(m_codecCont, pkt);
+    m_nCount++;
+    auto ret = avcodec_send_packet(m_codecCont, pkt);
+    //AF_LOGI("sendPkt nCount:%d,ret: %d  [%s]", m_nCount, ret, m_sourceTag.c_str());
 	av_packet_free(&pkt);
 	return ret;
 }
 
-void SimpleDecoder::renderFrame(std::function<void(void*, AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id)
+int SimpleDecoder::renderFrame(std::function<void(void*, int frameIndex,AVFrame *, unsigned int)> cb, void *vo, unsigned int fbo_id)
 {
 	std::lock_guard<std::mutex> locker(m_frameMutex);
-	cb(vo, m_outputFrame, fbo_id);
+    if (m_outputFrames.empty()) {
+        cb(vo, 0, nullptr, 0);
+        return 0;
+	}
+
+	auto frame = m_outputFrames.front();
+    cb(vo, std::get<1>(frame),std::get<0>(frame), fbo_id);
+	av_frame_free(&std::get<0>(frame));
+	m_outputFrames.pop_front();
+    //AF_LOGI("renderFrame outFrames: %d [%s]", m_outputFrames.size(),m_sourceTag.c_str());
+    return m_outputFrames.size();
 }
 
 int SimpleDecoder::getDecodedFrame()
@@ -370,10 +404,15 @@ int SimpleDecoder::getDecodedFrame()
 	int ret = avcodec_receive_frame(m_codecCont, m_decodedFrame);
 	if (ret < 0) {
 		if (ret == AVERROR_EOF) {
-			std::lock_guard<std::mutex> locker(m_frameMutex);
-			av_frame_free(&m_outputFrame);
+			m_eof = true;
 			avcodec_flush_buffers(m_codecCont);
+
+			if (!m_outputFrames.empty())
+				return 0;
 		}
+		else if (ret == AVERROR(EAGAIN) && m_eof)
+			return AVERROR_EOF;
+
 		return ret;
 	}
 
@@ -381,12 +420,25 @@ int SimpleDecoder::getDecodedFrame()
 		return ret;
 
 	{
-		std::lock_guard<std::mutex> locker(m_frameMutex);
+        std::lock_guard<std::mutex> locker(m_frameMutex);
+        auto frame = av_frame_clone(m_decodedFrame);
+        m_frameInfo.index = ++m_currentFrameIndex;
+        frame->opaque = &m_frameInfo;
 
-		av_frame_free(&m_outputFrame);
-		m_outputFrame = av_frame_clone(m_decodedFrame);
-		m_frameInfo.index = m_currentFrameIndex++;
-		m_outputFrame->opaque = &m_frameInfo;
+        if (m_outputFrames.size() == FRAME_CACHE_COUNT) {
+            auto frame = m_outputFrames.front();
+            av_frame_free(&std::get<0>(frame));
+            m_outputFrames.pop_front();
+            AF_LOGI("pop old video data [%s]",m_sourceTag.c_str());
+		}
+        m_outputFrames.push_back({frame, m_frameInfo.index});
+
+       // AF_LOGI("getDecodedFrame outFrames: %d [%s]", m_outputFrames.size(),m_sourceTag.c_str());
 	}
-	return ret;
+
+	//if (m_outputFrames.size() > FRAME_CACHE_COUNT)
+	//	return AVERROR(EAGAIN);
+	//else
+	//	return ret;
+    return ret;
 }

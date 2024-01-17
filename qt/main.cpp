@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     player->SetDataSource("http://player.alicdn.com/video/aliyunmedia.mp4");
     //player->SetDataSource("E:\\vap1.mp4");
     //player->SetDataSource("E:\\test.mp4");
-	player->EnableHardwareDecoder(true);
+    player->EnableHardwareDecoder(true);
     player->SetAutoPlay(true);
     player->SetLoop(true);
     player->SetIPResolveType(IpResolveWhatEver);
@@ -59,29 +59,22 @@ int main(int argc, char *argv[])
     });
     btn.show();
 
-	QPushButton btn1("play");
-    QObject::connect(&btn1, &QPushButton::clicked, [=]() {
-        player->Prepare();
-    });
+    QPushButton btn1("play");
+    QObject::connect(&btn1, &QPushButton::clicked, [=]() { player->Prepare(); });
     btn1.show();
 
 
-
-
-
-	auto player1 = std::shared_ptr<MediaPlayer>(new MediaPlayer());
+    auto player1 = std::shared_ptr<MediaPlayer>(new MediaPlayer());
     player1->SetDataSource("C:\\Users\\posat\\Desktop\\vap1.mp4");
-	player1->EnableHardwareDecoder(true);
+    player1->EnableHardwareDecoder(true);
     player1->SetAutoPlay(true);
     player1->SetLoop(true);
 
-	QPushButton btn2("play2");
-    QObject::connect(&btn2, &QPushButton::clicked, [=]() {
-        player1->Prepare();
-    });
+    QPushButton btn2("play2");
+    QObject::connect(&btn2, &QPushButton::clicked, [=]() { player1->Prepare(); });
     btn2.show();
 
-	QPushButton btn3("new one2");
+    QPushButton btn3("new one2");
     QObject::connect(&btn3, &QPushButton::clicked, [=]() {
         OpenGLWidget *w = new OpenGLWidget(player1);
         w->resize(640, 480);
@@ -89,10 +82,8 @@ int main(int argc, char *argv[])
     });
     btn3.show();
 
-	QPushButton btn4("quit");
-    QObject::connect(&btn4, &QPushButton::clicked, [=]() {
-        qApp->quit();
-    });
+    QPushButton btn4("quit");
+    QObject::connect(&btn4, &QPushButton::clicked, [=]() { qApp->quit(); });
     btn4.show();
 
     //QTimer t;
@@ -135,19 +126,25 @@ int main(int argc, char *argv[])
 #else
 
 #include "qmlrender.h"
+#include "DiyQmlRender.h"
 #include <QQmlApplicationEngine>
-#include <qquickview.h>
 #include <QQuickWidget>
+#include <qquickview.h>
 QQuickView *view = nullptr;
 int main(int argc, char *argv[])
 {
-	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     //qputenv("QSG_RENDER_LOOP", "basic");
     QApplication app(argc, argv);
 
+    qputenv("QT_DEBUG_PLUGINS", "1");
+    qputenv("QML_IMPORT_TRACE", "1");
+
     qmlRegisterType<QMLPlayer>("MDKPlayer", 1, 0, "MDKPlayer");
+    qmlRegisterType<SimpleQMLPlayer>("SimplePlayer", 1, 0, "SimplePlayer");
+    qmlRegisterType<DiyQMLPlayer>("DiyPlayer", 1, 0, "DiyPlayer");
 
     //QTimer t;
     //QObject::connect(&t, &QTimer::timeout, [=]() {
@@ -160,15 +157,15 @@ int main(int argc, char *argv[])
     //});
     //t.start(300);
 
-	QQuickWidget m_renderWidget;
-	//m_renderWidget->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowTransparentForInput | Qt::WindowStaysOnTopHint | Qt::ToolTip);
-    m_renderWidget.setAttribute(Qt::WA_TranslucentBackground);    //…Ë÷√±≥æ∞Õ∏√˜
+    QQuickWidget m_renderWidget;
+    //m_renderWidget->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowTransparentForInput | Qt::WindowStaysOnTopHint | Qt::ToolTip);
+    m_renderWidget.setAttribute(Qt::WA_TranslucentBackground);//…Ë÷√±≥æ∞Õ∏√˜
     m_renderWidget.setAttribute(Qt::WA_ShowWithoutActivating);
     m_renderWidget.setClearColor(Qt::transparent);
-	m_renderWidget.setResizeMode(QQuickWidget::SizeRootObjectToView);
+    m_renderWidget.setResizeMode(QQuickWidget::SizeRootObjectToView);
 
     m_renderWidget.setSource(QUrl("qrc:/qmdkqmlplay.qml"));
-	m_renderWidget.show();
+    m_renderWidget.show();
     /*QQuickView v;
     v.setResizeMode(QQuickView::SizeRootObjectToView);
     v.setSource(QUrl("qrc:/qmdkqmlplay.qml"));

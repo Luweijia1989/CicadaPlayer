@@ -53,9 +53,36 @@ import QtQuick 2.0
 import QtQuick.Window 2.2
 import MDKPlayer 1.0
 import SimplePlayer 1.0
+import DiyPlayer 1.0
 import QtQuick.Controls 2.14
+import QtQuick.Layouts 1.14
 
 Item {
+
+    property var hz1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy01.mp4"
+    property var hz2 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy02.mp4"
+    property var hz3 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy03.mp4"
+    property var hz4 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\diy04.mp4"
+
+
+    property var hlqk1 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_base01.mp4"
+    property var hlqk2 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_gender02.mp4"
+    property var hlqk3 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_caidai03.mp4"
+    property var hlqk4 : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\crf_huoyan04.mp4"
+
+    property var hlqkTemp : "F:\\dingtalk\\飞麦&拼装DIY_提交文件\\飞麦&拼装DIY_提交文件\\拼装DIY测试提交\\hlqk_base_temp.mp4"
+
+    property var hlqkArr:[hlqk1,hlqk2,"",""]
+    property var hzArr:[hz1,hz2]
+    property var chooseModel : hzArr
+
+    property var temp1 : hz1
+    property var temp2 : hz2
+
+    property bool mutilEnded: false
+
+    width: 320
+    height: 480
 
     visible: true
 
@@ -68,26 +95,233 @@ Item {
 //        }
 //    }
 
-    SimplePlayer {
-        id: player
+//   Rectangle {
+//         id:test
+//         anchors.fill: parent
+//         color: "black"
+
+//         Row{
+//             anchors.fill: parent
+//             spacing: -test.width
+//             clip: true
+//             Repeater{
+//                 model: 3
+//                 delegate:Rectangle{
+//                     color:{
+//                         return "transparent"
+//                     }
+//                     border.width: {
+//                         return 3 - index
+//                     }
+//                     border.color: {
+//                         if(index === 0) {
+//                             return "red"
+//                         } else if(index ===1) {
+//                             return "yellow"
+//                         } else if(index ===2) {
+//                             return "white"
+//                         }
+//                     }
+
+//                     height: test.height
+//                     width: test.width
+//                     Text {
+//                         anchors.top: parent.top
+//                         anchors.topMargin: 100 * index
+//                         anchors.horizontalCenter: parent.horizontalCenter
+//                         text: index
+//                         color: "white"
+//                     }
+//                 }
+//             }
+//         }
+//     }
+
+    
+    // Row{
+    //     anchors.fill: parent
+    //     spacing: -320
+    //     clip: true
+    //     Repeater{
+    //         model: chooseModel.length
+    //         delegate:SimplePlayer{
+    //             height: 480
+    //             width: 320
+    //             visible: !mutilEnded
+    //             sourceTag:"tag" + (index + 1)
+    //             sourceUrl: chooseModel[index]
+    //             onEnded:{
+    //                 console.log("onEnded",sourceTag)
+    //                 mutilEnded = true
+    //             }
+    //         }
+    //     }
+    // }
+
+    /*
+    Repeater{
+        model: 4//chooseModel.length
+        delegate:SimplePlayer{
+            height: 480
+            width: 320
+            visible: !mutilEnded
+            sourceTag:"tag" + (index + 1)
+            sourceUrl: chooseModel[index]
+            // Component.onCompleted: {
+            //     if(index === 0 ){
+            //         play3(chooseModel[index])
+            //     } else if(index ===1){
+            //         play3(chooseModel[index])
+            //     }
+            // }
+            onSourceUrlChanged:{
+                //play3(sourceUrl)
+            }
+            onEnded:{
+                console.log("onEnded",sourceTag)
+                mutilEnded = true
+            }
+        }
+    }
+
+    MouseArea {
         anchors.fill: parent
-    }
-
-    Button {
-        text: "play1"
-        anchors.centerIn: parent
+        acceptedButtons: Qt.LeftButton
         onClicked: {
-            player.play1()
+            if (mouse.button === Qt.LeftButton) {
+                console.log("click event trrigled")
+                if(chooseModel == hlqkArr) {
+                    chooseModel = hzArr
+                } else {
+                    chooseModel = hlqkArr
+                }
+
+                temp1 = hlqk1
+                temp2 = hlqk2
+            }
+        }
+    }
+    */
+    
+    SimplePlayer {
+        id:player1
+        visible: !mutilEnded
+        sourceTag:"tag11"
+        anchors.fill: parent
+        onEnded:{
+            stop()
+            console.log("onEnded","tag11")
+            mutilEnded = true
         }
     }
 
-    Button {
-        text: "play2"
-        onClicked: {
-            player.play2()
+    SimplePlayer {
+        id:player2
+        visible: !mutilEnded
+        sourceTag:"tag12"
+        anchors.fill: parent
+        onEnded:{
+            stop()
+            console.log("onEnded","tag12")
+            mutilEnded = true
         }
     }
 
+    SimplePlayer {
+        id:player3
+        visible: !mutilEnded
+        sourceTag:"tag13"
+        anchors.fill: parent
+        onEnded:{
+            stop()
+            console.log("onEnded","tag13")
+            mutilEnded = true
+        }
+    }
+
+    SimplePlayer {
+        id:player4
+        visible: !mutilEnded
+        sourceTag:"tag14"
+        anchors.fill: parent
+        onEnded:{
+            stop()
+            console.log("onEnded","tag14")
+            mutilEnded = true
+        }
+    }
+
+    DiyPlayer{
+        id:diy
+        visible: !mutilEnded
+        sourceTag:"diy"
+        anchors.fill: parent
+        sourceList:hzArr
+        onEnded:{
+            stop()
+            console.log("onEnded","diy")
+            mutilEnded = true
+        }
+    }
+
+    ColumnLayout {
+        width:parent.width
+        height:parent.height
+        spacing:10
+        Button {
+            text: "vapbtn"
+            onClicked: {
+                player1.play1()
+            }
+        }
+
+        Button {
+            text: "mutilRes"
+            onClicked: {
+                mutilEnded = false
+                player1.play3(hlqk1)
+                player2.play3(hlqk2)
+                player3.play3(hlqk3)
+                player4.play3(hlqk4)
+                
+            }
+        }
+        
+        Button {
+            text: "swtich1"
+            onClicked: {
+                mutilEnded = false  
+                player1.play3(hlqk1)
+                player2.play3(hlqk2)
+                player3.play3(hlqk3)
+                player4.play3(hlqk4)
+            }
+        }
+
+        Button {
+            text: "swtich2"
+            onClicked: {
+                mutilEnded = false
+                player1.play3(hlqk1)
+                player2.play3(hlqk2)
+                player3.play3(hlqk3)
+                player4.play3(hlqk4)
+            }
+        }
+        Button {
+            text: "diyEntry"
+            onClicked: {
+                mutilEnded = false
+                diy.play4(hzArr)
+                // player2.play3(hz2)
+                // player3.play3(hz3)
+                // player4.play3(hz4)
+            }
+        }
+        Item {
+            Layout.fillHeight:true
+        }
+    }
 
 //    Rectangle {
 //        id: rec

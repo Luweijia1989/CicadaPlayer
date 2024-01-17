@@ -123,8 +123,11 @@ void QMLPlayer::seektobegin()
 
 class SimpleVideoRendererInternal : public QQuickFramebufferObject::Renderer {
 public:
-    SimpleVideoRendererInternal(const std::shared_ptr<SimpleEffectPlayer> &p, void *vo) : player(p), m_vo(vo)
-    {}
+    SimpleVideoRendererInternal(const std::shared_ptr<SimpleEffectPlayer> &p, void *vo, QString videoTag)
+        : player(p), m_vo(vo), m_videoTag(videoTag)
+    {
+        qInfo() << __FUNCTION__;
+    }
 
     ~SimpleVideoRendererInternal()
     {
@@ -132,7 +135,7 @@ public:
         if (p)
             p->clearGLResource(m_vo);
         else
-            SimpleEffectPlayer::foreignGLContextDestroyed(m_vo);
+            SimpleEffectPlayer::foreignGLContextDestroyed(m_vo,m_videoTag.toStdString());
     }
 
     void render() override
@@ -145,6 +148,7 @@ public:
 
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size) override
     {
+        qInfo() << __FUNCTION__;
         auto p = player.lock();
         if (p) p->setSurfaceSize(m_vo, size.width(), size.height());
         QOpenGLFramebufferObjectFormat format;
@@ -158,6 +162,7 @@ public:
     uint fbo_id = -1;
     std::weak_ptr<SimpleEffectPlayer> player;
     void *m_vo;
+    QString m_videoTag;
 };
 
 SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
@@ -165,11 +170,35 @@ SimpleQMLPlayer::SimpleQMLPlayer(QQuickItem *parent)
 {
     setMirrorVertically(true);
 
-    internal_player->setSmoothLoop(true);
-    internal_player->EnableHardwareDecoder(true);
-    internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
-    //internal_player->start("C:\\Users\\luweijia\\Desktop\\aework\\output-2.mp4");
-    //internal_player->start("D:\\big_buck_bunny.mp4");
+    connect(this, &SimpleQMLPlayer::sourceTagChanged, this, [=]() {
+        //qInfo() << "sourceTagChanged" << m_sourceTag;
+        if (internal_player) {
+            internal_player->setSourceTag(m_sourceTag.toStdString());
+
+            playerListener pListener{nullptr};
+            pListener.userData = this;
+            pListener.VideoSizeChanged = onVideoSize;
+            pListener.Completion = onEOS;
+            pListener.FirstFrameShow = onFirstFrame;
+            internal_player->SetListener(pListener);
+
+            internal_player->setSmoothLoop(false);
+            internal_player->EnableHardwareDecoder(true);
+            internal_player->setRenderCallback([this](void *) { QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection); }, this);
+        }
+    });
+
+    connect(this, &SimpleQMLPlayer::sourceUrlChanged, this, [=]() {
+        qInfo() << "sourceUrlChanged" << m_sourceUrl;
+        return;
+        QTimer::singleShot(100, this, [=]() {
+            qInfo() << "start render special videofile" << m_sourceUrl;
+            if (internal_player && m_sourceUrl.length()) {
+                internal_player->stop();
+                internal_player->start(m_sourceUrl.toStdString());
+            }
+        });
+    });
 }
 
 SimpleQMLPlayer::~SimpleQMLPlayer()
@@ -179,7 +208,7 @@ SimpleQMLPlayer::~SimpleQMLPlayer()
 
 QQuickFramebufferObject::Renderer *SimpleQMLPlayer::createRenderer() const
 {
-    return new SimpleVideoRendererInternal(internal_player, (void *) this);
+    return new SimpleVideoRendererInternal(internal_player, (void *) this,m_sourceTag);
 }
 
 void SimpleQMLPlayer::play1()
@@ -194,5 +223,66 @@ void SimpleQMLPlayer::play1()
 void SimpleQMLPlayer::play2()
 {
     internal_player->stop();
-    internal_player->start("D:\\crf_compose.mp4");
+    internal_player->start("F:\\workspace\\avsolution\\screen-recorder\\x64\\Debug_DLL\\hlqk\\output\\crf_compose.mp4");
+}
+
+void SimpleQMLPlayer::play3(QString path)
+{
+    qInfo() << __FUNCTION__ << path;
+    QFile file(path);
+    if (file.exists()) {
+        internal_player->stop();
+        internal_player->start(path.toStdString());
+    } else {
+        qInfo() << "file not exist";
+    }
+}
+
+void SimpleQMLPlayer::stop()
+{
+    qInfo() << __FUNCTION__;
+    internal_player->stop();
+}
+
+QString SimpleQMLPlayer::sourceTag()
+{
+    return m_sourceTag;
+}
+
+void SimpleQMLPlayer::setSourceTag(const QString &tag)
+{
+    if (m_sourceTag != tag) {
+        m_sourceTag = tag;
+        sourceTagChanged();
+    }
+}
+
+QString SimpleQMLPlayer::sourceUrl()
+{
+    return m_sourceUrl;
+}
+void SimpleQMLPlayer::setSourceUrl(const QString &url)
+{
+    qInfo() << __FUNCTION__ << url;
+    if (m_sourceUrl != url) {
+        m_sourceUrl = url;
+        sourceUrlChanged();
+    }
+}
+
+void SimpleQMLPlayer::onVideoSize(int64_t width, int64_t height, void *userData)
+{
+    qInfo() << __FUNCTION__ << width << height << userData;
+}
+void SimpleQMLPlayer::onEOS(void *userData)
+{
+    qInfo() << __FUNCTION__ << userData;
+    if (userData) {
+        SimpleQMLPlayer *p = (SimpleQMLPlayer *) userData;
+        emit p->ended();
+    }
+}
+void SimpleQMLPlayer::onFirstFrame(void *userData)
+{
+    qInfo() << __FUNCTION__ << userData;
 }
