@@ -248,7 +248,7 @@ void SimpleEffectPlayer::videoThreadInternal()
             //wait render finish or timeout
             //AF_LOGI("render finished before");
             std::unique_lock<std::mutex> lock(m_waitMutex);
-            m_waitVar.wait_for(lock, frameCount.load() == 1 ? 60ms : 20ms, [=] { return m_rendered.load(); });
+            m_waitVar.wait_for(lock, frameCount.load() == 1 ? 500ms : 20ms, [=] { return m_rendered.load(); });
             //AF_LOGI("render finished after");
         }
 

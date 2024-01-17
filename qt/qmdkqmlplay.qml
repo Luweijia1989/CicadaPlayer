@@ -303,9 +303,9 @@ Item {
             onClicked: {
                 mutilEnded = false
                 player1.play3(hlqk1)
-                // player2.play3(hz2)
-                // player3.play3(hz3)
-                // player4.play3(hz4)
+                player2.play3(hlqk2)
+                player3.play3(hlqk3)
+                player4.play3(hlqk4)
             }
         }
         Button {
